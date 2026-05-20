@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Plano de treino com imagens detalhadas de exercícios para cada dia da semana.">
+<meta name="theme-color" content="#0b1220">
+<title>Plano de Treino</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+  background: linear-gradient(135deg, #0b1220 0%, #111827 100%);
+  color: #fff;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+header {
+  padding: 20px 16px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(10px);
+  border-bottom: 2px solid #ef4444;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  background: rgba(15, 23, 42, 0.9);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabs::-webkit-scrollbar {
+  height: 3px;
+}
+
+.tabs::-webkit-scrollbar-thumb {
+  background: #ef4444;
+  border-radius: 3px;
+}
+
+.tab {
+  padding: 14px 16px;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+  border-bottom: 2px solid transparent;
+  font-weight: 500;
+}
+
+.tab:hover {
+  opacity: 0.8;
+}
+
+.tab.active {
+  opacity: 1;
+  border-bottom-color: #ef4444;
+  color: #ef4444;
+}
+
+.container {
+  padding: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.card {
+  background: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.1);
+}
+
+.title {
+  padding: 16px;
+  font-weight: 700;
+  font-size: 16px;
+  color: #fff;
+}
+
+.slider-wrapper {
+  position: relative;
+  width: 100%;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 12px;
+  width: calc(100% - 24px);
+}
+
+.slider {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  user-select: none;
+}
+
+.slides {
+  display: flex;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100%;
+}
+
+.slides.dragging {
+  transition: none;
+}
+
+.slide {
+  flex: 0 0 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a1a;
+  position: relative;
+  overflow: hidden;
+}
+
+.slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.slide.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(239, 68, 68, 0.2);
+  border-top-color: #ef4444;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.indicators {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.indicator.active {
+  width: 24px;
+  background: #ef4444;
+  border-radius: 3px;
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  gap: 8px;
+}
+
+.btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border: none;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  max-width: 60px;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.counter {
+  font-size: 12px;
+  opacity: 0.7;
+  font-weight: 500;
+  flex: 1;
+  text-align: center;
+}
+
+.meta {
+  padding: 0 16px 16px;
+  font-size: 13px;
+  opacity: 0.8;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  header {
+    font-size: 20px;
+    padding: 16px 12px;
+  }
+
+  .tab {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  .container {
+    padding: 12px;
+  }
+
+  .card {
+    margin-bottom: 16px;
+  }
+
+  .title {
+    padding: 14px;
+    font-size: 15px;
+  }
+
+  .slider-wrapper {
+    margin: 10px;
+    width: calc(100% - 20px);
+  }
+
+  .slider {
+    aspect-ratio: 16 / 12;
+  }
+}
+
+@media (min-width: 769px) {
+  .container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+  }
+
+  .card {
+    margin-bottom: 0;
+  }
+
+  .slider {
+    aspect-ratio: 3 / 4;
+  }
+}
+
+/* Touch feedback */
+@supports (backdrop-filter: blur(10px)) {
+  .card {
+    background: rgba(17, 24, 39, 0.4);
+  }
+}
+</style>
+
+</head>
+
+<body>
+
+<header>💪 Plano de Treino</header>
+
+<div class="tabs" id="tabs"></div>
+<div class="container" id="content"></div>
+
+<script>
+
+const data = {
+  "Segunda": [
+    { name: "Supino reto", series: 4, reps: "6-10", images: ["/images/segunda/img1.jpg", "/images/segunda/img2.jpg", "/images/segunda/img4.jpg", "/images/segunda/img3.jpg", "/images/segunda/img5.jpg", "/images/segunda/img6.jpg"] },
+    { name: "Supino inclinado", series: 3, reps: "8-12", images: ["/images/segunda/imgsi1.jpg", "/images/segunda/imgsi2.jpg", "/images/segunda/imgsi3.jpg"] },
+    { name: "Crucifixo", series: 3, reps: "10-12", images: ["/images/segunda/imgcru1.jpg", "/images/segunda/imgcru2.jpg", "/images/segunda/imgcru3.jpg"] },
+    { name: "Paralelas", series: 3, reps: "8-12", images: ["/images/segunda/imgpar1.jpg", "/images/segunda/imgpar2.jpg"] },
+    { name: "Tríceps corda", series: 3, reps: "10-15", images: ["/images/segunda/imgtric1.jpg"] },
+    { name: "Tríceps testa", series: 3, reps: "10-12", images: ["/images/segunda/imgtrit1.jpg"] }
+  ],
+  "Terça": [
+    { name: "Puxada frente", series: 4, reps: "8-12", images: ["/images/terca/imgpux1.jpg"] },
+    { name: "Remada", series: 3, reps: "8-12", images: ["/images/terca/imgrem1.jpg"] },
+    { name: "Remada unilateral", series: 3, reps: "10-12", images: ["/images/terca/imgremu1.jpg"] },
+    { name: "Pulldown", series: 3, reps: "10-12", images: ["/images/terca/imgpull1.jpg"] },
+    { name: "Rosca direta", series: 3, reps: "8-12", images: ["/images/terca/imgrosc1.jpg"] },
+    { name: "Rosca alternada", series: 3, reps: "10-12", images: ["/images/terca/imgrosca1.jpg"] }
+  ],
+  "Quarta": [
+    { name: "Agachamento", series: 4, reps: "6-10", images: ["/images/quarta/imgagac1.jpg", "/images/quarta/imgagac2.jpg"] },
+    { name: "Leg press", series: 4, reps: "10-12", images: ["/images/quarta/imglegp1.jpg"] },
+    { name: "Stiff", series: 3, reps: "8-12", images: ["/images/quarta/imgsti1.jpg"] },
+    { name: "Mesa flexora", series: 3, reps: "10-15", images: ["/images/quarta/imgmesa1.jpg"] },
+    { name: "Cadeira extensora", series: 3, reps: "12-15", images: ["/images/quarta/imgcade1.jpg"] },
+    { name: "Panturrilha", series: 4, reps: "12-20", images: ["/images/quarta/imgpantu1.jpg"] }
+  ],
+  "Quinta": [
+    { name: "Desenvolvimento", series: 4, reps: "8-12", images: ["/images/quinta/imgdes1.jpg"] },
+    { name: "Elevação lateral", series: 4, reps: "12-15", images: ["/images/quinta/imgelv1.jpg"] },
+    { name: "Posterior ombro", series: 3, reps: "12-15", images: ["/images/quinta/imgposto1.jpg"] },
+    { name: "Face pull", series: 3, reps: "12-15", images: ["/images/quinta/imgface1.jpg"] },
+    { name: "Prancha", series: 3, reps: "30-60s", images: ["/images/quinta/imgpranc1.jpg"] },
+    { name: "Abdominal", series: 3, reps: "12-20", images: ["/images/quinta/imgabd1.jpg"] }
+  ],
+  "Sexta": [
+    { name: "Levantamento terra", series: 3, reps: "5-8", images: ["/images/sexta/imglevt1.jpg"] },
+    { name: "Supino", series: 3, reps: "8-12", images: ["/images/sexta/imgsup1.jpg"] },
+    { name: "Puxada alta", series: 3, reps: "8-12", images: ["/images/sexta/imgpuxa1.jpg"] },
+    { name: "Agachamento goblet", series: 3, reps: "10-12", images: ["/images/sexta/imgagacg1.jpg"] },
+    { name: "Elevação lateral", series: 3, reps: "12-15", images: ["/images/sexta/imgelvel1.jpg"] },
+    { name: "Braços", series: 3, reps: "10-15", images: ["/images/sexta/imgbra1.jpg"] }
+  ],
+  "Sábado": [
+    { name: "Cardio leve", series: "-", reps: "20-30 min", images: ["/images/sabado/imgcard1.jpg"] },
+    { name: "Core", series: 3, reps: "12-20", images: ["/images/sabado/imgcore1.jpg"] }
+  ],
+  "Domingo": [
+    { name: "Descanso ativo", series: "-", reps: "Mobilidade", images: ["/images/domingo/imgabd1.jpg"] }
+  ]
+};
+
+const tabs = document.getElementById("tabs");
+const content = document.getElementById("content");
+let currentIndex = {};
+let touchStartX = {};
+let touchEndX = {};
+
+Object.keys(data).forEach((day, i) => {
+  const t = document.createElement("div");
+  t.className = "tab" + (i === 0 ? " active" : "");
+  t.innerText = day;
+  t.onclick = () => render(day, t);
+  tabs.appendChild(t);
+});
+
+function render(day, el) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  if (el) el.classList.add("active");
+
+  content.innerHTML = "";
+
+  data[day].forEach((ex, exIdx) => {
+    currentIndex[exIdx] = 0;
+
+    const div = document.createElement("div");
+    div.className = "card";
+
+    const indicatorsHtml = ex.images.length > 1 
+      ? `<div class="indicators" id="indicators-${exIdx}">
+           ${ex.images.map((_, i) => `<div class="indicator${i === 0 ? ' active' : ''}" onclick="goToSlide(${exIdx}, ${i})"></div>`).join('')}
+         </div>`
+      : '';
+
+    div.innerHTML = `
+      <div class="title">${ex.name}</div>
+
+      <div class="slider-wrapper">
+        <div class="slider" id="slider-${exIdx}">
+          <div class="slides" id="slides-${exIdx}">
+            ${ex.images.map(img => `<div class="slide"><img src="${img}" alt="Exercício"></div>`).join("")}
+          </div>
+        </div>
+        ${indicatorsHtml}
+      </div>
+
+      <div class="controls">
+        <button class="btn" onclick="prev(${exIdx})">← Prev</button>
+        <span class="counter" id="counter-${exIdx}">1 / ${ex.images.length}</span>
+        <button class="btn" onclick="next(${exIdx})">Next →</button>
+      </div>
+
+      <div class="meta">
+        <div class="meta-item">📊 Séries: <strong>${ex.series}</strong></div>
+        <div class="meta-item">🔢 Reps: <strong>${ex.reps}</strong></div>
+      </div>
+    `;
+
+    content.appendChild(div);
+
+    // Adicionar touch events
+    const slider = document.getElementById("slider-" + exIdx);
+    touchStartX[exIdx] = 0;
+    touchEndX[exIdx] = 0;
+
+    slider.addEventListener('touchstart', (e) => {
+      touchStartX[exIdx] = e.changedTouches[0].screenX;
+    }, false);
+
+    slider.addEventListener('touchend', (e) => {
+      touchEndX[exIdx] = e.changedTouches[0].screenX;
+      handleSwipe(exIdx);
+    }, false);
+
+    slider.addEventListener('mousedown', (e) => {
+      touchStartX[exIdx] = e.screenX;
+    });
+
+    slider.addEventListener('mouseup', (e) => {
+      touchEndX[exIdx] = e.screenX;
+      handleSwipe(exIdx);
+    });
+  });
+}
+
+function handleSwipe(exIdx) {
+  const diff = touchStartX[exIdx] - touchEndX[exIdx];
+  const threshold = 50;
+
+  if (Math.abs(diff) > threshold) {
+    if (diff > 0) {
+      next(exIdx);
+    } else {
+      prev(exIdx);
+    }
+  }
+}
+
+function update(exIdx) {
+  const el = document.getElementById("slides-" + exIdx);
+  const total = el.children.length;
+  el.style.transform = `translateX(-${currentIndex[exIdx] * 100}%)`;
+
+  // Atualizar indicadores
+  const indicators = document.querySelectorAll(`#indicators-${exIdx} .indicator`);
+  indicators.forEach((ind, i) => {
+    ind.classList.toggle('active', i === currentIndex[exIdx]);
+  });
+
+  // Atualizar contador
+  const counter = document.getElementById("counter-" + exIdx);
+  if (counter) {
+    counter.textContent = `${currentIndex[exIdx] + 1} / ${total}`;
+  }
+}
+
+function next(exIdx) {
+  const el = document.getElementById("slides-" + exIdx);
+  const total = el.children.length;
+  currentIndex[exIdx] = (currentIndex[exIdx] + 1) % total;
+  update(exIdx);
+}
+
+function prev(exIdx) {
+  const el = document.getElementById("slides-" + exIdx);
+  const total = el.children.length;
+  currentIndex[exIdx] = (currentIndex[exIdx] - 1 + total) % total;
+  update(exIdx);
+}
+
+function goToSlide(exIdx, slideIdx) {
+  currentIndex[exIdx] = slideIdx;
+  update(exIdx);
+}
+
+render("Segunda");
+
+</script>
+
+</body>
+</html>

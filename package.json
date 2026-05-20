@@ -1,0 +1,26 @@
+{
+  "name": "mytraining",
+  "version": "1.0.0",
+  "description": "Landing page de plano de treino com imagens de exercícios",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -p 8000 -o",
+    "build": "echo 'No build needed - static site'",
+    "deploy": "echo 'Push to GitHub to deploy to GitHub Pages'"
+  },
+  "keywords": [
+    "treino",
+    "exercícios",
+    "fitness",
+    "landing-page"
+  ],
+  "author": "Seu Nome",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seu-username/myTraining.git"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

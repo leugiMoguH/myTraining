@@ -19,7 +19,7 @@ Everything lives in a single `index.html` file — CSS in `<style>`, data and lo
 ```js
 { name: string, series: number|"-", reps: string, images: string[] }
 ```
-Image paths are relative to the server root: `/images/<day>/<filename>.jpg`.
+Image paths are **relative** (no leading `/`): `images/<day>/<filename>.jpg`. Absolute paths break on GitHub Pages project subpath.
 
 **Rendering** (`render(day, el)`): wipes `#content`, loops over the day's exercises, injects HTML cards with image sliders. Slider state (`currentIndex`, `touchStartX`, `touchEndX`) is keyed by exercise index within the current day — indices reset on every tab switch.
 
@@ -29,7 +29,7 @@ Image paths are relative to the server root: `/images/<day>/<filename>.jpg`.
 
 ## Images
 
-Stored under `images/<day>/` (e.g. `images/segunda/img1.jpg`). Image paths are hardcoded in the `data` object. Helper scripts in repo root (`download_images.py`, `auto_download_final.py`, etc.) assist with bulk downloading exercise images.
+Stored under `images/<day>/` (e.g. `images/segunda/img1.jpg`). Image paths are hardcoded in the `data` object. Run `python fetch_images.py` to bulk-download all exercise images from musclewiki.com (no API key needed, ~43 images).
 
 ## Adding or Changing Exercises
 

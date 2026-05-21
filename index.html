@@ -111,6 +111,14 @@ body {
   font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.15s;
 }
 .hdr-timer-btn:hover { background: rgba(239,68,68,0.2); }
+.hdr-timer-row { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.hdr-timer-adj {
+  width: 30px; height: 36px; border-radius: var(--r-sm);
+  background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.2);
+  color: var(--accent); font-size: 16px; font-weight: 700;
+  cursor: pointer; transition: background 0.15s; display: flex; align-items: center; justify-content: center;
+}
+.hdr-timer-adj:hover { background: rgba(239,68,68,0.18); }
 .prog-bar  { height: 2px; background: var(--border); margin: 0 -20px; }
 .prog-fill {
   height: 100%; border-radius: 2px;
@@ -277,6 +285,14 @@ body {
   font-size: 12px; color: var(--muted); line-height: 1.55;
 }
 
+/* alternative exercise */
+.card-alt {
+  font-size: 12px; color: var(--muted); line-height: 1.5;
+  padding: 8px 11px; border-radius: var(--r-sm);
+  background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.12);
+}
+.card-alt strong { color: rgba(241,245,249,0.65); font-weight: 600; }
+
 /* action buttons */
 .card-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 2px; }
 .act-btn {
@@ -311,11 +327,11 @@ body {
         <circle class="t-ring-fill" id="tRingFill" cx="24" cy="24" r="22" fill="none" stroke-width="4"
                 stroke-linecap="round"/>
       </svg>
-      <span class="t-num" id="tNum">1:30</span>
+      <span class="t-num" id="tNum">1:00</span>
     </div>
     <div class="t-info">
       <div class="t-label">Descanso</div>
-      <div class="t-big" id="tBig">1:30</div>
+      <div class="t-big" id="tBig">1:00</div>
     </div>
   </div>
   <div class="t-right">
@@ -331,7 +347,11 @@ body {
       <div class="hdr-title">💪 Treino</div>
       <div class="hdr-sub" id="hdrSub">Seleciona um dia</div>
     </div>
-    <button class="hdr-timer-btn" onclick="timerStart(90)">⏱ 90s</button>
+    <div class="hdr-timer-row">
+      <button class="hdr-timer-adj" onclick="adjustRest(-15)">−</button>
+      <button class="hdr-timer-btn" onclick="timerStart(REST_SEC)">⏱ <span id="restLabel">60s</span></button>
+      <button class="hdr-timer-adj" onclick="adjustRest(15)">+</button>
+    </div>
   </div>
   <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0"></div></div>
   <div class="tabs" id="tabs"></div>
@@ -346,69 +366,69 @@ const DAYS = {
   "Segunda": {
     label: "Peito & Tríceps",
     ex: [
-      { name:"Supino reto",       s:4, r:"6-10",    tip:"Escápulas retraídas. Barra desce até ao peito. Pés firmes no chão.", imgs:["images/segunda/img1.jpg","images/segunda/img2.jpg","images/segunda/img3.jpg","images/segunda/img4.jpg"] },
-      { name:"Supino inclinado",  s:3, r:"8-12",    tip:"Banco a 30-45°. Cotovelos a ~75° do corpo.", imgs:["images/segunda/imgsi1.jpg","images/segunda/imgsi2.jpg","images/segunda/imgsi3.jpg"] },
-      { name:"Crucifixo",        s:3, r:"10-12",   tip:"Abre como se abraçasses uma árvore. Ligeiro ângulo no cotovelo.", imgs:["images/segunda/imgcru1.jpg","images/segunda/imgcru2.jpg","images/segunda/imgcru3.jpg"] },
-      { name:"Paralelas",        s:3, r:"8-12",    tip:"Inclina ligeiramente para frente para ativar o peito.", imgs:["images/segunda/imgpar1.jpg","images/segunda/imgpar2.jpg"] },
-      { name:"Tríceps corda",    s:3, r:"10-15",   tip:"Cotovelos fixos ao corpo. Abre a corda no final do movimento.", imgs:["images/segunda/imgtric1.jpg"] },
-      { name:"Tríceps testa",    s:3, r:"10-12",   tip:"Barra desce até à testa. Cotovelos apontados ao teto.", imgs:["images/segunda/imgtrit1.jpg"] }
+      { name:"Supino reto",       s:4, r:"6-10",    tip:"Escápulas retraídas. Barra desce até ao peito. Pés firmes no chão.", alt:"Supino na máquina ou flexões com colete de peso", imgs:["images/segunda/img1.jpg","images/segunda/img2.jpg","images/segunda/img3.jpg","images/segunda/img4.jpg"] },
+      { name:"Supino inclinado",  s:3, r:"8-12",    tip:"Banco a 30-45°. Cotovelos a ~75° do corpo.", alt:"Supino inclinado com halteres", imgs:["images/segunda/imgsi1.jpg","images/segunda/imgsi2.jpg","images/segunda/imgsi3.jpg"] },
+      { name:"Crucifixo",        s:3, r:"10-12",   tip:"Abre como se abraçasses uma árvore. Ligeiro ângulo no cotovelo.", alt:"Cable fly ou pec deck na máquina", imgs:["images/segunda/imgcru1.jpg","images/segunda/imgcru2.jpg","images/segunda/imgcru3.jpg"] },
+      { name:"Paralelas",        s:3, r:"8-12",    tip:"Inclina ligeiramente para frente para ativar o peito.", alt:"Flexões diamante ou mergulho na máquina assistida", imgs:["images/segunda/imgpar1.jpg","images/segunda/imgpar2.jpg"] },
+      { name:"Tríceps corda",    s:3, r:"10-15",   tip:"Cotovelos fixos ao corpo. Abre a corda no final do movimento.", alt:"Tríceps francês com haltere (uma mão) ou barra", imgs:["images/segunda/imgtric1.jpg"] },
+      { name:"Tríceps testa",    s:3, r:"10-12",   tip:"Barra desce até à testa. Cotovelos apontados ao teto.", alt:"Pushdown com barra reta ou extensão no cabo alto", imgs:["images/segunda/imgtrit1.jpg"] }
     ]
   },
   "Terça": {
     label: "Costas & Bíceps",
     ex: [
-      { name:"Puxada frente",     s:4, r:"8-12",    tip:"Puxa até ao queixo. Peito ligeiramente inclinado.", imgs:["images/terca/imgpux1.jpg"] },
-      { name:"Remada",           s:3, r:"8-12",    tip:"Costas retas. Puxa para o umbigo. Contrai as escápulas.", imgs:["images/terca/imgrem1.jpg"] },
-      { name:"Remada unilateral", s:3, r:"10-12",   tip:"Costas paralelas ao chão. Puxa o cotovelo para trás.", imgs:["images/terca/imgremu1.jpg"] },
-      { name:"Pulldown",         s:3, r:"10-12",   tip:"Pegada ampla. Puxa com as costas, não com os braços.", imgs:["images/terca/imgpull1.jpg"] },
-      { name:"Rosca direta",     s:3, r:"8-12",    tip:"Cotovelos fixos ao corpo. Contrai no topo. Desce controlado.", imgs:["images/terca/imgrosc1.jpg"] },
-      { name:"Rosca alternada",  s:3, r:"10-12",   tip:"Gira o pulso ao subir. Pausa de 1s no topo.", imgs:["images/terca/imgrosca1.jpg"] }
+      { name:"Puxada frente",     s:4, r:"8-12",    tip:"Puxa até ao queixo. Peito ligeiramente inclinado.", alt:"Pull-up assistido ou remada na máquina", imgs:["images/terca/imgpux1.jpg"] },
+      { name:"Remada",           s:3, r:"8-12",    tip:"Costas retas. Puxa para o umbigo. Contrai as escápulas.", alt:"Remada na máquina sentado ou remada T-bar", imgs:["images/terca/imgrem1.jpg"] },
+      { name:"Remada unilateral", s:3, r:"10-12",   tip:"Costas paralelas ao chão. Puxa o cotovelo para trás.", alt:"Remada com cabo baixo ou TRX row", imgs:["images/terca/imgremu1.jpg"] },
+      { name:"Pulldown",         s:3, r:"10-12",   tip:"Pegada ampla. Puxa com as costas, não com os braços.", alt:"Puxada pegada fechada ou pullover com haltere", imgs:["images/terca/imgpull1.jpg"] },
+      { name:"Rosca direta",     s:3, r:"8-12",    tip:"Cotovelos fixos ao corpo. Contrai no topo. Desce controlado.", alt:"Rosca martelo ou rosca no cabo", imgs:["images/terca/imgrosc1.jpg"] },
+      { name:"Rosca alternada",  s:3, r:"10-12",   tip:"Gira o pulso ao subir. Pausa de 1s no topo.", alt:"Rosca concentrada ou rosca preacher", imgs:["images/terca/imgrosca1.jpg"] }
     ]
   },
   "Quarta": {
     label: "Pernas",
     ex: [
-      { name:"Agachamento",      s:4, r:"6-10",    tip:"Joelhos na direção dos pés. Desce até 90°. Costas eretas.", imgs:["images/quarta/imgagac1.jpg","images/quarta/imgagac2.jpg"] },
-      { name:"Leg press",        s:4, r:"10-12",   tip:"Pés à largura dos ombros. Não bloqueies os joelhos.", imgs:["images/quarta/imglegp1.jpg"] },
-      { name:"Stiff",            s:3, r:"8-12",    tip:"Costas retas. Desce até sentir os isquiotibiais a esticar.", imgs:["images/quarta/imgsti1.jpg"] },
-      { name:"Mesa flexora",     s:3, r:"10-15",   tip:"Contrai os isquiotibiais no topo. Desce de forma controlada.", imgs:["images/quarta/imgmesa1.jpg"] },
-      { name:"Cadeira extensora",s:3, r:"12-15",   tip:"Extensão completa. Pausa de 1s no topo.", imgs:["images/quarta/imgcade1.jpg"] },
-      { name:"Panturrilha",      s:4, r:"12-20",   tip:"Amplitude completa. Aguenta 2s no ponto máximo.", imgs:["images/quarta/imgpantu1.jpg"] }
+      { name:"Agachamento",      s:4, r:"6-10",    tip:"Joelhos na direção dos pés. Desce até 90°. Costas eretas.", alt:"Agachamento hack na máquina ou Smith machine", imgs:["images/quarta/imgagac1.jpg","images/quarta/imgagac2.jpg"] },
+      { name:"Leg press",        s:4, r:"10-12",   tip:"Pés à largura dos ombros. Não bloqueies os joelhos.", alt:"Agachamento búlgaro com halteres", imgs:["images/quarta/imglegp1.jpg"] },
+      { name:"Stiff",            s:3, r:"8-12",    tip:"Costas retas. Desce até sentir os isquiotibiais a esticar.", alt:"Leg curl deitado ou good morning", imgs:["images/quarta/imgsti1.jpg"] },
+      { name:"Mesa flexora",     s:3, r:"10-15",   tip:"Contrai os isquiotibiais no topo. Desce de forma controlada.", alt:"Leg curl em pé ou nordic curl", imgs:["images/quarta/imgmesa1.jpg"] },
+      { name:"Cadeira extensora",s:3, r:"12-15",   tip:"Extensão completa. Pausa de 1s no topo.", alt:"Afundo (lunges) ou step-up com halteres", imgs:["images/quarta/imgcade1.jpg"] },
+      { name:"Panturrilha",      s:4, r:"12-20",   tip:"Amplitude completa. Aguenta 2s no ponto máximo.", alt:"Panturrilha sentado ou leg press com ponta dos pés", imgs:["images/quarta/imgpantu1.jpg"] }
     ]
   },
   "Quinta": {
     label: "Ombros & Core",
     ex: [
-      { name:"Desenvolvimento",  s:4, r:"8-12",    tip:"Empurra acima da cabeça. Não arqueia as costas.", imgs:["images/quinta/imgdes1.jpg"] },
-      { name:"Elevação lateral", s:4, r:"12-15",   tip:"Cotovelos ligeiramente fletidos. Polegares um pouco abaixo.", imgs:["images/quinta/imgelv1.jpg"] },
-      { name:"Posterior ombro",  s:3, r:"12-15",   tip:"Inclinado para frente. Abre os braços como asas.", imgs:["images/quinta/imgposto1.jpg"] },
-      { name:"Face pull",        s:3, r:"12-15",   tip:"Puxa para a face. Cotovelos altos. Contrai os romboides.", imgs:["images/quinta/imgface1.jpg"] },
-      { name:"Prancha",          s:3, r:"30-60s",  tip:"Corpo em linha reta. Contrai o core e os glúteos.", imgs:["images/quinta/imgpranc1.jpg"] },
-      { name:"Abdominal",        s:3, r:"12-20",   tip:"Não puxes o pescoço. Exala ao subir.", imgs:["images/quinta/imgabd1.jpg"] }
+      { name:"Desenvolvimento",  s:4, r:"8-12",    tip:"Empurra acima da cabeça. Não arqueia as costas.", alt:"Arnold press ou desenvolvimento na máquina", imgs:["images/quinta/imgdes1.jpg"] },
+      { name:"Elevação lateral", s:4, r:"12-15",   tip:"Cotovelos ligeiramente fletidos. Polegares um pouco abaixo.", alt:"Elevação lateral no cabo (unilateral)", imgs:["images/quinta/imgelv1.jpg"] },
+      { name:"Posterior ombro",  s:3, r:"12-15",   tip:"Inclinado para frente. Abre os braços como asas.", alt:"Pec deck invertido ou face pull com corda", imgs:["images/quinta/imgposto1.jpg"] },
+      { name:"Face pull",        s:3, r:"12-15",   tip:"Puxa para a face. Cotovelos altos. Contrai os romboides.", alt:"Band pull-apart ou remada alta (upright row)", imgs:["images/quinta/imgface1.jpg"] },
+      { name:"Prancha",          s:3, r:"30-60s",  tip:"Corpo em linha reta. Contrai o core e os glúteos.", alt:"Hollow body hold ou bird-dog", imgs:["images/quinta/imgpranc1.jpg"] },
+      { name:"Abdominal",        s:3, r:"12-20",   tip:"Não puxes o pescoço. Exala ao subir.", alt:"Abdominal na máquina ou dead bug", imgs:["images/quinta/imgabd1.jpg"] }
     ]
   },
   "Sexta": {
     label: "Full Body",
     ex: [
-      { name:"Levantamento terra",s:3, r:"5-8",    tip:"Barra sobre os metatarsos. Costas retas. Empurra o chão.", imgs:["images/sexta/imglevt1.jpg"] },
-      { name:"Supino",           s:3, r:"8-12",    tip:"Peito para fora, escápulas retraídas. Movimento completo.", imgs:["images/sexta/imgsup1.jpg"] },
-      { name:"Puxada alta",      s:3, r:"8-12",    tip:"Puxa com as costas. Cotovelos descem junto ao corpo.", imgs:["images/sexta/imgpuxa1.jpg"] },
-      { name:"Agachamento goblet",s:3,r:"10-12",   tip:"Haltere ao peito. Joelhos abertos. Postura ereta.", imgs:["images/sexta/imgagacg1.jpg"] },
-      { name:"Elevação lateral", s:3, r:"12-15",   tip:"Movimento controlado. Sem usar momentum.", imgs:["images/sexta/imgelvel1.jpg"] },
-      { name:"Braços",           s:3, r:"10-15",   tip:"Superset bíceps + tríceps. Sem descanso entre os grupos.", imgs:["images/sexta/imgbra1.jpg"] }
+      { name:"Levantamento terra",s:3, r:"5-8",    tip:"Barra sobre os metatarsos. Costas retas. Empurra o chão.", alt:"Levantamento terra romeno ou trap bar deadlift", imgs:["images/sexta/imglevt1.jpg"] },
+      { name:"Supino",           s:3, r:"8-12",    tip:"Peito para fora, escápulas retraídas. Movimento completo.", alt:"Flexões lastradas ou supino com halteres", imgs:["images/sexta/imgsup1.jpg"] },
+      { name:"Puxada alta",      s:3, r:"8-12",    tip:"Puxa com as costas. Cotovelos descem junto ao corpo.", alt:"Remada pegada estreita ou chin-up assistido", imgs:["images/sexta/imgpuxa1.jpg"] },
+      { name:"Agachamento goblet",s:3,r:"10-12",   tip:"Haltere ao peito. Joelhos abertos. Postura ereta.", alt:"Agachamento búlgaro ou afundo com halteres", imgs:["images/sexta/imgagacg1.jpg"] },
+      { name:"Elevação lateral", s:3, r:"12-15",   tip:"Movimento controlado. Sem usar momentum.", alt:"Elevação frontal ou elevação lateral no cabo", imgs:["images/sexta/imgelvel1.jpg"] },
+      { name:"Braços",           s:3, r:"10-15",   tip:"Superset bíceps + tríceps. Sem descanso entre os grupos.", alt:"Rosca no cabo + pushdown; ou máquina de bíceps + tríceps", imgs:["images/sexta/imgbra1.jpg"] }
     ]
   },
   "Sábado": {
     label: "Cardio & Core",
     ex: [
-      { name:"Cardio leve",      s:"-",r:"20-30 min",tip:"Zona 2: consegues falar mas está difícil. FC 60-70% max.", imgs:["images/sabado/imgcard1.jpg"] },
-      { name:"Core",             s:3, r:"12-20",   tip:"Varia: prancha, hollow body, dead bug, russian twist.", imgs:["images/sabado/imgcore1.jpg"] }
+      { name:"Cardio leve",      s:"-",r:"20-30 min",tip:"Zona 2: consegues falar mas está difícil. FC 60-70% max.", alt:"Bicicleta, elíptica, natação ou remo ergómetro", imgs:["images/sabado/imgcard1.jpg"] },
+      { name:"Core",             s:3, r:"12-20",   tip:"Varia: prancha, hollow body, dead bug, russian twist.", alt:"Ab wheel ou L-sit (barras paralelas)", imgs:["images/sabado/imgcore1.jpg"] }
     ]
   },
   "Domingo": {
     label: "Descanso Ativo",
     ex: [
-      { name:"Descanso ativo",   s:"-",r:"Mobilidade",tip:"Alongamentos, yoga suave ou caminhada leve. Recupera bem!", imgs:["images/domingo/imgabd1.jpg"] }
+      { name:"Descanso ativo",   s:"-",r:"Mobilidade",tip:"Alongamentos, yoga suave ou caminhada leve. Recupera bem!", alt:"Banho frio, sauna ou sessão de massagem", imgs:["images/domingo/imgabd1.jpg"] }
     ]
   }
 };
@@ -433,7 +453,7 @@ function toggleSet(day,i,si) {
   save();
   refreshCard(day,i);
   refreshProgress();
-  if(idx<0) timerStart(90); // start rest timer on set complete
+  if(idx<0) timerStart(REST_SEC);
 }
 
 function markDone(day,i) {
@@ -459,7 +479,15 @@ function getProgress(day) {
 }
 
 /* ═══════════════════════ TIMER ══════════════════════ */
-const TM = { on:false, total:90, left:90, iv:null };
+let REST_SEC = parseInt(localStorage.getItem('rest_sec') || '60');
+function adjustRest(d) {
+  REST_SEC = Math.max(15, Math.min(300, REST_SEC + d));
+  localStorage.setItem('rest_sec', REST_SEC);
+  document.getElementById('restLabel').textContent = REST_SEC + 's';
+  document.querySelectorAll('.rest-lbl').forEach(s => s.textContent = REST_SEC + 's');
+}
+
+const TM = { on:false, total:60, left:60, iv:null };
 const CIRC = 2*Math.PI*22; // stroke-dasharray
 
 function timerStart(sec) {
@@ -607,8 +635,9 @@ function buildCard(day,ex,i) {
       </div>
       ${setsHTML}
       ${ex.tip?`<div class="tip">💡 ${ex.tip}</div>`:''}
+      ${ex.alt?`<div class="card-alt"><strong>Alternativa:</strong> ${ex.alt}</div>`:''}
       <div class="card-actions">
-        <button class="act-btn act-timer" onclick="timerStart(90)">⏱ 90s</button>
+        <button class="act-btn act-timer" onclick="timerStart(REST_SEC)">⏱ <span class="rest-lbl">${REST_SEC}s</span></button>
         <button class="act-btn act-done" onclick="markDone('${day}',${i})">
           ${ST.done[key(day,i)]?'✓ Concluído':'Marcar feito'}
         </button>
@@ -668,6 +697,7 @@ Object.keys(DAYS).forEach(day=>{
 });
 
 render(ST.day);
+document.getElementById('restLabel').textContent = REST_SEC + 's';
 </script>
 </body>
 </html>

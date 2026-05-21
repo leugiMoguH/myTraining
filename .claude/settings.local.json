@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git push *)",
+      "PowerShell(cd \"c:\\\\Users\\\\hugom\\\\claude\\\\myTraining\"; Get-ChildItem -Path images -Recurse -Directory | Where-Object { \\(Get-ChildItem $_.FullName -Force\\).Count -eq 0 } | Remove-Item -Force -Recurse -Confirm:$false; Write-Host \"Cleaned.\"; Get-ChildItem images/segunda/ | Select-Object Name)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import scrapling; print\\(scrapling.__version__\\)\")",
+      "Bash(pip show *)",
+      "Bash(del download_images_advanced.py auto_download_images.py auto_download_bing.py auto_download_final.py download_exercisedb.py create_download_structure.py download_images.py)",
+      "Bash(python fetch_images.py)",
+      "PowerShell(git -C \"c:\\\\Users\\\\hugom\\\\claude\\\\myTraining\" log --oneline origin/main..HEAD 2>&1)",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"c:\\\\Users\\\\hugom\\\\claude\\\\myTraining\\\\.github\\\\workflows\")"
+    ]
+  }
+}

@@ -503,6 +503,54 @@ body {
 .info-sec li { font-size: 14px; line-height: 1.5; color: rgba(241,245,249,0.85); }
 .info-add { margin-top: 18px; }
 .info-add .nbtn { font-size: 14px; height: 44px; }
+
+/* progressão + volume */
+.lc-next { margin-top: 8px; font-size: 13px; color: var(--accent2); font-weight: 600; }
+.lc-next b { color: var(--text); }
+.lc-next-s { color: var(--muted); font-weight: 400; font-size: 11px; }
+.vol { display: flex; flex-direction: column; gap: 6px; }
+.vol-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.vol-l { width: 92px; flex-shrink: 0; color: var(--muted); }
+.vol-bar { flex: 1; height: 9px; background: rgba(255,255,255,0.06); border-radius: 5px; overflow: hidden; }
+.vol-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 5px; }
+.vol-v { width: 26px; text-align: right; font-weight: 700; color: var(--text); }
+
+/* day header buttons + iniciar */
+.day-hdr-btns { display: flex; gap: 8px; flex-shrink: 0; }
+.start-wo { background: linear-gradient(90deg, var(--accent), var(--accent2)); border: none; color: #fff; font-size: 13px; font-weight: 800; padding: 8px 14px; border-radius: var(--r-sm); cursor: pointer; white-space: nowrap; }
+.start-wo:active { transform: scale(0.97); }
+
+/* TREINO GUIADO */
+.wo-bg { position: fixed; inset: 0; z-index: 600; background: var(--bg); display: none; flex-direction: column; padding: calc(14px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); overflow-y: auto; }
+.wo-bg.show { display: flex; }
+.wo-close { position: absolute; top: calc(12px + env(safe-area-inset-top)); right: 14px; width: 36px; height: 36px; border-radius: 50%; background: var(--card); border: 1px solid var(--border); color: var(--text); font-size: 15px; cursor: pointer; z-index: 2; }
+.wo-body { max-width: 560px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.wo-top { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); font-weight: 600; }
+.wo-count { background: var(--accent); color: #fff; padding: 2px 10px; border-radius: 999px; font-weight: 800; }
+.wo-media { width: 100%; aspect-ratio: 4/3; background: #fff; border-radius: var(--r); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.wo-media .wo-img { width: 100%; height: 100%; object-fit: contain; }
+.wo-media svg { width: 100%; height: 100%; }
+.wo-name { font-size: 24px; font-weight: 800; }
+.wo-meta { font-size: 15px; color: var(--muted); font-weight: 600; }
+.wo-sets { display: flex; flex-wrap: wrap; gap: 10px; }
+.wo-set { width: 54px; height: 54px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); color: var(--muted); font-size: 16px; font-weight: 700; cursor: pointer; }
+.wo-set.on { background: var(--green); border-color: var(--green); color: #000; }
+.wo-load { display: flex; align-items: center; gap: 8px; }
+.wo-hint { font-size: 14px; color: var(--accent2); font-weight: 600; }
+.wo-hint b { color: var(--text); }
+.wo-info { align-self: flex-start; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: var(--r-sm); cursor: pointer; }
+.wo-nav { display: flex; gap: 10px; margin-top: 6px; }
+.wo-navbtn { flex: 1; padding: 15px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 15px; font-weight: 700; cursor: pointer; }
+.wo-navbtn:disabled { opacity: 0.35; }
+.wo-navbtn.next { background: linear-gradient(90deg, var(--accent), var(--accent2)); border: none; color: #fff; }
+
+/* SCANNER */
+.scan-bg { position: fixed; inset: 0; z-index: 650; background: #000; display: none; align-items: center; justify-content: center; }
+.scan-bg.show { display: flex; }
+.scan-vid { width: 100%; height: 100%; object-fit: cover; }
+.scan-frame { position: absolute; width: 72%; max-width: 320px; height: 140px; border: 3px solid rgba(255,255,255,0.85); border-radius: 14px; box-shadow: 0 0 0 4000px rgba(0,0,0,0.45); }
+.scan-hint { position: absolute; top: 16%; color: #fff; font-size: 14px; font-weight: 600; text-shadow: 0 1px 3px #000; }
+.scan-close { position: absolute; bottom: calc(28px + env(safe-area-inset-bottom)); background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; font-size: 15px; font-weight: 700; padding: 12px 22px; border-radius: 999px; cursor: pointer; }
 .media-slide { position: relative; }
 .media-slide img, .media-slide video { width: 100%; height: 100%; object-fit: cover; }
 .media-del { position: absolute; top: 8px; left: 8px; z-index: 12; width: 28px; height: 28px; border-radius: 50%; background: rgba(0,0,0,0.55); border: none; color: #fff; font-size: 14px; cursor: pointer; }
@@ -574,6 +622,20 @@ body {
   </div>
 </div>
 
+<!-- TREINO GUIADO -->
+<div id="woBg" class="wo-bg">
+  <button class="wo-close" onclick="closeWorkout()" aria-label="Fechar treino">✕</button>
+  <div id="woBody" class="wo-body"></div>
+</div>
+
+<!-- SCANNER CÓDIGO DE BARRAS -->
+<div id="scanBg" class="scan-bg">
+  <video id="scanVid" class="scan-vid" playsinline muted></video>
+  <div class="scan-frame"></div>
+  <div class="scan-hint">Aponta a câmara ao código de barras</div>
+  <button class="scan-close" onclick="stopScan()">✕ Cancelar</button>
+</div>
+
 <!-- SETTINGS SHEET -->
 <div id="sheetBg" class="sheet-bg" onclick="closeSheet()">
   <div class="sheet" onclick="event.stopPropagation()">
@@ -582,6 +644,10 @@ body {
     <button class="sheet-item" onclick="toggleWake()">
       <span>🔆 Manter ecrã ligado</span>
       <span class="sw" id="wakeSw"></span>
+    </button>
+    <button class="sheet-item" onclick="enableNotif()">
+      <span>🔔 Notificar fim do descanso</span>
+      <span class="sw" id="notifSw"></span>
     </button>
     <button class="sheet-item" onclick="exportBackup()">
       <span>⬇️ Exportar backup (.json)</span><span class="sheet-arrow">›</span>
@@ -791,11 +857,12 @@ function loadChart(name){
       <span class="lc-1rm">1RM ~${est1RM(last.w,last.r)}kg</span>
       <span class="lc-range">${n} ${n===1?'registo':'registos'} · ${min}–${max}kg</span>
       ${last.ts?`<span class="lc-when">últ. ${fmtDateTime(last.ts)}</span>`:''}
-    </div>`;
+    </div>
+    ${progHint(name)?`<div class="lc-next">${progHint(name)} <span class="lc-next-s">— progressão sugerida</span></div>`:''}`;
 }
 
 /* ═══════════════ DEFINIÇÕES / BACKUP ════════════════ */
-function openSheet(){ syncWakeUI(); document.getElementById('sheetBg').classList.add('show'); }
+function openSheet(){ syncWakeUI(); syncNotifUI(); document.getElementById('sheetBg').classList.add('show'); }
 function closeSheet(){ document.getElementById('sheetBg').classList.remove('show'); }
 
 function exportBackup(){
@@ -913,6 +980,7 @@ function timerTick(){
   if(TM.left<=0 && TM.on){
     TM.on=false; if(TM.iv) clearInterval(TM.iv); TM.iv=null;
     if(navigator.vibrate) navigator.vibrate([200,80,200,80,400]);
+    maybeNotify();
   }
   renderTimer();
 }
@@ -1265,6 +1333,7 @@ function intakeHTML(){
     <input id="i-name" class="nfree" placeholder="alimento">
     <input id="i-kcal" class="nfree inum" type="number" inputmode="numeric" placeholder="kcal">
     <input id="i-prot" class="nfree inum" type="number" inputmode="numeric" placeholder="prot">
+    <button class="load-chart-btn" onclick="scanBarcode()" aria-label="Ler código de barras" title="Ler código de barras">📷</button>
     <button class="load-save" onclick="addIntakeUI()">+ Add</button>
   </div>
   <div class="qfoods">${FOODS.map((f,k)=>`<button type="button" class="qfood" onclick="fillIntake(${k})">${f.n}</button>`).join('')}</div>
@@ -1533,7 +1602,7 @@ function renderProfile(content){
   content=content||document.getElementById('content');
   document.getElementById('hdrSub').textContent='Perfil';
   document.getElementById('progFill').style.width='0%';
-  content.innerHTML=`<div class="nutri-wrap">${profileDataHTML()}${measuresHTML()}${macrosSummaryHTML()}</div>`;
+  content.innerHTML=`<div class="nutri-wrap">${profileDataHTML()}${measuresHTML()}${macrosSummaryHTML()}${volumeHTML()}</div>`;
 }
 
 /* ═══════════════════════ RENDER ═════════════════════ */
@@ -1671,6 +1740,122 @@ function buildCard(day,ex,i) {
   return card;
 }
 
+/* ═══════════ PROGRESSÃO (sugestão de carga) ═══════════ */
+function nextTarget(name){
+  const d=getLog(name); if(!d.length) return null;
+  const l=d[d.length-1];
+  if(l.r>=12) return {w:Math.round((l.w+2.5)*2)/2, r:8};
+  return {w:l.w, r:l.r+1};
+}
+function progHint(name){ const t=nextTarget(name); return t?`🎯 Próximo: <b>${t.w}</b>kg × ${t.r}`:''; }
+
+/* ═══════════ VOLUME SEMANAL (planeado, por grupo) ═══════════ */
+function weeklyVolume(){
+  const vol={};
+  Object.keys(DAYS).forEach(d=>DAYS[d].ex.forEach(e=>{
+    const s=typeof e.s==='number'?e.s:0; if(!s) return;
+    const mm=MUSCLES[e.name]; if(!mm) return;
+    mm.p.forEach(m=>vol[m]=(vol[m]||0)+s);
+    mm.s.forEach(m=>vol[m]=(vol[m]||0)+s*0.5);
+  }));
+  return vol;
+}
+function volumeHTML(){
+  const vol=weeklyVolume(), keys=Object.keys(vol).sort((a,b)=>vol[b]-vol[a]);
+  if(!keys.length) return '';
+  const max=Math.max.apply(null,keys.map(k=>vol[k]));
+  return `<div class="nsec-title">Volume semanal planeado (séries/grupo)</div><div class="vol">`+
+    keys.map(k=>`<div class="vol-row"><span class="vol-l">${MUSCLE_NAMES[k]||k}</span><div class="vol-bar"><div class="vol-fill" style="width:${Math.round(vol[k]/max*100)}%"></div></div><span class="vol-v">${Math.round(vol[k])}</span></div>`).join('')+
+    `</div><div class="ndisc">Soma das séries planeadas por grupo (secundários contam ½). Mostra o equilíbrio do programa.</div>`;
+}
+
+/* ═══════════ DIÁRIO: scan + Open Food Facts ═══════════ */
+async function offLookup(code){
+  code=(code||'').replace(/\D/g,''); if(code.length<6){ alert('Código inválido.'); return; }
+  const set=(id,val)=>{ const el=document.getElementById(id); if(el) el.value=val; };
+  try{
+    const r=await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
+    const j=await r.json();
+    if(j.status!==1){ alert('Produto não encontrado no Open Food Facts. Preenche manualmente.'); return; }
+    const p=j.product||{}, n=p.nutriments||{};
+    const nm=p.product_name||p.generic_name||('Cód '+code);
+    set('i-name', nm+' (100g)');
+    set('i-kcal', Math.round(n['energy-kcal_100g']||0));
+    set('i-prot', Math.round((n.proteins_100g||0)*10)/10);
+  }catch(e){ alert('Sem ligação ao Open Food Facts.'); }
+}
+function scanBarcode(){
+  if(!('BarcodeDetector' in window) || !(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){
+    const c=prompt('Introduz o código de barras:'); if(c) offLookup(c); return;
+  }
+  startScan();
+}
+let scanStream=null, scanRAF=null;
+async function startScan(){
+  document.getElementById('scanBg').classList.add('show');
+  try{
+    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const v=document.getElementById('scanVid'); v.srcObject=scanStream; await v.play();
+    const det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});
+    const loop=async()=>{
+      if(!scanStream) return;
+      try{ const codes=await det.detect(v); if(codes&&codes.length){ const code=codes[0].rawValue; stopScan(); offLookup(code); return; } }catch(_){}
+      scanRAF=requestAnimationFrame(loop);
+    };
+    loop();
+  }catch(e){ stopScan(); const c=prompt('Câmara indisponível. Código de barras:'); if(c) offLookup(c); }
+}
+function stopScan(){
+  const ov=document.getElementById('scanBg'); if(ov) ov.classList.remove('show');
+  if(scanRAF){ cancelAnimationFrame(scanRAF); scanRAF=null; }
+  if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
+}
+
+/* ═══════════ TREINO DE HOJE (guiado) ═══════════ */
+const WO={day:null,idx:0};
+function startWorkout(day){ WO.day=day; WO.idx=0; document.getElementById('woBg').classList.add('show'); acquireWake(); woRender(); }
+function closeWorkout(){ document.getElementById('woBg').classList.remove('show'); if(!wakeWanted) releaseWake(); render(WO.day); }
+function woGo(d){ const ex=DAYS[WO.day].ex; WO.idx=Math.max(0,Math.min(ex.length-1,WO.idx+d)); woRender(); }
+function woToggle(si){ toggleSet(WO.day,WO.idx,si); woRender(); }
+function woSaveLoad(){
+  const w=document.getElementById('wo-w').value, r=document.getElementById('wo-r').value;
+  if(logSet(DAYS[WO.day].ex[WO.idx].name,w,r)){ const b=document.querySelector('#woBody .load-save'); if(b){ b.textContent='✓'; setTimeout(()=>{b.textContent='Registar';},900); } }
+  else alert('Indica kg e reps válidos.');
+}
+function woRender(){
+  const day=WO.day, i=WO.idx, ex=DAYS[day].ex[i], total=DAYS[day].ex.length;
+  const mm=MUSCLES[ex.name], dmo=DEMOS[ex.name];
+  const media=dmo?`<img class="wo-img" src="${demoUrl(dmo,0)}" alt="" onerror="this.style.display='none'">`:(mm?bodySVG(mm.p,mm.s):'');
+  const sets=getSets(day,i), totalSets=typeof ex.s==='number'?ex.s:0;
+  const setBtns=totalSets?Array.from({length:totalSets},(_,si)=>`<button class="wo-set${sets.includes(si)?' on':''}" onclick="woToggle(${si})">${si+1}</button>`).join(''):'';
+  const last=getLog(ex.name).slice(-1)[0], hint=progHint(ex.name);
+  document.getElementById('woBody').innerHTML=`
+    <div class="wo-top"><span class="wo-count">${i+1}/${total}</span><span class="wo-day">${day} · ${DAYS[day].label}</span></div>
+    <div class="wo-media">${media}</div>
+    <div class="wo-name">${esc(ex.name)}</div>
+    <div class="wo-meta">${ex.s} séries · ${ex.r} reps</div>
+    ${totalSets?`<div class="wo-sets">${setBtns}</div>`:''}
+    ${totalSets?`<div class="wo-load"><input id="wo-w" class="load-in" type="number" inputmode="decimal" placeholder="kg" value="${last?last.w:''}"><span class="load-x">×</span><input id="wo-r" class="load-in" type="number" inputmode="numeric" placeholder="reps" value="${last?last.r:''}"><button class="load-save" onclick="woSaveLoad()">Registar</button></div>`:''}
+    ${hint?`<div class="wo-hint">${hint}</div>`:''}
+    ${ex.tip?`<div class="tip">💡 ${esc(ex.tip)}</div>`:''}
+    <button class="wo-info" onclick="openInfo('${ex.name.replace(/'/g,"\\'")}')">ℹ Ficha técnica</button>
+    <div class="wo-nav">
+      <button class="wo-navbtn" ${i===0?'disabled':''} onclick="woGo(-1)">‹ Anterior</button>
+      <button class="wo-navbtn next" onclick="${i>=total-1?'closeWorkout()':'woGo(1)'}">${i>=total-1?'Terminar ✓':'Próximo ›'}</button>
+    </div>`;
+}
+
+/* ═══════════ NOTIFICAÇÕES (descanso) ═══════════ */
+function maybeNotify(){
+  if(typeof Notification==='undefined' || Notification.permission!=='granted') return;
+  try{ new Notification('Descanso terminou 💪',{body:'Hora da próxima série.',silent:false}); }catch(_){}
+}
+function enableNotif(){
+  if(typeof Notification==='undefined'){ alert('Este browser não suporta notificações.'); return; }
+  Notification.requestPermission().then(syncNotifUI);
+}
+function syncNotifUI(){ const el=document.getElementById('notifSw'); if(el) el.classList.toggle('on', typeof Notification!=='undefined' && Notification.permission==='granted'); }
+
 function render(day) {
   ST.day=day; save();
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.day===day));
@@ -1688,7 +1873,10 @@ function render(day) {
       <div class="day-hdr-name">${day}</div>
       <div class="day-hdr-sub">${DAYS[day].label}</div>
     </div>
-    <button class="reset-btn" onclick="resetDay('${day}')">↺ Reset dia</button>
+    <div class="day-hdr-btns">
+      <button class="start-wo" onclick="startWorkout('${day}')">▶ Iniciar</button>
+      <button class="reset-btn" onclick="resetDay('${day}')">↺ Reset</button>
+    </div>
   `;
   content.appendChild(hdr);
 

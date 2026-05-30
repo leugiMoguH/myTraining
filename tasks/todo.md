@@ -65,9 +65,17 @@ podendo, esta é a melhor opção de engenharia (real, consistente, grátis, off
 - [x] Fallback: sem demo (descanso) → mapa muscular / ícone; onerror → painel "liga-te à net"
 - [x] Verificado: smoke-test (30 demos, ordem, fallback), sintaxe sw.js, URLs live
 
+## Fase 9 — Editar data + APK scaffolding ✅
+- [x] Medidas: campo Data no form (editar move o registo p/ nova data; futuro → clamp a hoje)
+- [x] Capacitor: capacitor.config.json, scripts/build-www.mjs, package.json scripts, APK.md
+- [x] .gitignore restaurado (tinha sido substituído) + www/ e android/
+- [x] Verificado: move 2026-05-01→2026-05-15, clamp de data futura, mjs/JSON válidos
+
 ## Próximo / fora de âmbito
-- [ ] Editar a DATA de um registo antigo (hoje edita-se valores, a data fica fixa)
-- [ ] APK via Capacitor (config + passos; corre na tua máquina com Android Studio)
+- [ ] Escapar texto livre do utilizador no HTML (robustez — ver análise)
+- [ ] Modo "Treino de hoje" guiado (maior upgrade de UX para o ginásio)
+- [ ] Notificações nativas (rest/hidratação) via @capacitor/local-notifications
+- [ ] Diário: scan de código de barras + macros via Open Food Facts (grátis)
 - [ ] (opcional) GIFs animados via ExerciseDB/RapidAPI (precisa de API key)
 
 ## Notas técnicas

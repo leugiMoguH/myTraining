@@ -670,6 +670,7 @@ function getSets(day,i) { return ST.sets[key(day,i)] || []; }
 /* progressão de carga (kg × reps), agregada por nome de exercício */
 function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function nowISO(){ return new Date().toISOString(); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); return isNaN(d.getTime())?'':d.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}); }
 function fmtDateTime(ts){ if(!ts) return ''; const d=new Date(ts); return isNaN(d.getTime())?'':d.toLocaleDateString('pt-PT')+' '+d.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}); }
 function getLog(name){ return (ST.log && ST.log[name]) || []; }
@@ -867,7 +868,7 @@ function syncWakeUI(){
   const note=document.getElementById('wakeNote');
   if(note) note.textContent = ('wakeLock' in navigator) ? '' : '⚠ O teu browser não suporta manter o ecrã ligado.';
 }
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') acquireWake(); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ acquireWake(); if(TM.on) timerTick(); } });
 
 /* ═══════════════════════ TIMER ══════════════════════ */
 let REST_SEC = parseInt(localStorage.getItem('rest_sec') || '60');
@@ -878,31 +879,37 @@ function adjustRest(d) {
   document.querySelectorAll('.rest-lbl').forEach(s => s.textContent = REST_SEC + 's');
 }
 
-const TM = { on:false, total:60, left:60, iv:null };
+const TM = { on:false, total:60, left:60, iv:null, end:0 };
 const CIRC = 2*Math.PI*22; // stroke-dasharray
 
+/* relógio de parede: left calculado de TM.end, não decrementado.
+   Resiste a throttling/pausa do setInterval em 2º plano e auto-corrige ao voltar à app. */
+function timerTick(){
+  TM.left=Math.max(0, Math.round((TM.end-Date.now())/1000));
+  if(TM.left<=0 && TM.on){
+    TM.on=false; if(TM.iv) clearInterval(TM.iv); TM.iv=null;
+    if(navigator.vibrate) navigator.vibrate([200,80,200,80,400]);
+  }
+  renderTimer();
+}
 function timerStart(sec) {
   if(TM.iv) clearInterval(TM.iv);
-  TM.total=sec; TM.left=sec; TM.on=true;
+  TM.total=sec; TM.end=Date.now()+sec*1000; TM.left=sec; TM.on=true;
   document.getElementById('timerBanner').classList.add('show');
   renderTimer();
-  TM.iv=setInterval(()=>{
-    TM.left--;
-    if(TM.left<=0){ TM.left=0; clearInterval(TM.iv); TM.on=false;
-      if(navigator.vibrate) navigator.vibrate([200,80,200,80,400]);
-    }
-    renderTimer();
-  },1000);
+  TM.iv=setInterval(timerTick,250);
 }
 
 function timerAdd(s) {
-  TM.left+=s; TM.total=Math.max(TM.total,TM.left);
-  if(!TM.on){ TM.on=true; timerStart(TM.left); return; }
+  if(!TM.on){ timerStart(s); return; }
+  TM.end+=s*1000;
+  TM.left=Math.round((TM.end-Date.now())/1000);
+  TM.total=Math.max(TM.total,TM.left);
   renderTimer();
 }
 
 function timerDismiss() {
-  if(TM.iv) clearInterval(TM.iv);
+  if(TM.iv) clearInterval(TM.iv); TM.iv=null;
   TM.on=false;
   document.getElementById('timerBanner').classList.remove('show','warn');
 }
@@ -1185,7 +1192,7 @@ function intakeHTML(){
     <button class="load-save" onclick="addIntakeUI()">+ Add</button>
   </div>
   <div class="qfoods">${FOODS.map((f,k)=>`<button type="button" class="qfood" onclick="fillIntake(${k})">${f.n}</button>`).join('')}</div>
-  ${ list.length ? `<div class="ilist">${list.map(x=>`<div class="iitem"><div class="iitem-main"><span class="iitem-n">${x.name}</span><span class="iitem-t">${fmtTime(x.ts)}</span></div><div class="iitem-r"><span>${Math.round(x.kcal)}kcal · ${Math.round(x.protein)}g</span><button class="iitem-x" onclick="delIntake('${x.id}')" aria-label="Remover">✕</button></div></div>`).join('')}</div>` : '<div class="ndisc">Ainda nada registado hoje.</div>' }
+  ${ list.length ? `<div class="ilist">${list.map(x=>`<div class="iitem"><div class="iitem-main"><span class="iitem-n">${esc(x.name)}</span><span class="iitem-t">${fmtTime(x.ts)}</span></div><div class="iitem-r"><span>${Math.round(x.kcal)}kcal · ${Math.round(x.protein)}g</span><button class="iitem-x" onclick="delIntake('${x.id}')" aria-label="Remover">✕</button></div></div>`).join('')}</div>` : '<div class="ndisc">Ainda nada registado hoje.</div>' }
   ${ series.length>1 ? `<div class="lc">${chartSVG(series.map(p=>p.v))}<div class="lc-meta"><span><b>${Math.round(tot.kcal)}</b> kcal hoje</span><span class="lc-range">${series.length} dias registados</span></div></div>` : '' }
   ${intakeHistoryHTML()}`;
 }
@@ -1197,16 +1204,16 @@ function intakeHistoryHTML(){
   return `<div class="nsec-title">Dias anteriores</div>`+dates.map(d=>{
     const items=byDate[d].slice().sort((a,b)=>(a.ts||'')<(b.ts||'')?-1:1), tt=intakeTotals(items);
     return `<div class="ihist"><div class="ihist-h"><span class="iitem-n">${d}</span><span>${Math.round(tt.kcal)}kcal · ${Math.round(tt.protein)}g</span></div>`+
-      items.map(x=>`<div class="iitem"><div class="iitem-main"><span class="iitem-n">${x.name}</span><span class="iitem-t">${fmtTime(x.ts)} · ${Math.round(x.kcal)}kcal · ${Math.round(x.protein)}g</span></div><div class="iitem-r"><button class="iitem-x" onclick="delIntake('${x.id}')" aria-label="Remover">✕</button></div></div>`).join('')+
+      items.map(x=>`<div class="iitem"><div class="iitem-main"><span class="iitem-n">${esc(x.name)}</span><span class="iitem-t">${fmtTime(x.ts)} · ${Math.round(x.kcal)}kcal · ${Math.round(x.protein)}g</span></div><div class="iitem-r"><button class="iitem-x" onclick="delIntake('${x.id}')" aria-label="Remover">✕</button></div></div>`).join('')+
       `</div>`;
   }).join('');
 }
 
 function nchips(cat,opts,selected){
   selected=selected||[];
-  return `<div class="nchips" data-cat="${cat}">`+opts.map(o=>`<label class="nchip"><input type="checkbox" value="${o}"${selected.indexOf(o)>=0?' checked':''}><span>${o}</span></label>`).join('')+`</div>`;
+  return `<div class="nchips" data-cat="${cat}">`+opts.map(o=>`<label class="nchip"><input type="checkbox" value="${esc(o)}"${selected.indexOf(o)>=0?' checked':''}><span>${esc(o)}</span></label>`).join('')+`</div>`;
 }
-function freeVal(selected,opts){ return (selected||[]).filter(x=>opts.indexOf(x)<0).join(', '); }
+function freeVal(selected,opts){ return esc((selected||[]).filter(x=>opts.indexOf(x)<0).join(', ')); }
 function collectFav(cat){
   const checked=Array.prototype.slice.call(document.querySelectorAll(`.nchips[data-cat="${cat}"] input:checked`)).map(i=>i.value);
   const fEl=document.getElementById('free-'+cat);
@@ -1240,7 +1247,7 @@ function nutriFormHTML(food){
     <div class="nsec-title">Snacks favoritos</div>${nchips('snack',SNACK,f.snack)}<input class="nfree" id="free-snack" placeholder="outros (separa por vírgulas)" value="${freeVal(f.snack,SNACK)}">
     <div class="nsec-title">Restrições</div>${nchips('restr',RESTR,food.restrictions)}
     <div class="nsec-title">Suplementos que usas</div>${nchips('supps',SUPPS,food.supps)}
-    <label class="nfield full"><span>Alimentos a evitar</span><input id="n-avoid" placeholder="ex.: marisco, coentros" value="${(food.avoid||[]).join(', ')}"></label>
+    <label class="nfield full"><span>Alimentos a evitar</span><input id="n-avoid" placeholder="ex.: marisco, coentros" value="${esc((food.avoid||[]).join(', '))}"></label>
     <button class="nbtn" type="submit">Guardar preferências →</button>
   </form>`;
 }
@@ -1268,9 +1275,9 @@ function nutriPlanHTML(food){
   ${targetsHTML}
   ${intakeHTML()}
   <div class="nsec-title">Sugestão de refeições</div>
-  <div class="nmeals">${meals.map(m=>`<div class="nmeal${m.tag==='treino'?' treino':''}"><div class="nmeal-t">${m.t}</div><div class="nmeal-i">${m.i}</div></div>`).join('')}</div>
+  <div class="nmeals">${meals.map(m=>`<div class="nmeal${m.tag==='treino'?' treino':''}"><div class="nmeal-t">${m.t}</div><div class="nmeal-i">${esc(m.i)}</div></div>`).join('')}</div>
   <div class="nnote">⏱ Nos dias de treino: <b>pré-treino</b> 60–90min antes, <b>pós-treino</b> na 1ª hora a seguir.</div>
-  ${shop.length?`<div class="nsec-title">Lista de compras (dos teus favoritos)</div><div class="nshop">${shop.map(s=>`<span class="nshop-i">${s}</span>`).join('')}</div>`:''}
+  ${shop.length?`<div class="nsec-title">Lista de compras (dos teus favoritos)</div><div class="nshop">${shop.map(s=>`<span class="nshop-i">${esc(s)}</span>`).join('')}</div>`:''}
   <div class="ndisc">Estimativas (Mifflin-St Jeor). Ajusta conforme os resultados ao fim de 2–3 semanas.</div>`;
 }
 
@@ -1377,9 +1384,11 @@ function measuresHTML(){
   const editing=MEASURE_EDIT_DATE;
   const src=editing ? (ST.measures||[]).find(e=>e.date===editing) : latestMeasure();
   const g=f=> src&&src[f]!=null?src[f]:'', bf=src?bodyFat(src):null;
+  const theDate=editing||todayStr();
   return `
   <div class="nsec-title">Medidas${editing?` · <span style="color:var(--accent)">a editar ${editing}</span>`:''}${bf!=null?` · <span style="color:var(--accent2)">${bf}% gordura (calc.)</span>`:''}</div>
   <div class="nform">
+    <label class="nfield"><span>Data</span><input id="m-date" type="date" max="${todayStr()}" value="${theDate}"></label>
     <div class="mgrid">
       <label class="nfield"><span>Peso (kg) *</span><input id="m-weight" type="number" step="0.1" inputmode="decimal" value="${g('weight')}"></label>
       <label class="nfield"><span>Cintura (cm)</span><input id="m-waist" type="number" step="0.1" inputmode="decimal" value="${g('waist')}"></label>
@@ -1398,10 +1407,13 @@ function saveMeasure(){
   const num=id=>{ const el=document.getElementById(id); const x=el?parseFloat(el.value):NaN; return x>0?x:undefined; };
   const weight=num('m-weight');
   if(!(weight>0)){ alert('O peso é obrigatório para registar medidas.'); return; }
-  const date=MEASURE_EDIT_DATE||todayStr();
+  const dEl=document.getElementById('m-date');
+  let date=(dEl && /^\d{4}-\d{2}-\d{2}$/.test(dEl.value)) ? dEl.value : (MEASURE_EDIT_DATE||todayStr());
+  if(date>todayStr()) date=todayStr();
   const entry={ date, ts:nowISO(), weight };
   ['waist','neck','hip','chest','arm','thigh'].forEach(f=>{ const x=num('m-'+f); if(x!==undefined) entry[f]=x; });
-  const arr=(ST.measures||[]).slice();
+  let arr=(ST.measures||[]).slice();
+  if(MEASURE_EDIT_DATE && MEASURE_EDIT_DATE!==date) arr=arr.filter(e=>e.date!==MEASURE_EDIT_DATE); // data mudou → remove antigo
   const idx=arr.findIndex(e=>e.date===date);
   if(idx>=0) arr[idx]=Object.assign({},arr[idx],entry); else arr.push(entry);
   arr.sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));

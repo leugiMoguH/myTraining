@@ -26,6 +26,10 @@ npm-debug.log*
 dist/
 build/
 
+# Capacitor / APK build
+www/
+android/
+
 # Temporary
 temp/
 tmp/

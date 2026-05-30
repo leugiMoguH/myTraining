@@ -9,6 +9,8 @@
 <meta name="description" content="Plano de treino pessoal com acompanhamento de séries e timer de descanso.">
 <title>Treino</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
 
 <style>
 :root {
@@ -314,6 +316,84 @@ body {
 /* ── ANIMATIONS ───────────────────────────────────── */
 @keyframes pop { 0%{transform:scale(0.85)} 60%{transform:scale(1.08)} 100%{transform:scale(1)} }
 .set-btn.pop { animation: pop 0.22s ease; }
+
+/* ── LOAD / PROGRESSÃO ────────────────────────────── */
+.load { display: flex; flex-direction: column; gap: 8px; }
+.load-row { display: flex; align-items: center; gap: 6px; }
+.load-in {
+  flex: 1 1 0; width: 0; min-width: 0; height: 38px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  border-radius: var(--r-sm); color: var(--text);
+  font-size: 15px; font-weight: 700; text-align: center;
+  -moz-appearance: textfield;
+}
+.load-in::-webkit-outer-spin-button, .load-in::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.load-in::placeholder { color: var(--muted); font-weight: 600; }
+.load-in:focus { outline: none; border-color: var(--accent); background: rgba(239,68,68,0.06); }
+.load-x { color: var(--muted); font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.load-save {
+  flex-shrink: 0; height: 38px; padding: 0 12px; border-radius: var(--r-sm);
+  background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.28);
+  color: var(--accent); font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.15s;
+}
+.load-save:hover { background: rgba(239,68,68,0.18); }
+.load-save.ok { background: var(--green); border-color: var(--green); color: #000; }
+.load-chart-btn {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: var(--r-sm);
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  font-size: 15px; cursor: pointer; transition: background 0.15s;
+}
+.load-chart-btn:hover { background: rgba(255,255,255,0.1); }
+.lc { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px; }
+.lc-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.lc-empty { font-size: 12px; color: var(--muted); line-height: 1.5; text-align: center; padding: 6px 4px; }
+.lc-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.lc-meta b { color: var(--text); font-size: 14px; }
+.lc-1rm { color: var(--accent2); font-weight: 700; }
+.lc-range { margin-left: auto; }
+
+/* ── HEADER GEAR ──────────────────────────────────── */
+.hdr-gear {
+  width: 36px; height: 36px; border-radius: var(--r-sm);
+  background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+  color: var(--text); font-size: 16px; cursor: pointer; transition: background 0.15s;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-left: 2px;
+}
+.hdr-gear:hover { background: rgba(255,255,255,0.12); }
+
+/* ── SETTINGS SHEET ───────────────────────────────── */
+.sheet-bg {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(2px);
+  display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.sheet-bg.show { opacity: 1; pointer-events: auto; }
+.sheet {
+  width: 100%; max-width: 480px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px 20px 0 0;
+  padding: 8px 16px calc(24px + env(safe-area-inset-bottom));
+  transform: translateY(100%); transition: transform 0.28s cubic-bezier(0.34,1.2,0.64,1);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.sheet-bg.show .sheet { transform: translateY(0); }
+.sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2); margin: 8px auto 6px; }
+.sheet-title { font-size: 14px; font-weight: 700; color: var(--muted); padding: 0 4px 4px; }
+.sheet-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; padding: 14px; border-radius: var(--r-sm);
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--text); font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+  text-align: left;
+}
+.sheet-item:hover { background: var(--card2); }
+.sheet-arrow { color: var(--muted); font-size: 18px; }
+.sw { width: 42px; height: 24px; border-radius: 12px; background: rgba(255,255,255,0.15); position: relative; transition: background 0.2s; flex-shrink: 0; }
+.sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform 0.2s; }
+.sw.on { background: var(--green); }
+.sw.on::after { transform: translateX(18px); }
+.sheet-note { font-size: 12px; color: var(--muted); padding: 2px 4px; min-height: 1px; }
 </style>
 </head>
 <body>
@@ -351,6 +431,7 @@ body {
       <button class="hdr-timer-adj" onclick="adjustRest(-15)">−</button>
       <button class="hdr-timer-btn" onclick="timerStart(REST_SEC)">⏱ <span id="restLabel">60s</span></button>
       <button class="hdr-timer-adj" onclick="adjustRest(15)">+</button>
+      <button class="hdr-gear" onclick="openSheet()" aria-label="Definições">⚙</button>
     </div>
   </div>
   <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0"></div></div>
@@ -359,6 +440,26 @@ body {
 
 <!-- MAIN -->
 <div id="content"></div>
+
+<!-- SETTINGS SHEET -->
+<div id="sheetBg" class="sheet-bg" onclick="closeSheet()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-grip"></div>
+    <div class="sheet-title">Definições</div>
+    <button class="sheet-item" onclick="toggleWake()">
+      <span>🔆 Manter ecrã ligado</span>
+      <span class="sw" id="wakeSw"></span>
+    </button>
+    <button class="sheet-item" onclick="exportBackup()">
+      <span>⬇️ Exportar backup (.json)</span><span class="sheet-arrow">›</span>
+    </button>
+    <button class="sheet-item" onclick="document.getElementById('importFile').click()">
+      <span>⬆️ Importar backup</span><span class="sheet-arrow">›</span>
+    </button>
+    <input type="file" id="importFile" accept="application/json,.json" hidden onchange="importBackup(event)">
+    <div class="sheet-note" id="wakeNote"></div>
+  </div>
+</div>
 
 <script>
 /* ═══════════════════════ DATA ═══════════════════════ */
@@ -435,12 +536,30 @@ const DAYS = {
 
 /* ═══════════════════════ STATE ══════════════════════ */
 const STORE_KEY = "treino_v2";
-let ST = { day:"Segunda", sets:{}, done:{} };
+let ST = { day:"Segunda", sets:{}, done:{}, log:{} };
 try { const s=localStorage.getItem(STORE_KEY); if(s) ST={...ST,...JSON.parse(s)}; } catch(_){}
 
 function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(ST)); } catch(_){} }
 function key(day,i) { return `${day}:${i}`; }
 function getSets(day,i) { return ST.sets[key(day,i)] || []; }
+
+/* progressão de carga (kg × reps), agregada por nome de exercício */
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function getLog(name){ return (ST.log && ST.log[name]) || []; }
+function logSet(name,w,r){
+  w=parseFloat(w); r=parseInt(r,10);
+  if(!(w>0) || !(r>0)) return false;
+  const arr=getLog(name).slice();
+  const t=todayStr();
+  const idx=arr.findIndex(e=>e.date===t);
+  const entry={date:t,w,r};
+  if(idx>=0) arr[idx]=entry; else arr.push(entry);
+  arr.sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0));
+  ST.log=Object.assign({}, ST.log, {[name]:arr});
+  save();
+  return true;
+}
+function est1RM(w,r){ return Math.round(w*(1+r/30)); }
 
 function toggleSet(day,i,si) {
   const k=key(day,i), arr=getSets(day,i);
@@ -477,6 +596,118 @@ function getProgress(day) {
   const done=DAYS[day].ex.filter((_,i)=>ST.done[key(day,i)]).length;
   return {total,done};
 }
+
+/* ═══════════════ CARGA / PROGRESSÃO (UI) ════════════ */
+function saveLoad(i,name){
+  const wEl=document.getElementById(`w-${i}`), rEl=document.getElementById(`r-${i}`);
+  if(!wEl||!rEl) return;
+  const btn=document.querySelector(`#load-${i} .load-save`);
+  if(logSet(name, wEl.value, rEl.value)){
+    if(btn){ btn.textContent='✓'; btn.classList.add('ok'); setTimeout(()=>{ btn.textContent='Registar'; btn.classList.remove('ok'); },900); }
+    const lc=document.getElementById(`lc-${i}`);
+    if(lc && !lc.hidden) lc.innerHTML=loadChart(name);
+  } else if(btn){
+    btn.textContent='kg × reps?'; setTimeout(()=>{ btn.textContent='Registar'; },1100);
+  }
+}
+
+function toggleChart(i,name){
+  const lc=document.getElementById(`lc-${i}`);
+  if(!lc) return;
+  if(lc.hidden){ lc.innerHTML=loadChart(name); lc.hidden=false; }
+  else lc.hidden=true;
+}
+
+function loadChart(name){
+  const data=getLog(name);
+  if(!data.length) return '<div class="lc-empty">Sem registos. Regista a carga (kg × reps) para veres a evolução.</div>';
+  const W=280,H=92,P=10;
+  const ws=data.map(e=>e.w), min=Math.min(...ws), max=Math.max(...ws), span=(max-min)||1, n=data.length;
+  const xAt=k=> n>1 ? P+k*(W-2*P)/(n-1) : W/2;
+  const yAt=w=> H-P-(w-min)/span*(H-2*P);
+  const pts=data.map((e,k)=>[+xAt(k).toFixed(1),+yAt(e.w).toFixed(1)]);
+  const line=pts.map((p,k)=>`${k?'L':'M'}${p[0]} ${p[1]}`).join(' ');
+  const area=`M${pts[0][0]} ${H-P} `+pts.map(p=>`L${p[0]} ${p[1]}`).join(' ')+` L${pts[n-1][0]} ${H-P} Z`;
+  const dots=pts.map((p,k)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${k===n-1?3.5:2.4}" fill="${k===n-1?'#f97316':'#ef4444'}"/>`).join('');
+  const last=data[n-1];
+  return `<svg class="lc-svg" viewBox="0 0 ${W} ${H}">
+      <defs><linearGradient id="lcg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ef4444" stop-opacity="0.35"/><stop offset="1" stop-color="#ef4444" stop-opacity="0"/></linearGradient></defs>
+      <path d="${area}" fill="url(#lcg)"/>
+      <path d="${line}" fill="none" stroke="#ef4444" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dots}
+    </svg>
+    <div class="lc-meta">
+      <span><b>${last.w}</b>kg × ${last.r}</span>
+      <span class="lc-1rm">1RM ~${est1RM(last.w,last.r)}kg</span>
+      <span class="lc-range">${n} ${n===1?'registo':'registos'} · ${min}–${max}kg</span>
+    </div>`;
+}
+
+/* ═══════════════ DEFINIÇÕES / BACKUP ════════════════ */
+function openSheet(){ syncWakeUI(); document.getElementById('sheetBg').classList.add('show'); }
+function closeSheet(){ document.getElementById('sheetBg').classList.remove('show'); }
+
+function exportBackup(){
+  const payload={ app:'treino', v:2, exportedAt:new Date().toISOString(), rest_sec:REST_SEC, state:ST };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`treino-backup-${todayStr()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function importBackup(e){
+  const file=e.target.files && e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const p=JSON.parse(reader.result);
+      const incoming=(p && typeof p==='object' && p.state) ? p.state : p;
+      if(!incoming || typeof incoming!=='object' || typeof incoming.sets!=='object' || typeof incoming.done!=='object')
+        throw new Error('estrutura inválida');
+      if(!confirm('Importar substitui o progresso atual. Continuar?')){ e.target.value=''; return; }
+      ST={ day:'Segunda', sets:{}, done:{}, log:{}, ...incoming };
+      if(!ST.log || typeof ST.log!=='object') ST.log={};
+      if(!DAYS[ST.day]) ST.day='Segunda';
+      if(p && typeof p.rest_sec==='number'){ REST_SEC=Math.max(15,Math.min(300,Math.round(p.rest_sec))); localStorage.setItem('rest_sec',REST_SEC); }
+      save();
+      closeSheet();
+      render(ST.day);
+      document.getElementById('restLabel').textContent=REST_SEC+'s';
+      alert('Backup importado ✓');
+    }catch(err){
+      alert('Não foi possível importar: '+(err && err.message ? err.message : 'ficheiro inválido'));
+    }finally{
+      e.target.value='';
+    }
+  };
+  reader.onerror=()=>{ alert('Erro a ler o ficheiro.'); e.target.value=''; };
+  reader.readAsText(file);
+}
+
+/* ═══════════════ WAKE LOCK (ecrã ligado) ════════════ */
+let wakeLock=null;
+let wakeWanted = localStorage.getItem('wake_on')==='1';
+async function acquireWake(){
+  if(!wakeWanted || !('wakeLock' in navigator) || document.visibilityState!=='visible') return;
+  try{ wakeLock = await navigator.wakeLock.request('screen'); }
+  catch(_){ /* o browser pode rejeitar */ }
+}
+async function releaseWake(){ try{ if(wakeLock) await wakeLock.release(); }catch(_){} wakeLock=null; }
+function toggleWake(){
+  wakeWanted=!wakeWanted;
+  localStorage.setItem('wake_on', wakeWanted?'1':'0');
+  if(wakeWanted) acquireWake(); else releaseWake();
+  syncWakeUI();
+}
+function syncWakeUI(){
+  const sw=document.getElementById('wakeSw'); if(sw) sw.classList.toggle('on',wakeWanted);
+  const note=document.getElementById('wakeNote');
+  if(note) note.textContent = ('wakeLock' in navigator) ? '' : '⚠ O teu browser não suporta manter o ecrã ligado.';
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') acquireWake(); });
 
 /* ═══════════════════════ TIMER ══════════════════════ */
 let REST_SEC = parseInt(localStorage.getItem('rest_sec') || '60');
@@ -612,6 +843,20 @@ function buildCard(day,ex,i) {
        </div>`
     : '';
 
+  const jsName=ex.name.replace(/'/g,"\\'");
+  const lastLog=getLog(ex.name).slice(-1)[0];
+  const loadHTML = totalSets>0 ? `
+      <div class="load" id="load-${i}">
+        <div class="load-row">
+          <input class="load-in" id="w-${i}" type="number" inputmode="decimal" min="0" step="0.5" placeholder="kg" value="${lastLog?lastLog.w:''}" aria-label="Peso (kg)">
+          <span class="load-x">×</span>
+          <input class="load-in" id="r-${i}" type="number" inputmode="numeric" min="0" step="1" placeholder="reps" value="${lastLog?lastLog.r:''}" aria-label="Repetições">
+          <button class="load-save" onclick="saveLoad(${i},'${jsName}')">Registar</button>
+          <button class="load-chart-btn" onclick="toggleChart(${i},'${jsName}')" aria-label="Ver progresso">📈</button>
+        </div>
+        <div class="lc" id="lc-${i}" hidden></div>
+      </div>` : '';
+
   card.innerHTML=`
     <div class="img-wrap">
       <div class="slides" id="slides-${i}">${slidesHTML}</div>
@@ -634,6 +879,7 @@ function buildCard(day,ex,i) {
         </div>
       </div>
       ${setsHTML}
+      ${loadHTML}
       ${ex.tip?`<div class="tip">💡 ${ex.tip}</div>`:''}
       ${ex.alt?`<div class="card-alt"><strong>Alternativa:</strong> ${ex.alt}</div>`:''}
       <div class="card-actions">
@@ -698,6 +944,13 @@ Object.keys(DAYS).forEach(day=>{
 
 render(ST.day);
 document.getElementById('restLabel').textContent = REST_SEC + 's';
+
+/* ═══════════════ PWA + WAKE INIT ════════════════════ */
+syncWakeUI();
+acquireWake();
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
 </script>
 </body>
 </html>

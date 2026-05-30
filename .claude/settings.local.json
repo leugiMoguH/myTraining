@@ -11,7 +11,8 @@
       "Bash(del download_images_advanced.py auto_download_images.py auto_download_bing.py auto_download_final.py download_exercisedb.py create_download_structure.py download_images.py)",
       "Bash(python fetch_images.py)",
       "PowerShell(git -C \"c:\\\\Users\\\\hugom\\\\claude\\\\myTraining\" log --oneline origin/main..HEAD 2>&1)",
-      "PowerShell(New-Item -ItemType Directory -Force -Path \"c:\\\\Users\\\\hugom\\\\claude\\\\myTraining\\\\.github\\\\workflows\")"
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"c:\\\\Users\\\\hugom\\\\claude\\\\myTraining\\\\.github\\\\workflows\")",
+      "Bash(node *)"
     ]
   }
 }

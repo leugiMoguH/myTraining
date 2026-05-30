@@ -3,7 +3,7 @@
 import { rmSync, mkdirSync, cpSync, existsSync } from 'node:fs';
 
 const OUT = 'www';
-const ASSETS = ['index.html', 'manifest.json', 'sw.js', 'icon.svg', 'favicon.svg', 'images'];
+const ASSETS = ['index.html', 'manifest.json', 'sw.js', 'icon.svg', 'favicon.svg'];
 
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });

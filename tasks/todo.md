@@ -52,10 +52,23 @@ App pessoal de treino (single-file `index.html` + PWA). Tudo local em `localStor
 - [x] CSV no ⚙ Definições: Medidas, Diário, Cargas (com data+hora; BOM p/ Excel)
 - [x] Verificado: editar/apagar medidas, histórico do diário, escaping CSV, exports sem erro
 
+## Fase 8 — Demos reais de exercício ✅
+Decisão (após pesquisa): **free-exercise-db** (yuhonas, domínio público/Unlicense, 873
+exercícios, 2 frames início/fim) via **CDN jsDelivr**. Melhor que IA (forma inconsistente,
+40× esforço, alojamento) e que bonecos (crus). Claude não gera imagens raster — e mesmo
+podendo, esta é a melhor opção de engenharia (real, consistente, grátis, offline após 1ª vez).
+- [x] Mapeados 30 exercícios → pasta exata (validado contra o JSON de 873; inclinado corrigido)
+- [x] URLs CDN validados live (HTTP 200, image/jpeg) em 16+ exercícios
+- [x] `DEMOS` (por nome, sem tocar no DATA) + `demoSlide` (frames 0/1 alternam = movimento)
+- [x] Demo = slide 1 (realista); mapa muscular = slide 2; depois media do user; depois ex.dia
+- [x] SW v2 cacheia imagens cross-origin (CDN) → offline após 1ª vez
+- [x] Fallback: sem demo (descanso) → mapa muscular / ícone; onerror → painel "liga-te à net"
+- [x] Verificado: smoke-test (30 demos, ordem, fallback), sintaxe sw.js, URLs live
+
 ## Próximo / fora de âmbito
-- [ ] Sourcing real de GIFs/diagramas de movimento (ou colar links via ＋ demo)
-- [ ] APK via Capacitor (quando alertas em background forem precisos)
-- [ ] Editar a data de um registo antigo (hoje edita-se valores, a data fica fixa)
+- [ ] Editar a DATA de um registo antigo (hoje edita-se valores, a data fica fixa)
+- [ ] APK via Capacitor (config + passos; corre na tua máquina com Android Studio)
+- [ ] (opcional) GIFs animados via ExerciseDB/RapidAPI (precisa de API key)
 
 ## Notas técnicas
 - Migração: estado antigo sem `log`/`nutri`/`profile`/`measures` → defaults no load (nada se perde)

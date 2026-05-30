@@ -491,6 +491,15 @@ body {
 .media-slide img, .media-slide video { width: 100%; height: 100%; object-fit: cover; }
 .media-del { position: absolute; top: 8px; left: 8px; z-index: 12; width: 28px; height: 28px; border-radius: 50%; background: rgba(0,0,0,0.55); border: none; color: #fff; font-size: 14px; cursor: pointer; }
 .media-del:hover { background: rgba(239,68,68,0.85); }
+.demo-slide { position: relative; background: #fff; }
+.demo-slide img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.demo-slide .demo-b { animation: demoFade 2.4s ease-in-out infinite; }
+@keyframes demoFade { 0%, 42% { opacity: 0; } 58%, 100% { opacity: 1; } }
+.demo-tag { position: absolute; top: 8px; left: 8px; z-index: 11; font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #fff; background: rgba(0,0,0,0.6); border-radius: 999px; padding: 3px 8px; }
+.demo-broken { background: linear-gradient(135deg, #1a1a28 0%, #0d0d14 100%); }
+.demo-broken img { display: none; }
+.demo-broken .demo-tag { display: none; }
+.demo-broken::after { content: '🎬 liga-te à internet uma vez para guardar a demo'; color: var(--muted); font-size: 12px; text-align: center; padding: 0 18px; }
 .ihist { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
 .ihist-h { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--text); }
 .sheet-sub { font-size: 12px; font-weight: 700; color: var(--muted); padding: 8px 4px 2px; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -1035,6 +1044,50 @@ function delMedia(name,mi){
   save(); render(ST.day);
 }
 
+/* demonstrações reais (free-exercise-db, domínio público, via CDN jsDelivr)
+   2 frames (início/fim) que alternam = mostra o movimento. SW cacheia p/ offline. */
+const DEMO_BASE='https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/';
+const DEMOS={
+  "Supino reto":"Barbell_Bench_Press_-_Medium_Grip",
+  "Supino inclinado":"Barbell_Incline_Bench_Press_-_Medium_Grip",
+  "Crucifixo":"Dumbbell_Flyes",
+  "Paralelas":"Dips_-_Chest_Version",
+  "Tríceps corda":"Triceps_Pushdown_-_Rope_Attachment",
+  "Tríceps testa":"EZ-Bar_Skullcrusher",
+  "Puxada frente":"Wide-Grip_Lat_Pulldown",
+  "Remada":"Bent_Over_Barbell_Row",
+  "Remada unilateral":"One-Arm_Dumbbell_Row",
+  "Pulldown":"Close-Grip_Front_Lat_Pulldown",
+  "Rosca direta":"Barbell_Curl",
+  "Rosca alternada":"Alternate_Hammer_Curl",
+  "Agachamento":"Barbell_Full_Squat",
+  "Leg press":"Leg_Press",
+  "Stiff":"Romanian_Deadlift",
+  "Mesa flexora":"Lying_Leg_Curls",
+  "Cadeira extensora":"Leg_Extensions",
+  "Panturrilha":"Standing_Calf_Raises",
+  "Desenvolvimento":"Dumbbell_Shoulder_Press",
+  "Elevação lateral":"Side_Lateral_Raise",
+  "Posterior ombro":"Reverse_Flyes",
+  "Face pull":"Face_Pull",
+  "Prancha":"Plank",
+  "Abdominal":"Crunches",
+  "Levantamento terra":"Barbell_Deadlift",
+  "Supino":"Barbell_Bench_Press_-_Medium_Grip",
+  "Puxada alta":"Wide-Grip_Lat_Pulldown",
+  "Agachamento goblet":"Goblet_Squat",
+  "Braços":"Barbell_Curl",
+  "Core":"Plank"
+};
+function demoUrl(dir,n){ return DEMO_BASE+dir+'/'+n+'.jpg'; }
+function demoSlide(dir,name){
+  return `<div class="slide demo-slide">
+    <img class="demo-a" src="${demoUrl(dir,0)}" alt="${name} — demonstração" loading="lazy" onerror="this.closest('.demo-slide').classList.add('demo-broken')">
+    <img class="demo-b" src="${demoUrl(dir,1)}" alt="" loading="lazy" onerror="this.style.display='none'">
+    <span class="demo-tag">demo</span>
+  </div>`;
+}
+
 /* ═══════════════════════ NUTRIÇÃO ═══════════════════ */
 const PROT=['Frango','Peru','Carne vaca','Atum','Salmão','Ovos','Iogurte','Queijo fresco','Tofu','Whey'];
 const CARB=['Arroz','Massa','Batata','Batata-doce','Pão','Aveia','Grão','Feijão','Fruta'];
@@ -1425,11 +1478,14 @@ function buildCard(day,ex,i) {
   card.className='card'+(ST.done[key(day,i)]?' done':'');
   card.id=`card-${i}`;
 
-  // slides: 1) mapa muscular  2+) demos do utilizador (ST.media)  3+) diagramas (ex.dia)
+  // slides: 1) demo real (CDN)  2) mapa muscular  3+) demos do utilizador  4+) diagramas (ex.dia)
   const mm=MUSCLES[ex.name];
+  const dmo=DEMOS[ex.name];
   const media=(ST.media&&ST.media[ex.name])||[];
   const extra=ex.dia||[];
-  const slidesArr=[ mm ? muscleSlide(mm) : noImgSlide(ex.name) ];
+  const slidesArr=[];
+  if(dmo) slidesArr.push(demoSlide(dmo,ex.name));
+  slidesArr.push(mm ? muscleSlide(mm) : noImgSlide(ex.name));
   media.forEach((url,mi)=>slidesArr.push(mediaSlide(url,ex.name,mi)));
   extra.forEach(src=>slidesArr.push(`<div class="slide"><img src="${src}" alt="${ex.name}" loading="lazy"
         onerror="this.closest('.slide').innerHTML='<div class=\\'no-img\\'><span>💪</span><span>${ex.name}</span></div>'"></div>`));

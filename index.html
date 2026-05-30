@@ -454,6 +454,46 @@ body {
 .nshop { display: flex; flex-wrap: wrap; gap: 6px; }
 .nshop-i { font-size: 12px; font-weight: 600; color: var(--text); background: var(--card2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 6px 10px; }
 .ndisc { font-size: 11px; color: var(--muted); font-style: italic; }
+.mgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.m-chip { background: var(--card2); border: 1px solid var(--border); color: var(--muted); }
+#mchips .m-chip { cursor: pointer; }
+.linklike { background: none; border: none; color: var(--accent); font-weight: 700; cursor: pointer; text-decoration: underline; padding: 0; font: inherit; }
+.lc-when { color: var(--muted); opacity: 0.85; }
+
+/* ── DIÁRIO DE INGESTÃO ───────────────────────────── */
+.iprog { display: flex; flex-direction: column; gap: 5px; }
+.iprog-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.iprog-row b { color: var(--text); font-size: 14px; }
+.ibar { height: 8px; background: rgba(255,255,255,0.07); border-radius: 4px; overflow: hidden; }
+.ibar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 4px; transition: width 0.4s; }
+.ibar-fill.prot { background: var(--blue); }
+.ibar-fill.over { background: var(--accent); }
+.iadd { display: flex; gap: 6px; }
+.iadd .nfree { height: 40px; }
+.iadd .inum { max-width: 74px; }
+.iadd .load-save { height: 40px; flex-shrink: 0; }
+.qfoods { display: flex; flex-wrap: wrap; gap: 6px; }
+.qfood { font-size: 11px; font-weight: 600; color: var(--muted); background: var(--card2); border: 1px solid var(--border); border-radius: 999px; padding: 6px 10px; cursor: pointer; }
+.qfood:hover { color: var(--text); border-color: var(--accent); }
+.ilist { display: flex; flex-direction: column; gap: 6px; }
+.iitem { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--card); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 9px 11px; }
+.iitem-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.iitem-n { font-size: 14px; font-weight: 600; }
+.iitem-t { font-size: 11px; color: var(--muted); }
+.iitem-r { display: flex; align-items: center; gap: 10px; flex-shrink: 0; font-size: 12px; color: var(--muted); }
+.iitem-x { width: 26px; height: 26px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); cursor: pointer; }
+.iitem-x:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── DEMOS (media slides) ─────────────────────────── */
+.add-media { position: absolute; top: 8px; right: 8px; z-index: 12; font-size: 11px; font-weight: 700; color: #fff; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); border-radius: 999px; padding: 5px 9px; cursor: pointer; }
+.add-media:hover { background: rgba(0,0,0,0.8); }
+.media-slide { position: relative; }
+.media-slide img, .media-slide video { width: 100%; height: 100%; object-fit: cover; }
+.media-del { position: absolute; top: 8px; left: 8px; z-index: 12; width: 28px; height: 28px; border-radius: 50%; background: rgba(0,0,0,0.55); border: none; color: #fff; font-size: 14px; cursor: pointer; }
+.media-del:hover { background: rgba(239,68,68,0.85); }
+.ihist { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+.ihist-h { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--text); }
+.sheet-sub { font-size: 12px; font-weight: 700; color: var(--muted); padding: 8px 4px 2px; text-transform: uppercase; letter-spacing: 0.05em; }
 </style>
 </head>
 <body>
@@ -517,6 +557,10 @@ body {
       <span>⬆️ Importar backup</span><span class="sheet-arrow">›</span>
     </button>
     <input type="file" id="importFile" accept="application/json,.json" hidden onchange="importBackup(event)">
+    <div class="sheet-sub">Exportar para folha de cálculo (CSV)</div>
+    <button class="sheet-item" onclick="exportMeasuresCSV()"><span>📏 Medidas</span><span class="sheet-arrow">↓</span></button>
+    <button class="sheet-item" onclick="exportIntakeCSV()"><span>🍽️ Diário alimentar</span><span class="sheet-arrow">↓</span></button>
+    <button class="sheet-item" onclick="exportLoadCSV()"><span>🏋️ Cargas</span><span class="sheet-arrow">↓</span></button>
     <div class="sheet-note" id="wakeNote"></div>
   </div>
 </div>
@@ -596,8 +640,19 @@ const DAYS = {
 
 /* ═══════════════════════ STATE ══════════════════════ */
 const STORE_KEY = "treino_v2";
-let ST = { day:"Segunda", sets:{}, done:{}, log:{}, nutri:{profile:null} };
+let ST = { day:"Segunda", sets:{}, done:{}, log:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], media:{} };
 try { const s=localStorage.getItem(STORE_KEY); if(s) ST={...ST,...JSON.parse(s)}; } catch(_){}
+if(!ST.profile || typeof ST.profile!=='object') ST.profile={};
+if(!Array.isArray(ST.measures)) ST.measures=[];
+if(!Array.isArray(ST.intake)) ST.intake=[];
+if(!ST.media || typeof ST.media!=='object') ST.media={};
+/* migração: dados do corpo da nutrição antiga → Perfil + 1ª medida */
+if(!ST.profile.height && ST.nutri && ST.nutri.profile && ST.nutri.profile.height){
+  const o=ST.nutri.profile;
+  ST.profile={ sex:o.sex, age:o.age, height:o.height, goal:o.goal, activity:o.activity };
+  if(o.weight>0 && !ST.measures.length) ST.measures=[{ date:todayStr(), weight:o.weight }];
+  ST.nutri={ profile:{ meals:o.meals, cookTime:o.cookTime, fav:o.fav, restrictions:o.restrictions, supps:o.supps, avoid:o.avoid } };
+}
 
 function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(ST)); } catch(_){} }
 function key(day,i) { return `${day}:${i}`; }
@@ -605,6 +660,9 @@ function getSets(day,i) { return ST.sets[key(day,i)] || []; }
 
 /* progressão de carga (kg × reps), agregada por nome de exercício */
 function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function nowISO(){ return new Date().toISOString(); }
+function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); return isNaN(d.getTime())?'':d.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}); }
+function fmtDateTime(ts){ if(!ts) return ''; const d=new Date(ts); return isNaN(d.getTime())?'':d.toLocaleDateString('pt-PT')+' '+d.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}); }
 function getLog(name){ return (ST.log && ST.log[name]) || []; }
 function logSet(name,w,r){
   w=parseFloat(w); r=parseInt(r,10);
@@ -612,7 +670,7 @@ function logSet(name,w,r){
   const arr=getLog(name).slice();
   const t=todayStr();
   const idx=arr.findIndex(e=>e.date===t);
-  const entry={date:t,w,r};
+  const entry={date:t,ts:nowISO(),w,r};
   if(idx>=0) arr[idx]=entry; else arr.push(entry);
   arr.sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0));
   ST.log=Object.assign({}, ST.log, {[name]:arr});
@@ -678,28 +736,27 @@ function toggleChart(i,name){
   else lc.hidden=true;
 }
 
-function loadChart(name){
-  const data=getLog(name);
-  if(!data.length) return '<div class="lc-empty">Sem registos. Regista a carga (kg × reps) para veres a evolução.</div>';
-  const W=280,H=92,P=10;
-  const ws=data.map(e=>e.w), min=Math.min(...ws), max=Math.max(...ws), span=(max-min)||1, n=data.length;
+function chartSVG(vals){
+  const W=280,H=92,P=10,n=vals.length;
+  const min=Math.min(...vals),max=Math.max(...vals),span=(max-min)||1;
   const xAt=k=> n>1 ? P+k*(W-2*P)/(n-1) : W/2;
-  const yAt=w=> H-P-(w-min)/span*(H-2*P);
-  const pts=data.map((e,k)=>[+xAt(k).toFixed(1),+yAt(e.w).toFixed(1)]);
+  const yAt=v=> H-P-(v-min)/span*(H-2*P);
+  const pts=vals.map((v,k)=>[+xAt(k).toFixed(1),+yAt(v).toFixed(1)]);
   const line=pts.map((p,k)=>`${k?'L':'M'}${p[0]} ${p[1]}`).join(' ');
   const area=`M${pts[0][0]} ${H-P} `+pts.map(p=>`L${p[0]} ${p[1]}`).join(' ')+` L${pts[n-1][0]} ${H-P} Z`;
   const dots=pts.map((p,k)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${k===n-1?3.5:2.4}" fill="${k===n-1?'#f97316':'#ef4444'}"/>`).join('');
-  const last=data[n-1];
-  return `<svg class="lc-svg" viewBox="0 0 ${W} ${H}">
-      <defs><linearGradient id="lcg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ef4444" stop-opacity="0.35"/><stop offset="1" stop-color="#ef4444" stop-opacity="0"/></linearGradient></defs>
-      <path d="${area}" fill="url(#lcg)"/>
-      <path d="${line}" fill="none" stroke="#ef4444" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-      ${dots}
-    </svg>
+  return `<svg class="lc-svg" viewBox="0 0 ${W} ${H}"><defs><linearGradient id="lcg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ef4444" stop-opacity="0.35"/><stop offset="1" stop-color="#ef4444" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#lcg)"/><path d="${line}" fill="none" stroke="#ef4444" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg>`;
+}
+function loadChart(name){
+  const data=getLog(name);
+  if(!data.length) return '<div class="lc-empty">Sem registos. Regista a carga (kg × reps) para veres a evolução.</div>';
+  const ws=data.map(e=>e.w), min=Math.min(...ws), max=Math.max(...ws), n=data.length, last=data[n-1];
+  return chartSVG(ws)+`
     <div class="lc-meta">
       <span><b>${last.w}</b>kg × ${last.r}</span>
       <span class="lc-1rm">1RM ~${est1RM(last.w,last.r)}kg</span>
       <span class="lc-range">${n} ${n===1?'registo':'registos'} · ${min}–${max}kg</span>
+      ${last.ts?`<span class="lc-when">últ. ${fmtDateTime(last.ts)}</span>`:''}
     </div>`;
 }
 
@@ -728,10 +785,14 @@ function importBackup(e){
       if(!incoming || typeof incoming!=='object' || typeof incoming.sets!=='object' || typeof incoming.done!=='object')
         throw new Error('estrutura inválida');
       if(!confirm('Importar substitui o progresso atual. Continuar?')){ e.target.value=''; return; }
-      ST={ day:'Segunda', sets:{}, done:{}, log:{}, nutri:{profile:null}, ...incoming };
+      ST={ day:'Segunda', sets:{}, done:{}, log:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], media:{}, ...incoming };
       if(!ST.log || typeof ST.log!=='object') ST.log={};
       if(!ST.nutri || typeof ST.nutri!=='object') ST.nutri={profile:null};
-      if(ST.day!=='__nutri' && !DAYS[ST.day]) ST.day='Segunda';
+      if(!ST.profile || typeof ST.profile!=='object') ST.profile={};
+      if(!Array.isArray(ST.measures)) ST.measures=[];
+      if(!Array.isArray(ST.intake)) ST.intake=[];
+      if(!ST.media || typeof ST.media!=='object') ST.media={};
+      if(ST.day!=='__nutri' && ST.day!=='__perfil' && !DAYS[ST.day]) ST.day='Segunda';
       if(p && typeof p.rest_sec==='number'){ REST_SEC=Math.max(15,Math.min(300,Math.round(p.rest_sec))); localStorage.setItem('rest_sec',REST_SEC); }
       save();
       closeSheet();
@@ -746,6 +807,35 @@ function importBackup(e){
   };
   reader.onerror=()=>{ alert('Erro a ler o ficheiro.'); e.target.value=''; };
   reader.readAsText(file);
+}
+
+/* ── EXPORTAÇÃO CSV ───────────────────────────────── */
+function csvCell(v){ v=(v==null?'':String(v)); return /[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+function csvDownload(filename, rows){
+  const csv=rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function exportMeasuresCSV(){
+  const rows=[['data','hora','peso_kg','cintura_cm','pescoco_cm','anca_cm','peito_cm','braco_cm','coxa_cm','gordura_pct']];
+  (ST.measures||[]).forEach(e=>{ const bf=bodyFat(e); rows.push([e.date, e.ts?fmtTime(e.ts):'', e.weight, e.waist||'', e.neck||'', e.hip||'', e.chest||'', e.arm||'', e.thigh||'', bf!=null?bf:'']); });
+  if(rows.length<2){ alert('Sem medidas para exportar.'); return; }
+  csvDownload(`medidas-${todayStr()}.csv`, rows); closeSheet();
+}
+function exportIntakeCSV(){
+  const rows=[['data','hora','alimento','kcal','proteina_g']];
+  (ST.intake||[]).slice().sort((a,b)=>(a.ts||'')<(b.ts||'')?-1:1).forEach(x=>rows.push([x.date, x.ts?fmtTime(x.ts):'', x.name, Math.round(x.kcal), x.protein]));
+  if(rows.length<2){ alert('Sem registos de ingestão para exportar.'); return; }
+  csvDownload(`diario-${todayStr()}.csv`, rows); closeSheet();
+}
+function exportLoadCSV(){
+  const rows=[['exercicio','data','hora','peso_kg','reps','rm_estimado']];
+  Object.keys(ST.log||{}).forEach(name=>{ (ST.log[name]||[]).forEach(e=>rows.push([name, e.date, e.ts?fmtTime(e.ts):'', e.w, e.r, est1RM(e.w,e.r)])); });
+  if(rows.length<2){ alert('Sem cargas para exportar.'); return; }
+  csvDownload(`cargas-${todayStr()}.csv`, rows); closeSheet();
 }
 
 /* ═══════════════ WAKE LOCK (ecrã ligado) ════════════ */
@@ -920,6 +1010,31 @@ function muscleSlide(mm){
 }
 function noImgSlide(name){ return `<div class="slide"><div class="no-img"><span>💪</span><span>${name}</span></div></div>`; }
 
+/* demonstrações (imagem/GIF/vídeo) por exercício, fornecidas pelo utilizador */
+function mediaSlide(url,name,mi){
+  const safe=String(url).replace(/"/g,'&quot;');
+  const jn=String(name).replace(/'/g,"\\'");
+  const isVid=/\.(mp4|webm|mov)(\?|$)/i.test(url);
+  const inner=isVid
+    ? `<video src="${safe}" autoplay loop muted playsinline></video>`
+    : `<img src="${safe}" alt="${name}" loading="lazy" onerror="this.closest('.slide').innerHTML='<div class=\\'no-img\\'><span>🎬</span><span>Demo indisponível</span></div>'">`;
+  return `<div class="slide media-slide">${inner}<button class="media-del" onclick="delMedia('${jn}',${mi})" aria-label="Remover demo">✕</button></div>`;
+}
+function addMedia(name){
+  const url=prompt('Cola o link de uma imagem, GIF ou vídeo de demonstração do exercício:');
+  if(!url) return;
+  const u=url.trim();
+  if(!/^https?:\/\//i.test(u) && !/^images\//i.test(u)){ alert('Link inválido — tem de começar por http:// ou https://'); return; }
+  const cur=(ST.media&&ST.media[name])||[];
+  ST.media=Object.assign({},ST.media,{[name]:cur.concat([u])});
+  save(); render(ST.day);
+}
+function delMedia(name,mi){
+  const arr=((ST.media&&ST.media[name])||[]).slice(); arr.splice(mi,1);
+  ST.media=Object.assign({},ST.media,{[name]:arr});
+  save(); render(ST.day);
+}
+
 /* ═══════════════════════ NUTRIÇÃO ═══════════════════ */
 const PROT=['Frango','Peru','Carne vaca','Atum','Salmão','Ovos','Iogurte','Queijo fresco','Tofu','Whey'];
 const CARB=['Arroz','Massa','Batata','Batata-doce','Pão','Aveia','Grão','Feijão','Fruta'];
@@ -966,6 +1081,74 @@ function shopping(p){
   return out;
 }
 
+/* ── DIÁRIO DE INGESTÃO ───────────────────────────── */
+const FOODS=[
+  {n:'Frango grelhado (100g)',k:165,p:31},{n:'Atum lata (100g)',k:130,p:29},
+  {n:'Ovo (1)',k:78,p:6},{n:'Arroz cozido (100g)',k:130,p:2.7},
+  {n:'Massa cozida (100g)',k:158,p:5.8},{n:'Batata-doce (100g)',k:86,p:1.6},
+  {n:'Aveia (40g)',k:150,p:5},{n:'Iogurte natural (1)',k:90,p:9},
+  {n:'Whey (1 scoop)',k:120,p:24},{n:'Banana (1)',k:105,p:1.3},
+  {n:'Pão (1 fatia)',k:80,p:3},{n:'Queijo fresco (100g)',k:110,p:11}
+];
+function addIntake(name,kcal,protein){
+  name=(name||'').trim(); kcal=parseFloat(kcal)||0; protein=parseFloat(protein)||0;
+  if(!name && !kcal) return false;
+  const item={ id:'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), ts:nowISO(), date:todayStr(), name:name||'Item', kcal, protein };
+  ST.intake=(ST.intake||[]).concat([item]);
+  save(); return true;
+}
+function delIntake(id){ ST.intake=(ST.intake||[]).filter(x=>x.id!==id); save(); renderNutri(); }
+function intakeToday(){ const t=todayStr(); return (ST.intake||[]).filter(x=>x.date===t); }
+function intakeTotals(list){ return list.reduce((a,x)=>({kcal:a.kcal+(+x.kcal||0),protein:a.protein+(+x.protein||0)}),{kcal:0,protein:0}); }
+function intakeDailySeries(){
+  const by={}; (ST.intake||[]).forEach(x=>{ by[x.date]=(by[x.date]||0)+(+x.kcal||0); });
+  return Object.keys(by).sort().map(d=>({date:d,v:Math.round(by[d])}));
+}
+function fillIntake(k){ const f=FOODS[k]; if(!f) return; const set=(id,v)=>{const el=document.getElementById(id); if(el) el.value=v;}; set('i-name',f.n); set('i-kcal',f.k); set('i-prot',f.p); }
+function addIntakeUI(){
+  const v=id=>{const el=document.getElementById(id); return el?el.value:'';};
+  if(addIntake(v('i-name'),v('i-kcal'),v('i-prot'))) renderNutri();
+  else alert('Indica pelo menos um nome ou as kcal.');
+}
+function intakeHTML(){
+  const list=intakeToday().slice().sort((a,b)=>(a.ts||'')<(b.ts||'')?-1:1);
+  const tot=intakeTotals(list);
+  const b=bodyMetrics(), tgt=(b.age>0&&b.height>0&&b.weight>0)?calcTargets(b):null;
+  const kPct=tgt?Math.min(100,Math.round(tot.kcal/tgt.kcal*100)):0;
+  const pPct=tgt?Math.min(100,Math.round(tot.protein/(tgt.protein||1)*100)):0;
+  const series=intakeDailySeries();
+  return `
+  <div class="nsec-title">📋 Hoje · diário alimentar</div>
+  ${ tgt ? `<div class="iprog">
+    <div class="iprog-row"><span>Calorias</span><span><b>${Math.round(tot.kcal)}</b> / ${tgt.kcal} kcal</span></div>
+    <div class="ibar"><div class="ibar-fill${tot.kcal>tgt.kcal?' over':''}" style="width:${kPct}%"></div></div>
+    <div class="iprog-row"><span>Proteína</span><span><b>${Math.round(tot.protein)}</b> / ${tgt.protein} g</span></div>
+    <div class="ibar"><div class="ibar-fill prot" style="width:${pPct}%"></div></div>
+  </div>` : `<div class="ndisc">Completa o Perfil para veres o progresso vs metas.</div>` }
+  <div class="iadd">
+    <input id="i-name" class="nfree" placeholder="alimento">
+    <input id="i-kcal" class="nfree inum" type="number" inputmode="numeric" placeholder="kcal">
+    <input id="i-prot" class="nfree inum" type="number" inputmode="numeric" placeholder="prot">
+    <button class="load-save" onclick="addIntakeUI()">+ Add</button>
+  </div>
+  <div class="qfoods">${FOODS.map((f,k)=>`<button type="button" class="qfood" onclick="fillIntake(${k})">${f.n}</button>`).join('')}</div>
+  ${ list.length ? `<div class="ilist">${list.map(x=>`<div class="iitem"><div class="iitem-main"><span class="iitem-n">${x.name}</span><span class="iitem-t">${fmtTime(x.ts)}</span></div><div class="iitem-r"><span>${Math.round(x.kcal)}kcal · ${Math.round(x.protein)}g</span><button class="iitem-x" onclick="delIntake('${x.id}')" aria-label="Remover">✕</button></div></div>`).join('')}</div>` : '<div class="ndisc">Ainda nada registado hoje.</div>' }
+  ${ series.length>1 ? `<div class="lc">${chartSVG(series.map(p=>p.v))}<div class="lc-meta"><span><b>${Math.round(tot.kcal)}</b> kcal hoje</span><span class="lc-range">${series.length} dias registados</span></div></div>` : '' }
+  ${intakeHistoryHTML()}`;
+}
+function intakeHistoryHTML(){
+  const t=todayStr(), byDate={};
+  (ST.intake||[]).forEach(x=>{ if(x.date!==t){ (byDate[x.date]=byDate[x.date]||[]).push(x); } });
+  const dates=Object.keys(byDate).sort().reverse().slice(0,7);
+  if(!dates.length) return '';
+  return `<div class="nsec-title">Dias anteriores</div>`+dates.map(d=>{
+    const items=byDate[d].slice().sort((a,b)=>(a.ts||'')<(b.ts||'')?-1:1), tt=intakeTotals(items);
+    return `<div class="ihist"><div class="ihist-h"><span class="iitem-n">${d}</span><span>${Math.round(tt.kcal)}kcal · ${Math.round(tt.protein)}g</span></div>`+
+      items.map(x=>`<div class="iitem"><div class="iitem-main"><span class="iitem-n">${x.name}</span><span class="iitem-t">${fmtTime(x.ts)} · ${Math.round(x.kcal)}kcal · ${Math.round(x.protein)}g</span></div><div class="iitem-r"><button class="iitem-x" onclick="delIntake('${x.id}')" aria-label="Remover">✕</button></div></div>`).join('')+
+      `</div>`;
+  }).join('');
+}
+
 function nchips(cat,opts,selected){
   selected=selected||[];
   return `<div class="nchips" data-cat="${cat}">`+opts.map(o=>`<label class="nchip"><input type="checkbox" value="${o}"${selected.indexOf(o)>=0?' checked':''}><span>${o}</span></label>`).join('')+`</div>`;
@@ -980,64 +1163,60 @@ function collectFav(cat){
   return out;
 }
 
-function nutriFormHTML(p){
-  p=p||{}; const f=p.fav||{};
+function nutriFormHTML(food){
+  food=food||{}; const f=food.fav||{};
   const sel=(v,o)=>v===o?' selected':'';
+  const editing=!!(ST.nutri&&ST.nutri.profile);
+  const warn=profileComplete()?'':`<div class="nnote">⚠ Completa o teu <b>Perfil</b> 👤 (idade, altura, peso) para calcular as metas. As preferências abaixo guardam-se na mesma.</div>`;
   return `
   <div class="nplan-hdr">
-    <div><div class="day-hdr-name">🥗 Perfil nutricional</div><div class="day-hdr-sub">Responde para gerar metas + sugestões</div></div>
-    ${p.goal?`<button class="reset-btn" onclick="cancelNutri()">✕ Cancelar</button>`:''}
+    <div><div class="day-hdr-name">🥗 Nutrição</div><div class="day-hdr-sub">Preferências alimentares</div></div>
+    ${editing?`<button class="reset-btn" onclick="cancelNutri()">✕ Cancelar</button>`:''}
   </div>
+  ${warn}
   <form id="nutriForm" class="nform" onsubmit="saveNutri(event)">
     <div class="nrow">
-      <label class="nfield"><span>Objetivo</span>
-        <select id="n-goal"><option value="perder"${sel(p.goal,'perder')}>Perder gordura</option><option value="manter"${sel(p.goal,'manter')}>Manter</option><option value="ganhar"${sel(p.goal,'ganhar')}>Ganhar músculo</option></select></label>
-      <label class="nfield"><span>Sexo</span>
-        <select id="n-sex"><option value="m"${sel(p.sex,'m')}>Masculino</option><option value="f"${sel(p.sex,'f')}>Feminino</option></select></label>
-    </div>
-    <div class="nrow">
-      <label class="nfield"><span>Idade</span><input id="n-age" type="number" min="10" max="100" inputmode="numeric" value="${p.age||''}" required></label>
-      <label class="nfield"><span>Altura (cm)</span><input id="n-height" type="number" min="120" max="230" inputmode="numeric" value="${p.height||''}" required></label>
-      <label class="nfield"><span>Peso (kg)</span><input id="n-weight" type="number" min="30" max="250" step="0.1" inputmode="decimal" value="${p.weight||''}" required></label>
-    </div>
-    <div class="nrow">
-      <label class="nfield"><span>Atividade (fora do treino)</span>
-        <select id="n-activity"><option value="sed"${sel(p.activity,'sed')}>Sedentário</option><option value="leve"${sel(p.activity,'leve')}>Leve</option><option value="mod"${sel(p.activity,'mod')}>Moderado</option><option value="alto"${sel(p.activity,'alto')}>Alto</option></select></label>
       <label class="nfield"><span>Refeições/dia</span>
-        <select id="n-meals"><option${sel(String(p.meals),'3')}>3</option><option${sel(String(p.meals||4),'4')}>4</option><option${sel(String(p.meals),'5')}>5</option><option${sel(String(p.meals),'6')}>6</option></select></label>
+        <select id="n-meals"><option${sel(String(food.meals),'3')}>3</option><option${sel(String(food.meals||4),'4')}>4</option><option${sel(String(food.meals),'5')}>5</option><option${sel(String(food.meals),'6')}>6</option></select></label>
       <label class="nfield"><span>Tempo p/ cozinhar</span>
-        <select id="n-cook"><option value="pouco"${sel(p.cookTime,'pouco')}>Pouco</option><option value="medio"${sel(p.cookTime,'medio')}>Médio</option><option value="muito"${sel(p.cookTime,'muito')}>Muito</option></select></label>
+        <select id="n-cook"><option value="pouco"${sel(food.cookTime,'pouco')}>Pouco</option><option value="medio"${sel(food.cookTime||'medio','medio')}>Médio</option><option value="muito"${sel(food.cookTime,'muito')}>Muito</option></select></label>
     </div>
     <div class="nsec-title">Proteínas favoritas</div>${nchips('protein',PROT,f.protein)}<input class="nfree" id="free-protein" placeholder="outras (separa por vírgulas)" value="${freeVal(f.protein,PROT)}">
     <div class="nsec-title">Hidratos favoritos</div>${nchips('carbs',CARB,f.carbs)}<input class="nfree" id="free-carbs" placeholder="outros (separa por vírgulas)" value="${freeVal(f.carbs,CARB)}">
     <div class="nsec-title">Vegetais favoritos</div>${nchips('veg',VEG,f.veg)}<input class="nfree" id="free-veg" placeholder="outros (separa por vírgulas)" value="${freeVal(f.veg,VEG)}">
     <div class="nsec-title">Snacks favoritos</div>${nchips('snack',SNACK,f.snack)}<input class="nfree" id="free-snack" placeholder="outros (separa por vírgulas)" value="${freeVal(f.snack,SNACK)}">
-    <div class="nsec-title">Restrições</div>${nchips('restr',RESTR,p.restrictions)}
-    <div class="nsec-title">Suplementos que usas</div>${nchips('supps',SUPPS,p.supps)}
-    <label class="nfield full"><span>Alimentos a evitar</span><input id="n-avoid" placeholder="ex.: marisco, coentros" value="${(p.avoid||[]).join(', ')}"></label>
-    <button class="nbtn" type="submit">Calcular plano →</button>
+    <div class="nsec-title">Restrições</div>${nchips('restr',RESTR,food.restrictions)}
+    <div class="nsec-title">Suplementos que usas</div>${nchips('supps',SUPPS,food.supps)}
+    <label class="nfield full"><span>Alimentos a evitar</span><input id="n-avoid" placeholder="ex.: marisco, coentros" value="${(food.avoid||[]).join(', ')}"></label>
+    <button class="nbtn" type="submit">Guardar preferências →</button>
   </form>`;
 }
 
-function nutriPlanHTML(p){
-  const t=p._t||calcTargets(p);
-  const meals=mealPlan(p);
-  const shop=shopping(p);
-  const goalTxt={perder:'Perder gordura',manter:'Manter',ganhar:'Ganhar músculo'}[p.goal]||p.goal;
-  return `
-  <div class="nplan-hdr">
-    <div><div class="day-hdr-name">🥗 Nutrição</div><div class="day-hdr-sub">${goalTxt} · ${p.weight}kg · ${p.meals} refeições</div></div>
-    <button class="reset-btn" onclick="editNutri()">✎ Editar</button>
-  </div>
+function nutriPlanHTML(food){
+  food=food||{};
+  const b=bodyMetrics();
+  const complete=b.age>0 && b.height>0 && b.weight>0;
+  const meals=mealPlan(Object.assign({},food,{goal:b.goal}));
+  const shop=shopping(food);
+  const goalTxt={perder:'perder gordura',manter:'manter',ganhar:'ganhar músculo'}[b.goal]||'';
+  const targetsHTML = complete ? (function(){ const t=calcTargets(b); return `
   <div class="ntargets">
     <div class="ntar"><span class="ntar-v">${t.kcal}</span><span class="ntar-l">kcal/dia</span></div>
     <div class="ntar"><span class="ntar-v">${t.protein}g</span><span class="ntar-l">proteína</span></div>
     <div class="ntar"><span class="ntar-v">${t.water}L</span><span class="ntar-l">água</span></div>
   </div>
-  <div class="nmacros">Hidratos ~${t.carbG}g · Gordura ~${t.fatG}g</div>
+  <div class="nmacros">Hidratos ~${t.carbG}g · Gordura ~${t.fatG}g</div>`; })()
+  : `<div class="nnote">⚠ Completa o <b>Perfil</b> (idade, altura, peso) para veres as metas. <button class="linklike" onclick="render('__perfil')">Ir ao Perfil 👤</button></div>`;
+  return `
+  <div class="nplan-hdr">
+    <div><div class="day-hdr-name">🥗 Nutrição</div><div class="day-hdr-sub">${food.meals||4} refeições${goalTxt?` · ${goalTxt}`:''}</div></div>
+    <button class="reset-btn" onclick="editNutri()">✎ Editar</button>
+  </div>
+  ${targetsHTML}
+  ${intakeHTML()}
   <div class="nsec-title">Sugestão de refeições</div>
   <div class="nmeals">${meals.map(m=>`<div class="nmeal${m.tag==='treino'?' treino':''}"><div class="nmeal-t">${m.t}</div><div class="nmeal-i">${m.i}</div></div>`).join('')}</div>
-  <div class="nnote">⏱ Nos dias de treino: <b>pré-treino</b> 60–90min antes, <b>pós-treino</b> na 1ª hora a seguir. Água: ${t.water}L base, +0,5L se treinares.</div>
+  <div class="nnote">⏱ Nos dias de treino: <b>pré-treino</b> 60–90min antes, <b>pós-treino</b> na 1ª hora a seguir.</div>
   ${shop.length?`<div class="nsec-title">Lista de compras (dos teus favoritos)</div><div class="nshop">${shop.map(s=>`<span class="nshop-i">${s}</span>`).join('')}</div>`:''}
   <div class="ndisc">Estimativas (Mifflin-St Jeor). Ajusta conforme os resultados ao fim de 2–3 semanas.</div>`;
 }
@@ -1054,22 +1233,166 @@ function editNutri(){ NUTRI_EDIT=true; renderNutri(); }
 function cancelNutri(){ NUTRI_EDIT=false; renderNutri(); }
 function saveNutri(e){
   e.preventDefault();
-  const num=id=>parseFloat(document.getElementById(id).value);
   const val=id=>{ const el=document.getElementById(id); return el?el.value:''; };
-  const age=num('n-age'), height=num('n-height'), weight=num('n-weight');
-  if(!(age>0 && height>0 && weight>0)){ alert('Preenche idade, altura e peso com valores válidos.'); return; }
   const profile={
-    goal:val('n-goal'), sex:val('n-sex'), age, height, weight,
-    activity:val('n-activity'), meals:parseInt(val('n-meals'),10)||4, cookTime:val('n-cook'),
+    meals:parseInt(val('n-meals'),10)||4, cookTime:val('n-cook'),
     fav:{ protein:collectFav('protein'), carbs:collectFav('carbs'), veg:collectFav('veg'), snack:collectFav('snack') },
     restrictions:collectFav('restr'), supps:collectFav('supps'),
     avoid:(val('n-avoid')||'').split(',').map(s=>s.trim()).filter(Boolean)
   };
-  profile._t=calcTargets(profile);
   ST.nutri={profile};
   save();
   NUTRI_EDIT=false;
   renderNutri();
+}
+
+/* ═══════════════════════ PERFIL ═════════════════════ */
+function getProfile(){ return ST.profile||{}; }
+function bodyMetrics(){ const p=getProfile(); return { sex:p.sex||'m', age:+p.age||0, height:+p.height||0, goal:p.goal||'manter', activity:p.activity||'mod', weight:latestWeight() }; }
+function profileComplete(){ const b=bodyMetrics(); return b.age>0 && b.height>0 && b.weight>0; }
+function latestMeasure(){ const m=ST.measures||[]; return m.length?m[m.length-1]:null; }
+function latestWeight(){ const e=latestMeasure(); return e&&e.weight>0?e.weight:0; }
+
+function bodyFat(e){
+  const p=getProfile(), h=+p.height, waist=+e.waist, neck=+e.neck, hip=+e.hip;
+  if(!(h>0)) return null;
+  let v;
+  if(p.sex==='f'){
+    if(!(waist>0 && hip>0 && neck>0 && (waist+hip-neck)>0)) return null;
+    v=495/(1.29579-0.35004*Math.log10(waist+hip-neck)+0.22100*Math.log10(h))-450;
+  } else {
+    if(!(waist>0 && neck>0 && (waist-neck)>0)) return null;
+    v=495/(1.0324-0.19077*Math.log10(waist-neck)+0.15456*Math.log10(h))-450;
+  }
+  if(!isFinite(v) || v<=0 || v>70) return null;
+  return Math.round(v*10)/10;
+}
+
+const METRIC_DEF={weight:['Peso','kg'],bf:['% Gordura','%'],waist:['Cintura','cm'],neck:['Pescoço','cm'],hip:['Anca','cm'],chest:['Peito','cm'],arm:['Braço','cm'],thigh:['Coxa','cm']};
+let MEASURE_METRIC='weight';
+let MEASURE_EDIT_DATE=null;
+function measureSeries(field){
+  const out=[];
+  (ST.measures||[]).forEach(e=>{ const v= field==='bf'?bodyFat(e):e[field]; if(typeof v==='number' && !isNaN(v)) out.push({date:e.date,v}); });
+  return out;
+}
+function metricChartHTML(field){
+  const s=measureSeries(field), def=METRIC_DEF[field]||[field,''];
+  if(!s.length) return `<div class="lc-empty">Sem registos de ${def[0]}.</div>`;
+  const vals=s.map(p=>p.v), last=vals[vals.length-1], first=vals[0], d=Math.round((last-first)*10)/10;
+  return chartSVG(vals)+`<div class="lc-meta"><span><b>${last}</b>${def[1]} ${def[0]}</span><span class="lc-1rm">${d>0?'+':''}${d}${def[1]} desde início</span><span class="lc-range">${s.length} reg.</span></div>`;
+}
+function setMetric(m){
+  MEASURE_METRIC=m;
+  const host=document.getElementById('mchart'); if(host) host.innerHTML=metricChartHTML(m);
+  document.querySelectorAll('#mchips .m-chip').forEach(c=>c.classList.toggle('prim',c.dataset.m===m));
+}
+function measuresDashboard(){
+  const avail=Object.keys(METRIC_DEF).filter(f=>measureSeries(f).length>0);
+  if(avail.indexOf(MEASURE_METRIC)<0) MEASURE_METRIC=avail[0]||'weight';
+  const chips=avail.map(f=>`<span class="m-chip${f===MEASURE_METRIC?' prim':''}" data-m="${f}" onclick="setMetric('${f}')">${METRIC_DEF[f][0]}</span>`).join('');
+  const last=latestMeasure();
+  return `<div id="mchips" class="m-legend" style="justify-content:flex-start">${chips}</div><div class="lc" id="mchart">${metricChartHTML(MEASURE_METRIC)}</div>${last&&last.ts?`<div class="ndisc">Último registo: ${fmtDateTime(last.ts)}</div>`:''}`;
+}
+
+function profileDataHTML(){
+  const p=getProfile(), sel=(v,o)=>v===o?' selected':'';
+  return `
+  <div class="nplan-hdr"><div><div class="day-hdr-name">👤 Perfil</div><div class="day-hdr-sub">Dados base (fonte para a Nutrição)</div></div></div>
+  <div class="nform">
+    <div class="nrow">
+      <label class="nfield"><span>Sexo</span><select id="p-sex"><option value="m"${sel(p.sex||'m','m')}>Masculino</option><option value="f"${sel(p.sex,'f')}>Feminino</option></select></label>
+      <label class="nfield"><span>Idade</span><input id="p-age" type="number" min="10" max="100" inputmode="numeric" value="${p.age||''}"></label>
+      <label class="nfield"><span>Altura (cm) *</span><input id="p-height" type="number" min="120" max="230" inputmode="numeric" value="${p.height||''}"></label>
+    </div>
+    <div class="nrow">
+      <label class="nfield"><span>Objetivo</span><select id="p-goal"><option value="perder"${sel(p.goal,'perder')}>Perder gordura</option><option value="manter"${sel(p.goal||'manter','manter')}>Manter</option><option value="ganhar"${sel(p.goal,'ganhar')}>Ganhar músculo</option></select></label>
+      <label class="nfield"><span>Atividade (fora do treino)</span><select id="p-activity"><option value="sed"${sel(p.activity,'sed')}>Sedentário</option><option value="leve"${sel(p.activity,'leve')}>Leve</option><option value="mod"${sel(p.activity||'mod','mod')}>Moderado</option><option value="alto"${sel(p.activity,'alto')}>Alto</option></select></label>
+    </div>
+    <button class="nbtn" onclick="saveProfile()">Guardar dados</button>
+  </div>`;
+}
+function saveProfile(){
+  const v=id=>{ const el=document.getElementById(id); return el?el.value:''; };
+  const height=parseFloat(v('p-height'));
+  if(!(height>0)){ alert('A altura é obrigatória.'); return; }
+  ST.profile={ sex:v('p-sex'), age:parseInt(v('p-age'),10)||0, height, goal:v('p-goal'), activity:v('p-activity') };
+  save(); renderProfile();
+}
+
+function measuresHTML(){
+  const editing=MEASURE_EDIT_DATE;
+  const src=editing ? (ST.measures||[]).find(e=>e.date===editing) : latestMeasure();
+  const g=f=> src&&src[f]!=null?src[f]:'', bf=src?bodyFat(src):null;
+  return `
+  <div class="nsec-title">Medidas${editing?` · <span style="color:var(--accent)">a editar ${editing}</span>`:''}${bf!=null?` · <span style="color:var(--accent2)">${bf}% gordura (calc.)</span>`:''}</div>
+  <div class="nform">
+    <div class="mgrid">
+      <label class="nfield"><span>Peso (kg) *</span><input id="m-weight" type="number" step="0.1" inputmode="decimal" value="${g('weight')}"></label>
+      <label class="nfield"><span>Cintura (cm)</span><input id="m-waist" type="number" step="0.1" inputmode="decimal" value="${g('waist')}"></label>
+      <label class="nfield"><span>Pescoço (cm)</span><input id="m-neck" type="number" step="0.1" inputmode="decimal" value="${g('neck')}"></label>
+      <label class="nfield"><span>Anca (cm)</span><input id="m-hip" type="number" step="0.1" inputmode="decimal" value="${g('hip')}"></label>
+      <label class="nfield"><span>Peito (cm)</span><input id="m-chest" type="number" step="0.1" inputmode="decimal" value="${g('chest')}"></label>
+      <label class="nfield"><span>Braço (cm)</span><input id="m-arm" type="number" step="0.1" inputmode="decimal" value="${g('arm')}"></label>
+      <label class="nfield"><span>Coxa (cm)</span><input id="m-thigh" type="number" step="0.1" inputmode="decimal" value="${g('thigh')}"></label>
+    </div>
+    <button class="nbtn" onclick="saveMeasure()">${editing?'Guardar alterações':'Registar medidas de hoje'}</button>
+    ${editing?`<button class="reset-btn" onclick="cancelMeasureEdit()">✕ Cancelar edição</button>`:''}
+  </div>
+  ${ (ST.measures||[]).length ? measuresDashboard()+measuresHistoryHTML() : '<div class="ndisc">Regista o peso (e cintura+pescoço para calcular a % de gordura) para veres a evolução.</div>' }`;
+}
+function saveMeasure(){
+  const num=id=>{ const el=document.getElementById(id); const x=el?parseFloat(el.value):NaN; return x>0?x:undefined; };
+  const weight=num('m-weight');
+  if(!(weight>0)){ alert('O peso é obrigatório para registar medidas.'); return; }
+  const date=MEASURE_EDIT_DATE||todayStr();
+  const entry={ date, ts:nowISO(), weight };
+  ['waist','neck','hip','chest','arm','thigh'].forEach(f=>{ const x=num('m-'+f); if(x!==undefined) entry[f]=x; });
+  const arr=(ST.measures||[]).slice();
+  const idx=arr.findIndex(e=>e.date===date);
+  if(idx>=0) arr[idx]=Object.assign({},arr[idx],entry); else arr.push(entry);
+  arr.sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
+  ST.measures=arr;
+  MEASURE_EDIT_DATE=null;
+  save(); renderProfile();
+}
+function editMeasure(date){ MEASURE_EDIT_DATE=date; renderProfile(); }
+function cancelMeasureEdit(){ MEASURE_EDIT_DATE=null; renderProfile(); }
+function delMeasure(date){
+  if(!confirm('Apagar este registo de medidas?')) return;
+  ST.measures=(ST.measures||[]).filter(e=>e.date!==date);
+  if(MEASURE_EDIT_DATE===date) MEASURE_EDIT_DATE=null;
+  save(); renderProfile();
+}
+function measuresHistoryHTML(){
+  const arr=(ST.measures||[]).slice().sort((a,b)=>a.date<b.date?1:-1);
+  if(!arr.length) return '';
+  return `<div class="nsec-title">Histórico de medidas</div><div class="ilist">`+arr.map(e=>{
+    const bf=bodyFat(e), parts=[`${e.weight}kg`];
+    if(bf!=null) parts.push(`${bf}% gord.`);
+    ['waist','neck','hip','chest','arm','thigh'].forEach(f=>{ if(e[f]!=null) parts.push(`${METRIC_DEF[f][0]} ${e[f]}`); });
+    return `<div class="iitem"><div class="iitem-main"><span class="iitem-n">${e.date}</span><span class="iitem-t">${e.ts?fmtTime(e.ts)+' · ':''}${parts.join(' · ')}</span></div><div class="iitem-r"><button class="iitem-x" onclick="editMeasure('${e.date}')" aria-label="Editar registo">✎</button><button class="iitem-x" onclick="delMeasure('${e.date}')" aria-label="Apagar registo">✕</button></div></div>`;
+  }).join('')+`</div>`;
+}
+
+function macrosSummaryHTML(){
+  const b=bodyMetrics();
+  if(!(b.age>0 && b.height>0 && b.weight>0)) return `<div class="nsec-title">Macros &amp; metas</div><div class="ndisc">Preenche idade + altura e regista o peso para calcular as metas.</div>`;
+  const t=calcTargets(b), goalTxt={perder:'perder gordura',manter:'manter',ganhar:'ganhar músculo'}[b.goal]||b.goal;
+  return `<div class="nsec-title">Macros &amp; metas</div>
+  <div class="ntargets">
+    <div class="ntar"><span class="ntar-v">${t.kcal}</span><span class="ntar-l">kcal/dia</span></div>
+    <div class="ntar"><span class="ntar-v">${t.protein}g</span><span class="ntar-l">proteína</span></div>
+    <div class="ntar"><span class="ntar-v">${t.water}L</span><span class="ntar-l">água</span></div>
+  </div>
+  <div class="nmacros">Hidratos ~${t.carbG}g · Gordura ~${t.fatG}g · objetivo: ${goalTxt}</div>
+  <div class="ndisc">As sugestões de refeições estão na tab 🥗 Nutrição.</div>`;
+}
+function renderProfile(content){
+  content=content||document.getElementById('content');
+  document.getElementById('hdrSub').textContent='Perfil';
+  document.getElementById('progFill').style.width='0%';
+  content.innerHTML=`<div class="nutri-wrap">${profileDataHTML()}${measuresHTML()}${macrosSummaryHTML()}</div>`;
 }
 
 /* ═══════════════════════ RENDER ═════════════════════ */
@@ -1102,10 +1425,12 @@ function buildCard(day,ex,i) {
   card.className='card'+(ST.done[key(day,i)]?' done':'');
   card.id=`card-${i}`;
 
-  // slides: 1) mapa muscular  2+) diagramas opcionais (movimento/animado via ex.dia)
+  // slides: 1) mapa muscular  2+) demos do utilizador (ST.media)  3+) diagramas (ex.dia)
   const mm=MUSCLES[ex.name];
+  const media=(ST.media&&ST.media[ex.name])||[];
   const extra=ex.dia||[];
   const slidesArr=[ mm ? muscleSlide(mm) : noImgSlide(ex.name) ];
+  media.forEach((url,mi)=>slidesArr.push(mediaSlide(url,ex.name,mi)));
   extra.forEach(src=>slidesArr.push(`<div class="slide"><img src="${src}" alt="${ex.name}" loading="lazy"
         onerror="this.closest('.slide').innerHTML='<div class=\\'no-img\\'><span>💪</span><span>${ex.name}</span></div>'"></div>`));
   const n=slidesArr.length;
@@ -1156,6 +1481,7 @@ function buildCard(day,ex,i) {
       <div class="slides" id="slides-${i}">${slidesHTML}</div>
       ${navHTML}
       ${dotsHTML}
+      <button class="add-media" onclick="addMedia('${jsName}')" aria-label="Adicionar demonstração">＋ demo</button>
     </div>
     <div class="card-body">
       <div class="card-title-row">
@@ -1207,6 +1533,7 @@ function render(day) {
 
   const content=document.getElementById('content');
   if(day==='__nutri'){ renderNutri(content); return; }
+  if(day==='__perfil'){ renderProfile(content); return; }
   content.innerHTML='';
 
   // day header
@@ -1236,6 +1563,13 @@ Object.keys(DAYS).forEach(day=>{
   t.onclick=()=>render(day);
   tabsEl.appendChild(t);
 });
+
+const perfilTab=document.createElement('div');
+perfilTab.className='tab'+(ST.day==='__perfil'?' active':'');
+perfilTab.dataset.day='__perfil';
+perfilTab.innerHTML='👤 Perfil';
+perfilTab.onclick=()=>render('__perfil');
+tabsEl.appendChild(perfilTab);
 
 const nutriTab=document.createElement('div');
 nutriTab.className='tab'+(ST.day==='__nutri'?' active':'');

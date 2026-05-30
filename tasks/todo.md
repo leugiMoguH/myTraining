@@ -1,81 +1,64 @@
-# Fase 1 — Fundação App ✅
+# myTraining — Progresso
 
-Objetivo: tornar o `index.html` numa PWA instalável no Android, com dados protegidos
-(backup), histórico de carga por exercício e ecrã que não apaga durante o treino.
-Convenção single-file mantida; PWA exige `manifest.json`, `sw.js`, `icon.svg` à parte.
+App pessoal de treino (single-file `index.html` + PWA). Tudo local em `localStorage`.
 
-## Tarefas
+## Fase 1 — Fundação App ✅
+- [x] Histórico de carga (kg×reps) + gráfico de progressão (1RM Epley)
+- [x] Backup export/import JSON
+- [x] PWA instalável (`manifest.json`, `sw.js`, `icon.svg`, offline)
+- [x] Wake lock (ecrã ligado) + bottom-sheet de Definições (⚙)
 
-### 1. Histórico de séries + gráfico de progressão ✅
-- [x] Estado: `ST.log` (`{ [nome]: [{date,w,r}] }`), agregado por nome de exercício
-- [x] Helpers: `todayStr`, `getLog`, `logSet` (1 registo/dia, sobrescreve hoje), `est1RM` (Epley)
-- [x] UI por exercício (só séries numéricas): input `kg × reps` + Registar + 📈
-- [x] Pré-preenche com último registo; valida `w>0 && r>0`
-- [x] Gráfico de linha SVG inline (sem libs): evolução do peso + último + 1RM estimado
+## Fase 2 — Imagens → Diagramas (mapa muscular) ✅
+- [x] `MUSCLES` (30 exercícios) + `MUSCLE_NAMES`; `bodySVG(P,S)` frente+costas (15 grupos)
+- [x] Slide 1 = mapa (primário vermelho / secundário laranja) + chips; slots `ex.dia` p/ futuros
+- [x] Cardio/descanso → fallback 💪; fotos `imgs` legacy (não renderizadas)
 
-### 2. Backup export/import JSON ✅
-- [x] `exportBackup()` → download `treino-backup-AAAA-MM-DD.json` (estado + rest_sec)
-- [x] `importBackup()` → ler, validar estrutura, confirmar, substituir, re-render
-- [x] Falha com mensagem clara se ficheiro inválido
+## Fase 3 — Nutrição ✅
+- [x] Tab 🥗 Nutrição: preferências (refeições, cozinhar, favoritos, restrições, suplementos, evitar)
+- [x] Sugestão de refeições dos favoritos + timing pré/pós-treino + lista de compras
 
-### 3. PWA instalável (manifest + service worker) ✅
-- [x] `manifest.json` (standalone, cores do tema, ícone)
-- [x] `icon.svg` maskable (barbell na safe-zone)
-- [x] `sw.js` (precache shell; navegação network-first, assets cache-first; offline)
-- [x] `<link rel=manifest>` + apple-touch-icon + registo do SW
+## Fase 4 — Perfil / Dados + Medidas ✅
+- [x] Tab 👤 Perfil = fonte única de dados do corpo (sexo, idade, altura, objetivo, atividade)
+- [x] **Centralização**: Nutrição lê do Perfil (peso = última medida); campos do corpo removidos do form de nutrição
+- [x] Medidas no tempo: peso (obrigatório) + cintura/pescoço/anca/peito/braço/coxa (opcionais)
+- [x] **% gordura calculada** (fórmula US Navy de cintura/pescoço/anca + altura) — não pedida
+- [x] Gráficos por métrica (chips para alternar) — `chartSVG` extraído e reutilizado
+- [x] Resumo de macros/metas (kcal/proteína/água + hidratos/gordura) no Perfil
+- [x] Migração segura: dados antigos da nutrição → Perfil + 1ª medida
+- [x] Verificado: BF 16.4%, peso lido das medidas, metas, gráficos, render sem erros
 
-### 4. Wake lock (ecrã ligado no treino) ✅
-- [x] Toggle nas Definições; persiste preferência
-- [x] `acquireWake/releaseWake` com feature-detection
-- [x] Re-adquire em `visibilitychange`
+## Fase 5 — Diário de ingestão ✅
+- [x] `ST.intake[]` (id, ts, date, name, kcal, protein) — múltiplos por dia
+- [x] Add manual + 12 alimentos quick-pick (preenchem valores, editáveis)
+- [x] "Hoje": barras de progresso kcal/proteína vs metas (do Perfil)
+- [x] Lista de hoje com hora por item + remover; gráfico de kcal/dia ao longo do tempo
+- [x] Secção no topo do plano da tab 🥗 Nutrição
 
-### Definições (consolida 2 + 4) ✅
-- [x] Botão ⚙ no header → bottom-sheet: manter ecrã ligado, exportar, importar
+## Fase 6 — Demos (movimento/animado) ✅
+- [x] `ST.media[exercicio][]` — links de imagem/GIF/vídeo por exercício
+- [x] Botão "＋ demo" no cartão → cola link → vira slide(s) no slider
+- [x] Deteta vídeo (`.mp4/.webm/.mov`) → `<video>` autoloop; resto → `<img>`; ✕ remove
+- [x] Ordem dos slides: mapa muscular → demos → `ex.dia`
 
-## Verificação ✅
-- [x] `node --check`/`vm.Script` ao script → sintaxe OK (23.769 chars)
-- [x] Smoke-test em DOM falso → arranque sem erros, 7 dias, `buildCard` OK
-- [x] `logSet`+`loadChart`: SVG + `1RM ~83kg`, overwrite diário (logLen=1), `est1RM(62.5,8)=79`
-- [x] `manifest.json` parse OK, `sw.js` syntax OK
+## Timestamps (transversal) ✅
+- [x] Cada registo guarda `ts` (ISO data+hora) na gravação/edição: carga, medidas, ingestão
+- [x] Visível: hora por item no diário, "último registo: …" nas medidas, "últ. …" no gráfico de carga
+- [x] Tudo entra no backup export/import → comparável ao longo do tempo
 
-# Fase 2 — Imagens → Diagramas (mapa muscular) ✅
+## Fase 7 — Editar histórico + Exportar CSV ✅
+- [x] Medidas: "Histórico de medidas" no Perfil com ✎ editar (form vira "a editar ‹data›") e ✕ apagar
+- [x] `MEASURE_EDIT_DATE` controla destino do save (data antiga vs hoje); cancelar edição
+- [x] Diário: "Dias anteriores" (últimos 7 dias) com totais + itens + ✕ remover
+- [x] CSV no ⚙ Definições: Medidas, Diário, Cargas (com data+hora; BOM p/ Excel)
+- [x] Verificado: editar/apagar medidas, histórico do diário, escaping CSV, exports sem erro
 
-Fotos (não batiam certo) substituídas por mapa muscular. Slider mantém-se: slide 1 =
-mapa (frente+costas, primários vermelho / secundários laranja) + chips. Slides 2+ =
-SLOTS (`ex.dia`) para movimento/animado depois.
+## Próximo / fora de âmbito
+- [ ] Sourcing real de GIFs/diagramas de movimento (ou colar links via ＋ demo)
+- [ ] APK via Capacitor (quando alertas em background forem precisos)
+- [ ] Editar a data de um registo antigo (hoje edita-se valores, a data fica fixa)
 
-- [x] `MUSCLES` (por nome → {p,s}) — sem tocar no DATA (30 exercícios)
-- [x] `MUSCLE_NAMES` (id → nome PT) para chips/legenda
-- [x] `bodySVG(P,S)` — SVG esquemático frente+costas, 15 grupos, fill por pertença
-- [x] `muscleSlide`/`noImgSlide` (cardio/descanso → ícone 💪)
-- [x] `buildCard`: slide 1 = mapa; slides extra via `ex.dia` (vazio por agora)
-- [x] CSS `.muscle-slide`/`.m-legend`/`.m-chip`
-- [x] Fotos `imgs` legacy (não renderizadas; não apagadas)
-- [x] Verificado: SVG bem-formado, red/orange/base, chips prim+sec, cardio→fallback
-
-# Fase 3 — Nutrição (questionário → metas → sugestões) ✅
-
-- [x] Tab "🥗 Nutrição" (render() ramifica para `__nutri`)
-- [x] Questionário: objetivo, sexo/idade/altura/peso, atividade, refeições, tempo p/
-      cozinhar, favoritos (prot/hidratos/veg/snack) + free-add, restrições, suplementos, evitar
-- [x] Perfil em `ST.nutri.profile`, editável (Editar/Cancelar)
-- [x] Metas: kcal (Mifflin-St Jeor × atividade × objetivo), proteína g/kg, água, +macros
-- [x] Sugestões de refeições dos favoritos + timing pré/pós-treino
-- [x] Lista de compras dos favoritos
-- [x] CSS do formulário + metas + refeições
-- [x] Verificado: kcal 3070/prot 160/água 2.8L (caso teste), form+plano gerados, render OK
-
-## Notas
-- Migração segura: estado antigo sem `log`/`nutri` → defaults preenchem no load
-- `render()` agora guarda a tab atual (volta à última aba no reload)
-- Texto livre (favoritos/evitar) inserido sem escape — aceitável (tool pessoal, local)
-
-## Fora de âmbito (depois)
-- Slots de movimento/animado preenchidos (sourcing de diagramas) via `ex.dia`
-- APK via Capacitor (quando alertas em background forem precisos)
-- Tracking de ingestão diário (registar o que comeu)
-
-## Notas de deploy
-- SW exige HTTPS ou localhost. Para instalar no telemóvel é preciso a app servida em
-  HTTPS → GitHub Pages: Settings → Pages → "Deploy from a branch" (main / root).
-  Não precisa de workflow (o que foi removido no commit 1e4800f por causa de OAuth scope).
+## Notas técnicas
+- Migração: estado antigo sem `log`/`nutri`/`profile`/`measures` → defaults no load (nada se perde)
+- `render()` guarda a tab atual (volta à última aba no reload)
+- Texto livre (favoritos/evitar) inserido sem escape HTML — aceitável (tool pessoal, local)
+- Deploy: GitHub Pages (HTTPS) — necessário para SW + instalação no Android

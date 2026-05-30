@@ -394,6 +394,66 @@ body {
 .sw.on { background: var(--green); }
 .sw.on::after { transform: translateX(18px); }
 .sheet-note { font-size: 12px; color: var(--muted); padding: 2px 4px; min-height: 1px; }
+
+/* ── MAPA MUSCULAR ────────────────────────────────── */
+.muscle-slide {
+  flex-direction: column; gap: 6px;
+  padding: 8px 10px 10px;
+  background: linear-gradient(135deg, #15151f 0%, #0d0d14 100%);
+}
+.muscle-svg { flex: 1; min-height: 0; width: 100%; display: block; }
+.m-legend { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+.m-chip {
+  font-size: 10px; font-weight: 700; line-height: 1;
+  padding: 3px 7px; border-radius: 999px; white-space: nowrap;
+}
+.m-chip.prim { background: rgba(239,68,68,0.15); color: var(--accent); border: 1px solid rgba(239,68,68,0.35); }
+.m-chip.sec  { background: rgba(249,115,22,0.12); color: var(--accent2); border: 1px solid rgba(249,115,22,0.3); }
+
+/* ── NUTRIÇÃO ─────────────────────────────────────── */
+.nutri-wrap { grid-column: 1/-1; max-width: 760px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.nplan-hdr { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.nform { display: flex; flex-direction: column; gap: 10px; }
+.nrow { display: flex; gap: 10px; flex-wrap: wrap; }
+.nfield { flex: 1 1 120px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.nfield.full { flex-basis: 100%; }
+.nfield select, .nfield input, .nfree {
+  height: 40px; background: var(--card); border: 1px solid var(--border); border-radius: var(--r-sm);
+  color: var(--text); font-size: 15px; font-weight: 600; padding: 0 10px; width: 100%;
+}
+.nfield select:focus, .nfield input:focus, .nfree:focus { outline: none; border-color: var(--accent); }
+.nsec-title { font-size: 12px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+.nchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.nchip { cursor: pointer; }
+.nchip input { position: absolute; opacity: 0; pointer-events: none; }
+.nchip span {
+  display: inline-block; padding: 7px 12px; border-radius: 999px;
+  background: var(--card); border: 1px solid var(--border);
+  font-size: 13px; font-weight: 600; color: var(--muted); transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.nchip input:checked + span { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.4); color: var(--accent); }
+.nfree { height: 38px; font-size: 14px; }
+.nbtn {
+  margin-top: 8px; height: 48px; border-radius: var(--r-sm);
+  background: linear-gradient(90deg, var(--accent), var(--accent2)); border: none;
+  color: #fff; font-size: 16px; font-weight: 800; cursor: pointer;
+}
+.nbtn:active { transform: scale(0.99); }
+.ntargets { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.ntar { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 14px 10px; text-align: center; display: flex; flex-direction: column; gap: 3px; }
+.ntar-v { font-size: 24px; font-weight: 800; color: var(--accent); }
+.ntar-l { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.nmacros { font-size: 13px; color: var(--muted); text-align: center; }
+.nmeals { display: flex; flex-direction: column; gap: 8px; }
+.nmeal { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 11px 13px; }
+.nmeal.treino { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); }
+.nmeal-t { font-size: 13px; font-weight: 700; color: var(--text); }
+.nmeal-i { font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+.nnote { font-size: 12px; color: var(--muted); line-height: 1.55; background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.12); border-radius: var(--r-sm); padding: 10px 12px; }
+.nnote b { color: rgba(241,245,249,0.7); }
+.nshop { display: flex; flex-wrap: wrap; gap: 6px; }
+.nshop-i { font-size: 12px; font-weight: 600; color: var(--text); background: var(--card2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 6px 10px; }
+.ndisc { font-size: 11px; color: var(--muted); font-style: italic; }
 </style>
 </head>
 <body>
@@ -536,7 +596,7 @@ const DAYS = {
 
 /* ═══════════════════════ STATE ══════════════════════ */
 const STORE_KEY = "treino_v2";
-let ST = { day:"Segunda", sets:{}, done:{}, log:{} };
+let ST = { day:"Segunda", sets:{}, done:{}, log:{}, nutri:{profile:null} };
 try { const s=localStorage.getItem(STORE_KEY); if(s) ST={...ST,...JSON.parse(s)}; } catch(_){}
 
 function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(ST)); } catch(_){} }
@@ -668,9 +728,10 @@ function importBackup(e){
       if(!incoming || typeof incoming!=='object' || typeof incoming.sets!=='object' || typeof incoming.done!=='object')
         throw new Error('estrutura inválida');
       if(!confirm('Importar substitui o progresso atual. Continuar?')){ e.target.value=''; return; }
-      ST={ day:'Segunda', sets:{}, done:{}, log:{}, ...incoming };
+      ST={ day:'Segunda', sets:{}, done:{}, log:{}, nutri:{profile:null}, ...incoming };
       if(!ST.log || typeof ST.log!=='object') ST.log={};
-      if(!DAYS[ST.day]) ST.day='Segunda';
+      if(!ST.nutri || typeof ST.nutri!=='object') ST.nutri={profile:null};
+      if(ST.day!=='__nutri' && !DAYS[ST.day]) ST.day='Segunda';
       if(p && typeof p.rest_sec==='number'){ REST_SEC=Math.max(15,Math.min(300,Math.round(p.rest_sec))); localStorage.setItem('rest_sec',REST_SEC); }
       save();
       closeSheet();
@@ -778,6 +839,239 @@ function slSync(id){
   if(ctr) ctr.textContent=`${cur+1}/${n}`;
 }
 
+/* ═══════════════ MAPA MUSCULAR ══════════════════════ */
+const MUSCLE_NAMES={peito:"Peito",ombro:"Ombros",posterior:"Deltóide post.",triceps:"Tríceps",biceps:"Bíceps",antebraco:"Antebraço",abdominal:"Abdominais",oblique:"Oblíquos",dorsais:"Dorsais",trapezio:"Trapézio",lombar:"Lombar",gluteos:"Glúteos",quadriceps:"Quadríceps",isquios:"Isquiotibiais",gemeos:"Gémeos"};
+const MUSCLES={
+  "Supino reto":{p:["peito"],s:["ombro","triceps"]},
+  "Supino inclinado":{p:["peito"],s:["ombro","triceps"]},
+  "Crucifixo":{p:["peito"],s:["ombro"]},
+  "Paralelas":{p:["peito","triceps"],s:["ombro"]},
+  "Tríceps corda":{p:["triceps"],s:[]},
+  "Tríceps testa":{p:["triceps"],s:[]},
+  "Puxada frente":{p:["dorsais"],s:["biceps","posterior"]},
+  "Remada":{p:["dorsais","trapezio"],s:["biceps","posterior"]},
+  "Remada unilateral":{p:["dorsais"],s:["biceps","trapezio"]},
+  "Pulldown":{p:["dorsais"],s:["biceps"]},
+  "Rosca direta":{p:["biceps"],s:["antebraco"]},
+  "Rosca alternada":{p:["biceps"],s:["antebraco"]},
+  "Agachamento":{p:["quadriceps","gluteos"],s:["isquios","lombar"]},
+  "Leg press":{p:["quadriceps","gluteos"],s:["isquios"]},
+  "Stiff":{p:["isquios","gluteos"],s:["lombar"]},
+  "Mesa flexora":{p:["isquios"],s:[]},
+  "Cadeira extensora":{p:["quadriceps"],s:[]},
+  "Panturrilha":{p:["gemeos"],s:[]},
+  "Desenvolvimento":{p:["ombro"],s:["triceps","trapezio"]},
+  "Elevação lateral":{p:["ombro"],s:[]},
+  "Posterior ombro":{p:["posterior"],s:["trapezio"]},
+  "Face pull":{p:["posterior","trapezio"],s:["biceps"]},
+  "Prancha":{p:["abdominal"],s:["oblique","lombar"]},
+  "Abdominal":{p:["abdominal"],s:["oblique"]},
+  "Levantamento terra":{p:["lombar","gluteos","isquios"],s:["dorsais","trapezio","quadriceps"]},
+  "Supino":{p:["peito"],s:["ombro","triceps"]},
+  "Puxada alta":{p:["dorsais"],s:["biceps","posterior"]},
+  "Agachamento goblet":{p:["quadriceps","gluteos"],s:["isquios"]},
+  "Braços":{p:["biceps","triceps"],s:["antebraco"]},
+  "Core":{p:["abdominal"],s:["oblique"]}
+};
+function fillOf(id,P,S){ return P.indexOf(id)>=0?'#ef4444':(S.indexOf(id)>=0?'#f97316':'#2b2b3a'); }
+function bodySVG(P,S){
+  const f=id=>fillOf(id,P,S), O='#3a3a4a';
+  return `<svg class="muscle-svg" viewBox="0 0 230 178" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <g>
+      <circle cx="58" cy="14" r="10" fill="${O}"/>
+      <rect x="53" y="22" width="10" height="7" rx="3" fill="${O}"/>
+      <path d="M40 31 Q58 27 76 31 L73 86 Q58 92 43 86 Z" fill="${O}"/>
+      <rect x="20" y="33" width="12" height="40" rx="6" fill="${O}"/><rect x="84" y="33" width="12" height="40" rx="6" fill="${O}"/>
+      <rect x="19" y="68" width="11" height="34" rx="5" fill="${O}"/><rect x="86" y="68" width="11" height="34" rx="5" fill="${O}"/>
+      <rect x="44" y="88" width="13" height="74" rx="6" fill="${O}"/><rect x="59" y="88" width="13" height="74" rx="6" fill="${O}"/>
+      <ellipse cx="30" cy="38" rx="10" ry="8" fill="${f('ombro')}"/><ellipse cx="86" cy="38" rx="10" ry="8" fill="${f('ombro')}"/>
+      <path d="M44 34 Q51 32 56 35 L56 49 Q50 51 45 48 Z" fill="${f('peito')}"/><path d="M72 34 Q65 32 60 35 L60 49 Q66 51 71 48 Z" fill="${f('peito')}"/>
+      <ellipse cx="25" cy="52" rx="6" ry="12" fill="${f('biceps')}"/><ellipse cx="91" cy="52" rx="6" ry="12" fill="${f('biceps')}"/>
+      <ellipse cx="24" cy="84" rx="5" ry="13" fill="${f('antebraco')}"/><ellipse cx="92" cy="84" rx="5" ry="13" fill="${f('antebraco')}"/>
+      <rect x="49" y="52" width="18" height="30" rx="4" fill="${f('abdominal')}"/>
+      <rect x="44" y="53" width="5" height="26" rx="2" fill="${f('oblique')}"/><rect x="67" y="53" width="5" height="26" rx="2" fill="${f('oblique')}"/>
+      <ellipse cx="50" cy="116" rx="8" ry="24" fill="${f('quadriceps')}"/><ellipse cx="66" cy="116" rx="8" ry="24" fill="${f('quadriceps')}"/>
+      <text x="58" y="174" text-anchor="middle" font-size="9" fill="#6b6b7d">Frente</text>
+    </g>
+    <g transform="translate(114,0)">
+      <circle cx="58" cy="14" r="10" fill="${O}"/>
+      <rect x="53" y="22" width="10" height="7" rx="3" fill="${O}"/>
+      <path d="M40 31 Q58 27 76 31 L73 86 Q58 92 43 86 Z" fill="${O}"/>
+      <rect x="20" y="33" width="12" height="40" rx="6" fill="${O}"/><rect x="84" y="33" width="12" height="40" rx="6" fill="${O}"/>
+      <rect x="19" y="68" width="11" height="34" rx="5" fill="${O}"/><rect x="86" y="68" width="11" height="34" rx="5" fill="${O}"/>
+      <rect x="44" y="88" width="13" height="74" rx="6" fill="${O}"/><rect x="59" y="88" width="13" height="74" rx="6" fill="${O}"/>
+      <ellipse cx="30" cy="38" rx="10" ry="8" fill="${f('posterior')}"/><ellipse cx="86" cy="38" rx="10" ry="8" fill="${f('posterior')}"/>
+      <path d="M46 32 L70 32 L64 50 L52 50 Z" fill="${f('trapezio')}"/>
+      <path d="M44 50 L57 50 L55 78 Z" fill="${f('dorsais')}"/><path d="M72 50 L59 50 L61 78 Z" fill="${f('dorsais')}"/>
+      <ellipse cx="25" cy="52" rx="6" ry="12" fill="${f('triceps')}"/><ellipse cx="91" cy="52" rx="6" ry="12" fill="${f('triceps')}"/>
+      <ellipse cx="24" cy="84" rx="5" ry="13" fill="${f('antebraco')}"/><ellipse cx="92" cy="84" rx="5" ry="13" fill="${f('antebraco')}"/>
+      <rect x="50" y="62" width="16" height="20" rx="3" fill="${f('lombar')}"/>
+      <ellipse cx="51" cy="96" rx="8" ry="9" fill="${f('gluteos')}"/><ellipse cx="65" cy="96" rx="8" ry="9" fill="${f('gluteos')}"/>
+      <ellipse cx="50" cy="124" rx="7" ry="22" fill="${f('isquios')}"/><ellipse cx="66" cy="124" rx="7" ry="22" fill="${f('isquios')}"/>
+      <ellipse cx="50" cy="150" rx="6" ry="12" fill="${f('gemeos')}"/><ellipse cx="66" cy="150" rx="6" ry="12" fill="${f('gemeos')}"/>
+      <text x="58" y="174" text-anchor="middle" font-size="9" fill="#6b6b7d">Costas</text>
+    </g>
+  </svg>`;
+}
+function muscleSlide(mm){
+  const chips=mm.p.map(id=>`<span class="m-chip prim">${MUSCLE_NAMES[id]||id}</span>`).join('')
+    + mm.s.map(id=>`<span class="m-chip sec">${MUSCLE_NAMES[id]||id}</span>`).join('');
+  return `<div class="slide muscle-slide">${bodySVG(mm.p,mm.s)}<div class="m-legend">${chips}</div></div>`;
+}
+function noImgSlide(name){ return `<div class="slide"><div class="no-img"><span>💪</span><span>${name}</span></div></div>`; }
+
+/* ═══════════════════════ NUTRIÇÃO ═══════════════════ */
+const PROT=['Frango','Peru','Carne vaca','Atum','Salmão','Ovos','Iogurte','Queijo fresco','Tofu','Whey'];
+const CARB=['Arroz','Massa','Batata','Batata-doce','Pão','Aveia','Grão','Feijão','Fruta'];
+const VEG=['Brócolos','Espinafres','Tomate','Alface','Cenoura','Courgette','Pimento','Feijão-verde'];
+const SNACK=['Fruta','Frutos secos','Iogurte','Barra proteica','Queijo','Ovo cozido'];
+const RESTR=['Vegetariano','Vegano','Sem lactose','Sem glúten'];
+const SUPPS=['Whey','Creatina','Multivitamínico','Ómega-3','Magnésio'];
+let NUTRI_EDIT=false;
+
+function calcTargets(p){
+  const bmr=10*p.weight+6.25*p.height-5*p.age+(p.sex==='m'?5:-161);
+  const af={sed:1.2,leve:1.375,mod:1.55,alto:1.725}[p.activity]||1.375;
+  const tdee=bmr*af;
+  const adj={perder:-0.18,manter:0,ganhar:0.12}[p.goal]||0;
+  const kcal=Math.round((tdee*(1+adj))/10)*10;
+  const ppk={perder:2.0,manter:1.8,ganhar:2.0}[p.goal]||1.8;
+  const protein=Math.round(p.weight*ppk);
+  const water=Math.round(p.weight*0.035*10)/10;
+  const fatG=Math.round(p.weight*0.9);
+  const carbG=Math.max(0,Math.round((kcal-protein*4-fatG*9)/4));
+  return {kcal,protein,water,fatG,carbG};
+}
+
+function mealPlan(p){
+  const fav=p.fav||{};
+  const pick=(cat,fb,idx)=>{ const a=fav[cat]||[]; return a.length?a[((idx||0)%a.length)]:fb; };
+  const hasWhey=(p.supps||[]).indexOf('Whey')>=0;
+  const meals=[];
+  meals.push({t:'Pequeno-almoço', i:`${pick('protein','Ovos',0)} + ${pick('carbs','Aveia',0)} + fruta`});
+  meals.push({t:'Pré-treino · 60–90min antes', i:`${pick('carbs','Pão',1)} + ${pick('protein','Iogurte',1)} — hidratos para energia`, tag:'treino'});
+  meals.push({t:'Pós-treino · até 1h depois', i:`${hasWhey?'Whey':pick('protein','Frango',2)} + ${pick('carbs','Arroz',2)} — repor + construir`, tag:'treino'});
+  meals.push({t:'Almoço', i:`${pick('protein','Frango',3)} + ${pick('carbs','Arroz',3)} + ${pick('veg','Brócolos',0)}`});
+  if((p.meals||4)>=5) meals.push({t:'Lanche', i:`${pick('snack','Fruta',0)} + ${pick('protein','Iogurte',4)}`});
+  meals.push({t:'Jantar', i:`${pick('protein','Salmão',4)} + ${pick('veg','Espinafres',1)}${p.goal==='ganhar'?' + '+pick('carbs','Batata-doce',4):''}`});
+  if((p.meals||4)>=6) meals.push({t:'Ceia', i:`${pick('snack','Iogurte',1)} — leve, antes de dormir`});
+  return meals;
+}
+
+function shopping(p){
+  const f=p.fav||{};
+  const all=[].concat(f.protein||[],f.carbs||[],f.veg||[],f.snack||[]);
+  const seen={}, out=[];
+  all.forEach(x=>{ if(x && !seen[x]){ seen[x]=1; out.push(x); } });
+  return out;
+}
+
+function nchips(cat,opts,selected){
+  selected=selected||[];
+  return `<div class="nchips" data-cat="${cat}">`+opts.map(o=>`<label class="nchip"><input type="checkbox" value="${o}"${selected.indexOf(o)>=0?' checked':''}><span>${o}</span></label>`).join('')+`</div>`;
+}
+function freeVal(selected,opts){ return (selected||[]).filter(x=>opts.indexOf(x)<0).join(', '); }
+function collectFav(cat){
+  const checked=Array.prototype.slice.call(document.querySelectorAll(`.nchips[data-cat="${cat}"] input:checked`)).map(i=>i.value);
+  const fEl=document.getElementById('free-'+cat);
+  const free=fEl?fEl.value.split(',').map(s=>s.trim()).filter(Boolean):[];
+  const seen={}, out=[];
+  checked.concat(free).forEach(x=>{ if(x && !seen[x]){ seen[x]=1; out.push(x); } });
+  return out;
+}
+
+function nutriFormHTML(p){
+  p=p||{}; const f=p.fav||{};
+  const sel=(v,o)=>v===o?' selected':'';
+  return `
+  <div class="nplan-hdr">
+    <div><div class="day-hdr-name">🥗 Perfil nutricional</div><div class="day-hdr-sub">Responde para gerar metas + sugestões</div></div>
+    ${p.goal?`<button class="reset-btn" onclick="cancelNutri()">✕ Cancelar</button>`:''}
+  </div>
+  <form id="nutriForm" class="nform" onsubmit="saveNutri(event)">
+    <div class="nrow">
+      <label class="nfield"><span>Objetivo</span>
+        <select id="n-goal"><option value="perder"${sel(p.goal,'perder')}>Perder gordura</option><option value="manter"${sel(p.goal,'manter')}>Manter</option><option value="ganhar"${sel(p.goal,'ganhar')}>Ganhar músculo</option></select></label>
+      <label class="nfield"><span>Sexo</span>
+        <select id="n-sex"><option value="m"${sel(p.sex,'m')}>Masculino</option><option value="f"${sel(p.sex,'f')}>Feminino</option></select></label>
+    </div>
+    <div class="nrow">
+      <label class="nfield"><span>Idade</span><input id="n-age" type="number" min="10" max="100" inputmode="numeric" value="${p.age||''}" required></label>
+      <label class="nfield"><span>Altura (cm)</span><input id="n-height" type="number" min="120" max="230" inputmode="numeric" value="${p.height||''}" required></label>
+      <label class="nfield"><span>Peso (kg)</span><input id="n-weight" type="number" min="30" max="250" step="0.1" inputmode="decimal" value="${p.weight||''}" required></label>
+    </div>
+    <div class="nrow">
+      <label class="nfield"><span>Atividade (fora do treino)</span>
+        <select id="n-activity"><option value="sed"${sel(p.activity,'sed')}>Sedentário</option><option value="leve"${sel(p.activity,'leve')}>Leve</option><option value="mod"${sel(p.activity,'mod')}>Moderado</option><option value="alto"${sel(p.activity,'alto')}>Alto</option></select></label>
+      <label class="nfield"><span>Refeições/dia</span>
+        <select id="n-meals"><option${sel(String(p.meals),'3')}>3</option><option${sel(String(p.meals||4),'4')}>4</option><option${sel(String(p.meals),'5')}>5</option><option${sel(String(p.meals),'6')}>6</option></select></label>
+      <label class="nfield"><span>Tempo p/ cozinhar</span>
+        <select id="n-cook"><option value="pouco"${sel(p.cookTime,'pouco')}>Pouco</option><option value="medio"${sel(p.cookTime,'medio')}>Médio</option><option value="muito"${sel(p.cookTime,'muito')}>Muito</option></select></label>
+    </div>
+    <div class="nsec-title">Proteínas favoritas</div>${nchips('protein',PROT,f.protein)}<input class="nfree" id="free-protein" placeholder="outras (separa por vírgulas)" value="${freeVal(f.protein,PROT)}">
+    <div class="nsec-title">Hidratos favoritos</div>${nchips('carbs',CARB,f.carbs)}<input class="nfree" id="free-carbs" placeholder="outros (separa por vírgulas)" value="${freeVal(f.carbs,CARB)}">
+    <div class="nsec-title">Vegetais favoritos</div>${nchips('veg',VEG,f.veg)}<input class="nfree" id="free-veg" placeholder="outros (separa por vírgulas)" value="${freeVal(f.veg,VEG)}">
+    <div class="nsec-title">Snacks favoritos</div>${nchips('snack',SNACK,f.snack)}<input class="nfree" id="free-snack" placeholder="outros (separa por vírgulas)" value="${freeVal(f.snack,SNACK)}">
+    <div class="nsec-title">Restrições</div>${nchips('restr',RESTR,p.restrictions)}
+    <div class="nsec-title">Suplementos que usas</div>${nchips('supps',SUPPS,p.supps)}
+    <label class="nfield full"><span>Alimentos a evitar</span><input id="n-avoid" placeholder="ex.: marisco, coentros" value="${(p.avoid||[]).join(', ')}"></label>
+    <button class="nbtn" type="submit">Calcular plano →</button>
+  </form>`;
+}
+
+function nutriPlanHTML(p){
+  const t=p._t||calcTargets(p);
+  const meals=mealPlan(p);
+  const shop=shopping(p);
+  const goalTxt={perder:'Perder gordura',manter:'Manter',ganhar:'Ganhar músculo'}[p.goal]||p.goal;
+  return `
+  <div class="nplan-hdr">
+    <div><div class="day-hdr-name">🥗 Nutrição</div><div class="day-hdr-sub">${goalTxt} · ${p.weight}kg · ${p.meals} refeições</div></div>
+    <button class="reset-btn" onclick="editNutri()">✎ Editar</button>
+  </div>
+  <div class="ntargets">
+    <div class="ntar"><span class="ntar-v">${t.kcal}</span><span class="ntar-l">kcal/dia</span></div>
+    <div class="ntar"><span class="ntar-v">${t.protein}g</span><span class="ntar-l">proteína</span></div>
+    <div class="ntar"><span class="ntar-v">${t.water}L</span><span class="ntar-l">água</span></div>
+  </div>
+  <div class="nmacros">Hidratos ~${t.carbG}g · Gordura ~${t.fatG}g</div>
+  <div class="nsec-title">Sugestão de refeições</div>
+  <div class="nmeals">${meals.map(m=>`<div class="nmeal${m.tag==='treino'?' treino':''}"><div class="nmeal-t">${m.t}</div><div class="nmeal-i">${m.i}</div></div>`).join('')}</div>
+  <div class="nnote">⏱ Nos dias de treino: <b>pré-treino</b> 60–90min antes, <b>pós-treino</b> na 1ª hora a seguir. Água: ${t.water}L base, +0,5L se treinares.</div>
+  ${shop.length?`<div class="nsec-title">Lista de compras (dos teus favoritos)</div><div class="nshop">${shop.map(s=>`<span class="nshop-i">${s}</span>`).join('')}</div>`:''}
+  <div class="ndisc">Estimativas (Mifflin-St Jeor). Ajusta conforme os resultados ao fim de 2–3 semanas.</div>`;
+}
+
+function renderNutri(content){
+  content=content||document.getElementById('content');
+  document.getElementById('hdrSub').textContent='Nutrição';
+  document.getElementById('progFill').style.width='0%';
+  const p=ST.nutri&&ST.nutri.profile;
+  const showForm = !p || NUTRI_EDIT;
+  content.innerHTML=`<div class="nutri-wrap">${ showForm ? nutriFormHTML(p) : nutriPlanHTML(p) }</div>`;
+}
+function editNutri(){ NUTRI_EDIT=true; renderNutri(); }
+function cancelNutri(){ NUTRI_EDIT=false; renderNutri(); }
+function saveNutri(e){
+  e.preventDefault();
+  const num=id=>parseFloat(document.getElementById(id).value);
+  const val=id=>{ const el=document.getElementById(id); return el?el.value:''; };
+  const age=num('n-age'), height=num('n-height'), weight=num('n-weight');
+  if(!(age>0 && height>0 && weight>0)){ alert('Preenche idade, altura e peso com valores válidos.'); return; }
+  const profile={
+    goal:val('n-goal'), sex:val('n-sex'), age, height, weight,
+    activity:val('n-activity'), meals:parseInt(val('n-meals'),10)||4, cookTime:val('n-cook'),
+    fav:{ protein:collectFav('protein'), carbs:collectFav('carbs'), veg:collectFav('veg'), snack:collectFav('snack') },
+    restrictions:collectFav('restr'), supps:collectFav('supps'),
+    avoid:(val('n-avoid')||'').split(',').map(s=>s.trim()).filter(Boolean)
+  };
+  profile._t=calcTargets(profile);
+  ST.nutri={profile};
+  save();
+  NUTRI_EDIT=false;
+  renderNutri();
+}
+
 /* ═══════════════════════ RENDER ═════════════════════ */
 function refreshProgress() {
   const {total,done}=getProgress(ST.day);
@@ -808,15 +1102,15 @@ function buildCard(day,ex,i) {
   card.className='card'+(ST.done[key(day,i)]?' done':'');
   card.id=`card-${i}`;
 
-  const imgs=ex.imgs||[];
-  const n=Math.max(imgs.length,1);
+  // slides: 1) mapa muscular  2+) diagramas opcionais (movimento/animado via ex.dia)
+  const mm=MUSCLES[ex.name];
+  const extra=ex.dia||[];
+  const slidesArr=[ mm ? muscleSlide(mm) : noImgSlide(ex.name) ];
+  extra.forEach(src=>slidesArr.push(`<div class="slide"><img src="${src}" alt="${ex.name}" loading="lazy"
+        onerror="this.closest('.slide').innerHTML='<div class=\\'no-img\\'><span>💪</span><span>${ex.name}</span></div>'"></div>`));
+  const n=slidesArr.length;
   slInit(i,n);
-
-  // slides HTML
-  const slidesHTML = imgs.length
-    ? imgs.map(src=>`<div class="slide"><img src="${src}" alt="${ex.name}" loading="lazy"
-        onerror="this.closest('.slide').innerHTML='<div class=\\'no-img\\'><span>💪</span><span>${ex.name}</span></div>'"></div>`).join('')
-    : `<div class="slide"><div class="no-img"><span>💪</span><span>${ex.name}</span></div></div>`;
+  const slidesHTML=slidesArr.join('');
 
   const dotsHTML = n>1
     ? `<div class="dots" id="dots-${i}">${Array.from({length:n},(_,j)=>`<div class="dot${j===0?' on':''}" onclick="slTo(${i},${j})"></div>`).join('')}</div>`
@@ -908,10 +1202,11 @@ function buildCard(day,ex,i) {
 }
 
 function render(day) {
-  ST.day=day;
+  ST.day=day; save();
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.day===day));
 
   const content=document.getElementById('content');
+  if(day==='__nutri'){ renderNutri(content); return; }
   content.innerHTML='';
 
   // day header
@@ -941,6 +1236,13 @@ Object.keys(DAYS).forEach(day=>{
   t.onclick=()=>render(day);
   tabsEl.appendChild(t);
 });
+
+const nutriTab=document.createElement('div');
+nutriTab.className='tab'+(ST.day==='__nutri'?' active':'');
+nutriTab.dataset.day='__nutri';
+nutriTab.innerHTML='🥗 Nutrição';
+nutriTab.onclick=()=>render('__nutri');
+tabsEl.appendChild(nutriTab);
 
 render(ST.day);
 document.getElementById('restLabel').textContent = REST_SEC + 's';

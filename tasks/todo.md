@@ -38,10 +38,42 @@ Convenção single-file mantida; PWA exige `manifest.json`, `sw.js`, `icon.svg` 
 - [x] `logSet`+`loadChart`: SVG + `1RM ~83kg`, overwrite diário (logLen=1), `est1RM(62.5,8)=79`
 - [x] `manifest.json` parse OK, `sw.js` syntax OK
 
-## Próximas fases (fora de âmbito desta)
-- Imagens → diagramas (mapa muscular + movimento + animado, em slider)
-- Nutrição (questionário hábitos/favoritos + metas + sugestões)
+# Fase 2 — Imagens → Diagramas (mapa muscular) ✅
+
+Fotos (não batiam certo) substituídas por mapa muscular. Slider mantém-se: slide 1 =
+mapa (frente+costas, primários vermelho / secundários laranja) + chips. Slides 2+ =
+SLOTS (`ex.dia`) para movimento/animado depois.
+
+- [x] `MUSCLES` (por nome → {p,s}) — sem tocar no DATA (30 exercícios)
+- [x] `MUSCLE_NAMES` (id → nome PT) para chips/legenda
+- [x] `bodySVG(P,S)` — SVG esquemático frente+costas, 15 grupos, fill por pertença
+- [x] `muscleSlide`/`noImgSlide` (cardio/descanso → ícone 💪)
+- [x] `buildCard`: slide 1 = mapa; slides extra via `ex.dia` (vazio por agora)
+- [x] CSS `.muscle-slide`/`.m-legend`/`.m-chip`
+- [x] Fotos `imgs` legacy (não renderizadas; não apagadas)
+- [x] Verificado: SVG bem-formado, red/orange/base, chips prim+sec, cardio→fallback
+
+# Fase 3 — Nutrição (questionário → metas → sugestões) ✅
+
+- [x] Tab "🥗 Nutrição" (render() ramifica para `__nutri`)
+- [x] Questionário: objetivo, sexo/idade/altura/peso, atividade, refeições, tempo p/
+      cozinhar, favoritos (prot/hidratos/veg/snack) + free-add, restrições, suplementos, evitar
+- [x] Perfil em `ST.nutri.profile`, editável (Editar/Cancelar)
+- [x] Metas: kcal (Mifflin-St Jeor × atividade × objetivo), proteína g/kg, água, +macros
+- [x] Sugestões de refeições dos favoritos + timing pré/pós-treino
+- [x] Lista de compras dos favoritos
+- [x] CSS do formulário + metas + refeições
+- [x] Verificado: kcal 3070/prot 160/água 2.8L (caso teste), form+plano gerados, render OK
+
+## Notas
+- Migração segura: estado antigo sem `log`/`nutri` → defaults preenchem no load
+- `render()` agora guarda a tab atual (volta à última aba no reload)
+- Texto livre (favoritos/evitar) inserido sem escape — aceitável (tool pessoal, local)
+
+## Fora de âmbito (depois)
+- Slots de movimento/animado preenchidos (sourcing de diagramas) via `ex.dia`
 - APK via Capacitor (quando alertas em background forem precisos)
+- Tracking de ingestão diário (registar o que comeu)
 
 ## Notas de deploy
 - SW exige HTTPS ou localhost. Para instalar no telemóvel é preciso a app servida em

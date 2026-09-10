@@ -88,8 +88,19 @@ Fundação para o salto seguinte (catálogo de 1324 exercícios + motor de progr
       injetado no render) → o smoke apanhou os dois
 - [ ] **Falta confirmar no browser** (`npm start`) — clicar tab a tab; o smoke não substitui isto
 
-## Roadmap (plano aprovado — exercises-dataset + blueprint OpenGym)
-- [ ] Fase 11 — catálogo de 1324 exercícios (`data/catalog.json`, 259 KB) + editor de rotinas
+## Fase 11 — Catálogo de 1324 exercícios (camada de dados) ✅
+- [x] `scripts/build-catalog.mjs`: 17,4 MB → `data/catalog.json` **173 KB** + `instructions.en.json` 610 KB
+- [x] SHA do dataset fixado (`7455efae…`) — `@main` invalidaria a cache das URLs de media
+- [x] `js/labels.js`: PT para 10 grupos / 28 equipamentos / 19 alvos + 50 músculos → ids do `bodySVG`
+      (1295/1324 pintam músculo primário; os 29 restantes são cardio, sem músculo — correto)
+- [x] `js/catalog.js`: load lazy com dedupe de promessas, pesquisa sem acentos, filtros, ranking
+      (nome começado pela query > palavra começada pelo termo > contém), `thumbUrl`/`gifUrl`
+- [x] `sw.js` → `treino-v4`, catalog.json no `CORE` (instructions fica para runtime cache)
+- [x] Smoke alargado: 1324 exercícios, facets 10/28/19, ranking, media URLs com SHA, instruções
+- [ ] **Falta a UI**: ecrã de pesquisa + editor de rotinas (`js/routine.js`, `ST.routine`)
+
+## Roadmap (restante do plano aprovado)
+- [ ] Fase 11b — UI de pesquisa + editor de rotinas (substitui os 7 dias fixos de `data.js`)
 - [ ] Fase 12 — motor de progressão: linear / Greyskull LP / dupla, com stalls e deload −10%
 - [ ] Fase 13 — log de sessão a sério: séries individuais, PRs, RIR/RPE, supersets
 - [ ] Fase 14 — dashboard: heatmap, volume real (feito, não planeado)

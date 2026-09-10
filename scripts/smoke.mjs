@@ -67,7 +67,48 @@ for (const [name, run] of actions) {
   try { run(); } catch (e) { fail.push(`${name}() rebentou: ${e.message}`); }
 }
 
-/* ── 4. todos os handlers inline têm de existir no window (bridge.js) ────── */
+/* ── 4. catálogo: dados gerados + pesquisa/filtros (ainda sem UI) ────────── */
+globalThis.fetch = async url => {
+  const p = new URL('../' + String(url), import.meta.url);
+  try { return { ok: true, status: 200, json: async () => JSON.parse(readFileSync(p, 'utf8')) }; }
+  catch { return { ok: false, status: 404, json: async () => null }; }
+};
+try {
+  const cat = await import(new URL('catalog.js', JS));
+  const { meta } = await cat.loadCatalog();
+  if (cat.all().length < 1000) fail.push(`catálogo com só ${cat.all().length} exercícios`);
+  if (!/^[0-9a-f]{40}$/.test(meta.sha || '')) fail.push('meta.sha do catálogo não é um commit fixado');
+
+  const bench = cat.search('bench press', { limit: 0 });
+  if (bench.length < 30) fail.push(`search("bench press") só deu ${bench.length} resultados`);
+  if (!bench.every(e => e.k.includes('bench') && e.k.includes('press')))
+    fail.push('search devolveu resultados sem todos os termos');
+  if (!cat.search('squat')[0].n.toLowerCase().startsWith('squat'))
+    fail.push(`ranking mau: search("squat") deu "${cat.search('squat')[0].n}" primeiro`);
+  if (cat.search('SQUAT').length !== cat.search('squat').length) fail.push('search não é insensível a maiúsculas');
+  if (!cat.search('', { equipment: 'dumbbell', limit: 0 }).every(e => e.e === 'dumbbell'))
+    fail.push('filtro de equipamento deixou passar outros');
+
+  const f = cat.facets();
+  if (f.b.length !== 10 || f.e.length !== 28 || f.t.length !== 19)
+    fail.push(`facets inesperados: ${f.b.length} grupos / ${f.e.length} equip / ${f.t.length} alvos`);
+  if (f.b.some(x => !x.label)) fail.push('há grupos musculares sem tradução PT');
+
+  const ex = cat.all()[0];
+  if (!cat.thumbUrl(ex).endsWith('.jpg') || !cat.gifUrl(ex).endsWith('.gif')) fail.push('URLs de media mal formadas');
+  if (!cat.thumbUrl(ex).includes(meta.sha)) fail.push('URL de media não usa o SHA fixado');
+
+  await cat.loadInstructions();
+  if (cat.instructionOf(ex.id).length < 20) fail.push(`sem instruções EN para ${ex.id}`);
+
+  const semMusculo = cat.all().filter(e => !cat.muscleIdsOf(e).p.length);
+  if (semMusculo.some(e => e.t !== 'cardiovascular system'))
+    fail.push('há exercícios não-cardio sem músculo primário no bodySVG');
+} catch (e) {
+  fail.push(`catálogo rebentou: ${e.message}`);
+}
+
+/* ── 5. todos os handlers inline têm de existir no window (bridge.js) ────── */
 const NOISE = new Set(['add', 'click', 'closest', 'getElementById', 'remove', 'replace',
   'setTimeout', 'stopPropagation', 'preventDefault', 'focus', 'blur', 'submit', 'load', 'forEach', 'play']);
 const sources = [readFileSync(new URL('../index.html', import.meta.url), 'utf8'), ...files.map(read)];
@@ -79,7 +120,7 @@ for (const src of sources)
 for (const h of handlers)
   if (typeof globalThis[h] !== 'function') fail.push(`handler inline sem ponte em bridge.js: ${h}()`);
 
-/* ── 5. cada import resolve para um export real ──────────────────────────── */
+/* ── 6. cada import resolve para um export real ──────────────────────────── */
 const exportsOf = {};
 for (const f of files) {
   const m = read(f).match(/^export \{ (.+) \};$/m);
@@ -92,4 +133,4 @@ for (const f of files)
 
 /* ── resultado ───────────────────────────────────────────────────────────── */
 if (fail.length) { console.error('FALHOU:\n  ' + fail.join('\n  ')); process.exit(1); }
-console.log(`OK — ${files.length} módulos avaliados, ${handlers.size} handlers inline ligados ao window.`);
+console.log(`OK — ${files.length} módulos, ${screens.length} ecrãs, ${handlers.size} handlers, catálogo com ${(await import(new URL('catalog.js', JS))).all().length} exercícios.`);

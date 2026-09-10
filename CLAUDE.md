@@ -23,6 +23,8 @@ No build, no bundler, no framework. HTML/CSS estáticos + **ES modules** nativos
 | `bridge.js` | põe os handlers inline no `window` — **ver aviso abaixo** |
 | `state.js` | `ST` (localStorage `treino_v2`), `save()`, migrações, log de carga, séries feitas |
 | `data.js` | `DAYS` — plano de treino (7 dias, exercícios hardcoded) |
+| `catalog.js` | catálogo de 1324 exercícios: load lazy, pesquisa, filtros, URLs de media |
+| `labels.js` | traduções PT da taxonomia EN + mapa músculo → id do `bodySVG` |
 | `ui.js` | `render(day)`, `buildCard`, `refreshCard`, `refreshProgress` |
 | `loads.js` | UI de carga (kg × reps) e gráfico por exercício |
 | `charts.js` | `chartSVG`, `MUSCLES`, `bodySVG` (mapa muscular frente/costas) |
@@ -54,6 +56,24 @@ absolutos partem no subcaminho do GitHub Pages.
 
 **Slider** (`sliders.js`): estado por `id` em `SL`; `slNext`/`slPrev`/`slTo` chamam `slSync`.
 Swipe touch/rato ligado por slider depois do render, com limiar de 50px.
+
+## Catálogo de exercícios (exercises-dataset)
+
+`data/catalog.json` (173 KB) e `data/instructions.en.json` (610 KB) são **gerados**, não
+editados à mão: `node scripts/build-catalog.mjs` descarrega o dataset de 17,4 MB do jsDelivr
+e escreve só o que a app precisa. O SHA do dataset está **fixado** no script — as URLs de
+media derivam dele, por isso mudar de SHA invalida a cache das imagens.
+
+O catálogo só é descarregado quando o utilizador abre a pesquisa; as instruções só ao abrir
+uma ficha. Ambos ficam em cache pelo service worker.
+
+**Idioma:** o dataset não tem português. As instruções são EN; a taxonomia (grupo,
+equipamento, alvo) é traduzida por `js/labels.js`. Os 30 exercícios originais mantêm os
+`tip`/`alt` PT escritos à mão em `js/data.js`.
+
+**Licenças:** dataset `hasaneyldrm/exercises-dataset` é MIT; a media é **© Gym visual**
+(gymvisual.com) e exige atribuição visível. `emilfunk/opengym` é AGPL v3 — serviu de
+referência de funcionalidades, **nenhum código dele está neste repo**.
 
 ## Demonstrações de exercícios
 

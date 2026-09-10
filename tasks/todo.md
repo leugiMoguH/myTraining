@@ -86,7 +86,8 @@ Fundação para o salto seguinte (catálogo de 1324 exercícios + motor de progr
       ecrãs, dispara 9 ações, valida imports↔exports e a ponte dos handlers
 - [x] Verificado: 19/19 `node --check`; smoke verde; teste negativo (handler removido + throw
       injetado no render) → o smoke apanhou os dois
-- [ ] **Falta confirmar no browser** (`npm start`) — clicar tab a tab; o smoke não substitui isto
+- [x] **Confirmado no browser** — `npm run test:browser` (Playwright/Chromium, 412px): 20 passos,
+      0 erros de consola, 0 pedidos falhados, progresso sobrevive ao reload
 
 ## Fase 11 — Catálogo de 1324 exercícios (camada de dados) ✅
 - [x] `scripts/build-catalog.mjs`: 17,4 MB → `data/catalog.json` **173 KB** + `instructions.en.json` 610 KB
@@ -97,6 +98,7 @@ Fundação para o salto seguinte (catálogo de 1324 exercícios + motor de progr
       (nome começado pela query > palavra começada pelo termo > contém), `thumbUrl`/`gifUrl`
 - [x] `sw.js` → `treino-v4`, catalog.json no `CORE` (instructions fica para runtime cache)
 - [x] Smoke alargado: 1324 exercícios, facets 10/28/19, ranking, media URLs com SHA, instruções
+- [x] Teste no browser confirma o catálogo a carregar dentro da página e o GIF do CDN a responder
 - [ ] **Falta a UI**: ecrã de pesquisa + editor de rotinas (`js/routine.js`, `ST.routine`)
 
 ## Roadmap (restante do plano aprovado)

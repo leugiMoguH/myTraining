@@ -8,15 +8,17 @@
     "build:www": "node scripts/build-www.mjs",
     "android:add": "npm run build:www && npx cap add android",
     "android:sync": "npm run build:www && npx cap sync android",
-    "android:open": "npx cap open android"
+    "android:open": "npx cap open android",
+    "test:browser": "node scripts/browser-test.mjs"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.1.0",
     "http-server": "^14.1.1",
-    "@capacitor/cli": "^6.1.0"
+    "playwright": "^1.63.0"
   },
   "dependencies": {
-    "@capacitor/core": "^6.1.0",
-    "@capacitor/android": "^6.1.0"
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/core": "^6.1.0"
   },
   "type": "module"
 }

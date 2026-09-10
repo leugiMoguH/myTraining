@@ -42,3 +42,4 @@ auto_download_images.py
 create_download_structure.py
 download_exercisedb.py
 DOWNLOAD_MANUAL.md
+test-results/

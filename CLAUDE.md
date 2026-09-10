@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm start          # serve em http://localhost:8000 (http-server)
-npm run smoke      # testa o grafo de módulos ES sem browser
+npm run smoke        # testes rápidos, sem browser (~1s)
+npm run test:browser # app real em Chromium headless: clica em tudo, falha em qualquer erro de consola
 ```
 
 `index.html` precisa de ser servido por HTTP — ES modules não carregam em `file://`.
@@ -46,9 +47,13 @@ Se acrescentares um handler inline novo, acrescenta-o ao `bridge.js` e corre `np
 substituídos através de `setST()` (`state.js`) e `setRest()` (`timer.js`) — é o que o
 `importBackup` faz.
 
-**Testes:** `npm run smoke` avalia o grafo de módulos completo com um DOM mínimo, percorre
-todos os ecrãs, dispara os handlers principais e confirma que cada import resolve e que
-todos os handlers inline estão ligados ao `window`. Corre-o sempre antes de commit.
+**Testes** (correr os dois antes de commit):
+- `npm run smoke` — DOM mínimo, avalia o grafo de módulos, percorre os ecrãs, valida
+  imports↔exports e a ponte dos handlers. ~1 segundo, sem browser.
+- `npm run test:browser` — Chromium headless a 412px: serve o site, clica em separadores,
+  séries, slider, ficha, treino guiado e definições, confirma que o progresso sobrevive ao
+  reload, carrega o catálogo e verifica que o GIF do CDN responde. **Falha se aparecer um
+  único erro na consola ou um pedido falhado.** Screenshots em `test-results/`.
 
 **Dados** (`data.js`): objeto por dia da semana (`"Segunda"`, `"Terça"`, …), cada valor um
 array de `{ name, s, r, tip, alt }`. Caminhos de imagem são **relativos** (sem `/` inicial):

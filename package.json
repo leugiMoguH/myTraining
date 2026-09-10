@@ -4,6 +4,7 @@
   "description": "Plano de treino pessoal",
   "scripts": {
     "start": "http-server -p 8000 -c-1",
+    "smoke": "node scripts/smoke.mjs",
     "build:www": "node scripts/build-www.mjs",
     "android:add": "npm run build:www && npx cap add android",
     "android:sync": "npm run build:www && npx cap sync android",
@@ -16,5 +17,6 @@
   "dependencies": {
     "@capacitor/core": "^6.1.0",
     "@capacitor/android": "^6.1.0"
-  }
+  },
+  "type": "module"
 }

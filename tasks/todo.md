@@ -71,6 +71,31 @@ podendo, esta é a melhor opção de engenharia (real, consistente, grátis, off
 - [x] .gitignore restaurado (tinha sido substituído) + www/ e android/
 - [x] Verificado: move 2026-05-01→2026-05-15, clamp de data futura, mjs/JSON válidos
 
+## Fase 10 — Modularização em ES modules ✅
+Fundação para o salto seguinte (catálogo de 1324 exercícios + motor de progressão): o
+`index.html` de 1924 linhas não aguentava mais.
+- [x] `index.html` 1924 → 669 linhas (só markup + CSS) + `<script type="module" src="js/app.js">`
+- [x] 19 módulos em `js/` (máx. 262 linhas: `nutrition.js`); split por secção, código inalterado
+- [x] `js/bridge.js` — 45 handlers inline `onclick=` postos no `window` (em ESM nada é global;
+      sem isto todos os botões falhavam **em silêncio**)
+- [x] ESM: bindings importados são imutáveis → `setST()` (`state.js`) e `setRest()` (`timer.js`)
+      para o `importBackup` poder substituir `ST` e `REST_SEC`
+- [x] `sw.js`: `CACHE` → `treino-v3`, os 19 módulos no `CORE`
+- [x] `scripts/build-www.mjs`: `js/` e `data/` copiados para o APK
+- [x] `scripts/smoke.mjs` (`npm run smoke`): DOM mínimo, avalia o grafo todo, percorre os 9
+      ecrãs, dispara 9 ações, valida imports↔exports e a ponte dos handlers
+- [x] Verificado: 19/19 `node --check`; smoke verde; teste negativo (handler removido + throw
+      injetado no render) → o smoke apanhou os dois
+- [ ] **Falta confirmar no browser** (`npm start`) — clicar tab a tab; o smoke não substitui isto
+
+## Roadmap (plano aprovado — exercises-dataset + blueprint OpenGym)
+- [ ] Fase 11 — catálogo de 1324 exercícios (`data/catalog.json`, 259 KB) + editor de rotinas
+- [ ] Fase 12 — motor de progressão: linear / Greyskull LP / dupla, com stalls e deload −10%
+- [ ] Fase 13 — log de sessão a sério: séries individuais, PRs, RIR/RPE, supersets
+- [ ] Fase 14 — dashboard: heatmap, volume real (feito, não planeado)
+Licenças: dataset MIT, media © Gym visual (atribuição obrigatória). OpenGym é AGPL v3 —
+**nenhum código dele entra no repo**, só o conceito.
+
 ## Próximo / fora de âmbito
 - [ ] Escapar texto livre do utilizador no HTML (robustez — ver análise)
 - [ ] Modo "Treino de hoje" guiado (maior upgrade de UX para o ginásio)

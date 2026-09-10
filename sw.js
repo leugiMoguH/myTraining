@@ -2,8 +2,33 @@
    Shell em cache para funcionar offline.
    Navegação: network-first (apanha updates quando online).
    Assets/imagens: cache-first (rápido e funciona sem rede). */
-const CACHE = 'treino-v2';
-const CORE = ['./', './index.html', './manifest.json', './favicon.svg', './icon.svg'];
+const CACHE = 'treino-v3';
+const CORE = [
+  './',
+  './index.html',
+  './manifest.json',
+  './favicon.svg',
+  './icon.svg',
+  './js/app.js',
+  './js/backup.js',
+  './js/bridge.js',
+  './js/charts.js',
+  './js/data.js',
+  './js/guide.js',
+  './js/loads.js',
+  './js/media.js',
+  './js/notify.js',
+  './js/nutrition.js',
+  './js/profile.js',
+  './js/progression.js',
+  './js/sliders.js',
+  './js/state.js',
+  './js/timer.js',
+  './js/ui.js',
+  './js/volume.js',
+  './js/wake.js',
+  './js/workout.js'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(

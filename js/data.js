@@ -1,7 +1,8 @@
-/* myTraining — módulo extraído de index.html (Fase 0). */
+/* Plano original — passa a ser só a SEMENTE da rotina.
+   O que a app usa é ST.routine (ver js/routine.js), que o utilizador edita. */
 
 /* ═══════════════════════ DATA ═══════════════════════ */
-const DAYS = {
+const DEFAULT_DAYS = {
   "Segunda": {
     label: "Peito & Tríceps",
     ex: [
@@ -72,4 +73,4 @@ const DAYS = {
   }
 };
 
-export { DAYS };
+export { DEFAULT_DAYS };

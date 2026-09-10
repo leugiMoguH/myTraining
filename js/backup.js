@@ -1,5 +1,6 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
-import { DAYS } from './data.js';
+import { DEFAULT_DAYS } from './data.js';
+import { DAYS } from './routine.js';
 import { syncNotifUI } from './notify.js';
 import { bodyFat } from './profile.js';
 import { ST, est1RM, fmtTime, save, todayStr, setST } from './state.js';
@@ -32,13 +33,15 @@ function importBackup(e){
       if(!incoming || typeof incoming!=='object' || typeof incoming.sets!=='object' || typeof incoming.done!=='object')
         throw new Error('estrutura inválida');
       if(!confirm('Importar substitui o progresso atual. Continuar?')){ e.target.value=''; return; }
-      setST({ day:'Segunda', sets:{}, done:{}, log:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], media:{}, ...incoming });
+      setST({ day:'Segunda', sets:{}, done:{}, log:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], media:{}, routine:null, ...incoming });
       if(!ST.log || typeof ST.log!=='object') ST.log={};
       if(!ST.nutri || typeof ST.nutri!=='object') ST.nutri={profile:null};
       if(!ST.profile || typeof ST.profile!=='object') ST.profile={};
       if(!Array.isArray(ST.measures)) ST.measures=[];
       if(!Array.isArray(ST.intake)) ST.intake=[];
       if(!ST.media || typeof ST.media!=='object') ST.media={};
+      /* backup antigo (sem rotina) → repõe o plano original */
+      if(!ST.routine || typeof ST.routine!=='object' || !Object.keys(ST.routine).length) ST.routine=JSON.parse(JSON.stringify(DEFAULT_DAYS));
       if(ST.day!=='__nutri' && ST.day!=='__perfil' && !DAYS[ST.day]) ST.day='Segunda';
       if(p && typeof p.rest_sec==='number') setRest(p.rest_sec);
       save();

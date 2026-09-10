@@ -1,5 +1,5 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
-import { DAYS } from './data.js';
+import { DAYS } from './routine.js';
 import { REST_SEC, timerStart } from './timer.js';
 import { refreshCard, refreshProgress, render } from './ui.js';
 

@@ -47,7 +47,7 @@ try {
 }
 
 /* ── 3. percorrer os ecrãs principais: apanha erros dentro dos render ────── */
-const { DAYS } = await import(new URL('data.js', JS));
+const { DAYS } = await import(new URL('routine.js', JS));
 const screens = [...Object.keys(DAYS), '__perfil', '__nutri'];
 for (const s of screens) {
   try { globalThis.render(s); } catch (e) { fail.push(`render('${s}') rebentou: ${e.message}`); }
@@ -97,6 +97,7 @@ try {
   const ex = cat.all()[0];
   if (!cat.thumbUrl(ex).endsWith('.jpg') || !cat.gifUrl(ex).endsWith('.gif')) fail.push('URLs de media mal formadas');
   if (!cat.thumbUrl(ex).includes(meta.sha)) fail.push('URL de media não usa o SHA fixado');
+  if (cat.MEDIA_BASE !== meta.media) fail.push('MEDIA_BASE em catalog.js está dessincronizado do catálogo gerado');
 
   await cat.loadInstructions();
   if (cat.instructionOf(ex.id).length < 20) fail.push(`sem instruções EN para ${ex.id}`);
@@ -108,7 +109,51 @@ try {
   fail.push(`catálogo rebentou: ${e.message}`);
 }
 
-/* ── 5. todos os handlers inline têm de existir no window (bridge.js) ────── */
+/* ── 5. rotina: editar exercícios sem baralhar o progresso ───────────────── */
+try {
+  const R = await import(new URL('routine.js', JS));
+  const { ST, key } = await import(new URL('state.js', JS));
+  const D = 'Segunda';
+  const nomes = () => R.exercisesOf(D).map(e => e.name);
+
+  if (R.exercisesOf(D).length !== 6) fail.push(`rotina semeada com ${R.exercisesOf(D).length} exercícios (esperado 6)`);
+
+  /* marcar séries no 1.º e no 3.º, depois mexer na lista à volta deles */
+  ST.sets[key(D, 0)] = [0, 1];
+  ST.sets[key(D, 2)] = [0];
+  ST.done[key(D, 0)] = true;
+  const [a, , c] = nomes();
+
+  R.moveExercise(D, 0, 1);                      /* 1.º passa a 2.º */
+  if (nomes()[1] !== a) fail.push('moveExercise não trocou a ordem');
+  if (!ST.done[key(D, 1)] || ST.done[key(D, 0)]) fail.push('moveExercise não levou o "feito" com o exercício');
+  if (String(ST.sets[key(D, 1)]) !== '0,1') fail.push('moveExercise não levou as séries com o exercício');
+
+  R.removeExercise(D, 0);                        /* apagar o que ficou em 1.º */
+  if (nomes()[0] !== a) fail.push('removeExercise apagou o exercício errado');
+  if (!ST.done[key(D, 0)]) fail.push('removeExercise não reindexou o progresso');
+  if (R.exercisesOf(D).length !== 5) fail.push('removeExercise não encurtou a lista');
+
+  const antes = R.exercisesOf(D).length;
+  R.addExercise(D, { name: 'Teste smoke', s: 3, r: '8-12', catalogId: '0001' });
+  if (R.exercisesOf(D).length !== antes + 1) fail.push('addExercise não acrescentou');
+  if (!R.isCustom(D, antes)) fail.push('exercício do catálogo não é reconhecido como tal');
+  if (ST.sets[key(D, antes)]) fail.push('exercício novo herdou séries de outro');
+
+  R.updateExercise(D, 0, { s: 5, r: '3-5' });
+  if (R.exercisesOf(D)[0].s !== 5) fail.push('updateExercise não gravou as séries');
+  if (R.exercisesOf(D)[0].name !== a) fail.push('updateExercise mexeu no nome (perderia o histórico)');
+
+  R.removeExercise(D, R.exercisesOf(D).length - 1);
+  R.resetRoutine();
+  if (R.exercisesOf(D).length !== 6) fail.push('resetRoutine não repôs o plano original');
+  if (Object.keys(ST.done).length) fail.push('resetRoutine deixou progresso para trás');
+  if (nomes()[2] !== c) fail.push('resetRoutine repôs uma ordem diferente da original');
+} catch (e) {
+  fail.push(`rotina rebentou: ${e.message}`);
+}
+
+/* ── 6. todos os handlers inline têm de existir no window (bridge.js) ────── */
 const NOISE = new Set(['add', 'click', 'closest', 'getElementById', 'remove', 'replace',
   'setTimeout', 'stopPropagation', 'preventDefault', 'focus', 'blur', 'submit', 'load', 'forEach', 'play']);
 const sources = [readFileSync(new URL('../index.html', import.meta.url), 'utf8'), ...files.map(read)];
@@ -120,15 +165,15 @@ for (const src of sources)
 for (const h of handlers)
   if (typeof globalThis[h] !== 'function') fail.push(`handler inline sem ponte em bridge.js: ${h}()`);
 
-/* ── 6. cada import resolve para um export real ──────────────────────────── */
+/* ── 7. cada import resolve para um export real ──────────────────────────── */
 const exportsOf = {};
 for (const f of files) {
-  const m = read(f).match(/^export \{ (.+) \};$/m);
-  exportsOf[f] = new Set(m ? m[1].split(',').map(s => s.trim()) : []);
+  const m = read(f).match(/^export \{([\s\S]*?)\};$/m);   /* o bloco pode ocupar várias linhas */
+  exportsOf[f] = new Set(m ? m[1].split(',').map(s => s.trim()).filter(Boolean) : []);
 }
 for (const f of files)
-  for (const m of read(f).matchAll(/^import \{ (.+?) \} from '\.\/(.+?)';$/gm))
-    for (const name of m[1].split(',').map(s => s.trim()))
+  for (const m of read(f).matchAll(/^import \{([\s\S]*?)\} from '\.\/(.+?)';$/gm))
+    for (const name of m[1].split(',').map(s => s.trim()).filter(Boolean))
       if (!exportsOf[m[2]]?.has(name)) fail.push(`${f}: importa "${name}" que ${m[2]} não exporta`);
 
 /* ── resultado ───────────────────────────────────────────────────────────── */

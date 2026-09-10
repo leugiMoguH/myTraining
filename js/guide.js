@@ -1,4 +1,5 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
+import { instructionOf, loadInstructions } from './catalog.js';
 import { addMedia } from './media.js';
 import { esc } from './state.js';
 
@@ -37,7 +38,10 @@ const GUIDE={
   "Cardio leve":{setup:"Escolhe a modalidade (passadeira, bicicleta, elíptica, remo). Postura ereta.",exec:"Mantém um ritmo de Zona 2: consegues conversar mas com algum esforço (FC ~60–70% da máxima), 20–30 min.",tips:["Se não consegues falar, abranda.","Mantém a postura direita.","Ideal para recuperação e saúde cardiovascular."],breath:"Respiração ritmada e confortável."},
   "Descanso ativo":{setup:"Dia de recuperação. Mobilidade, alongamentos, yoga suave ou caminhada.",exec:"Movimento leve para promover circulação e recuperação, sem fadiga.",tips:["Não treines com intensidade.","Foca mobilidade das zonas mais tensas.","Hidrata e dorme bem — é aqui que o músculo cresce."],breath:"Respiração relaxada e profunda."}
 };
-function openInfo(name){
+/* `catalogId` chega dos exercícios vindos do exercises-dataset: a ficha PT escrita
+   à mão só existe para os 30 originais, os outros mostram as instruções EN do
+   dataset — que são descarregadas só agora (610 KB, uma vez por dispositivo). */
+function openInfo(name,catalogId){
   const g=GUIDE[name];
   const body=document.getElementById('infoBody');
   if(g){
@@ -48,6 +52,19 @@ function openInfo(name){
       <div class="info-sec"><div class="info-h">✅ Postura & dicas</div><ul>${g.tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>
       <div class="info-sec"><div class="info-h">🫁 Respiração</div><p>${esc(g.breath)}</p></div>
       <div class="info-add"><button class="nbtn" onclick="closeInfo();addMedia('${name.replace(/'/g,"\\'")}')">＋ Adicionar a minha demo (link)</button></div>`;
+  } else if(catalogId){
+    body.innerHTML=`<div class="info-x-name">${esc(name)}</div><p class="ndisc">A carregar as instruções…</p>`;
+    loadInstructions()
+      .then(()=>{
+        const txt=instructionOf(catalogId);
+        body.innerHTML=`
+          <div class="info-x-name">${esc(name)}</div>
+          <div class="info-sec"><div class="info-h">▶️ Execução <span class="info-lang">EN</span></div>
+            <p>${txt?esc(txt):'Sem instruções para este exercício.'}</p></div>
+          <div class="info-credit">Demonstração © <a href="https://gymvisual.com/" target="_blank" rel="noopener">Gym visual</a> · dataset <a href="https://github.com/hasaneyldrm/exercises-dataset" target="_blank" rel="noopener">exercises-dataset</a> (MIT)</div>
+          <div class="info-add"><button class="nbtn" onclick="closeInfo();addMedia('${name.replace(/'/g,"\'")}')">＋ Adicionar a minha demo (link)</button></div>`;
+      })
+      .catch(err=>{ body.innerHTML=`<div class="info-x-name">${esc(name)}</div><p class="ndisc">Não foi possível carregar as instruções: ${esc(err.message)}</p>`; });
   } else {
     body.innerHTML=`<div class="info-x-name">${esc(name)}</div><p class="ndisc">Sem ficha técnica para este exercício.</p>`;
   }

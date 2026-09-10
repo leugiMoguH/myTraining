@@ -1,6 +1,6 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { MUSCLES, MUSCLE_NAMES } from './charts.js';
-import { DAYS } from './data.js';
+import { DAYS } from './routine.js';
 
 /* ═══════════ VOLUME SEMANAL (planeado, por grupo) ═══════════ */
 function weeklyVolume(){

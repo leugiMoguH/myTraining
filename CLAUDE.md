@@ -23,7 +23,10 @@ No build, no bundler, no framework. HTML/CSS estáticos + **ES modules** nativos
 | `app.js` | ponto de entrada: constrói os separadores, primeiro `render`, regista o SW |
 | `bridge.js` | põe os handlers inline no `window` — **ver aviso abaixo** |
 | `state.js` | `ST` (localStorage `treino_v2`), `save()`, migrações, log de carga, séries feitas |
-| `data.js` | `DAYS` — plano de treino (7 dias, exercícios hardcoded) |
+| `data.js` | `DEFAULT_DAYS` — plano original, só a **semente** da rotina |
+| `routine.js` | `ST.routine`: a rotina editável. Exporta `DAYS` (Proxy) para os módulos antigos |
+| `editor.js` | modo de edição de um dia: reordenar, apagar, séries/reps |
+| `catalog-ui.js` | ecrã de pesquisa do catálogo |
 | `catalog.js` | catálogo de 1324 exercícios: load lazy, pesquisa, filtros, URLs de media |
 | `labels.js` | traduções PT da taxonomia EN + mapa músculo → id do `bodySVG` |
 | `ui.js` | `render(day)`, `buildCard`, `refreshCard`, `refreshProgress` |
@@ -55,9 +58,21 @@ substituídos através de `setST()` (`state.js`) e `setRest()` (`timer.js`) — 
   reload, carrega o catálogo e verifica que o GIF do CDN responde. **Falha se aparecer um
   único erro na consola ou um pedido falhado.** Screenshots em `test-results/`.
 
-**Dados** (`data.js`): objeto por dia da semana (`"Segunda"`, `"Terça"`, …), cada valor um
-array de `{ name, s, r, tip, alt }`. Caminhos de imagem são **relativos** (sem `/` inicial):
-absolutos partem no subcaminho do GitHub Pages.
+**Dados:** `js/data.js` só guarda o plano original. O que a app lê é `ST.routine`
+(`js/routine.js`), semeado a partir dele na primeira utilização. Cada dia é
+`{ label, ex: [{ name, s, r, tip, alt, catalogId?, m?, mus? }] }`. Os três últimos campos
+existem nos exercícios vindos do catálogo e guardam o GIF e os músculos na própria entrada,
+para o cartão não ter de esperar pelo `catalog.json`.
+
+**`ST.sets` / `ST.done` são indexados por `dia:índice`.** Qualquer alteração à ordem ou
+remoção tem de passar por `setDayExercises()` (`routine.js`), que reindexa o progresso —
+senão as séries marcadas saltam para o exercício errado.
+
+**O nome do exercício é a chave do histórico** (`ST.log[name]`). Por isso o editor deixa
+mudar séries, reps e a etiqueta do dia, mas nunca o nome.
+
+Caminhos de ficheiros são **relativos** (sem `/` inicial): absolutos partem no subcaminho
+do GitHub Pages.
 
 **Slider** (`sliders.js`): estado por `id` em `SL`; `slNext`/`slPrev`/`slTo` chamam `slSync`.
 Swipe touch/rato ligado por slider depois do render, com limiar de 50px.
@@ -89,7 +104,11 @@ qualquer origem). O utilizador pode ainda colar URLs próprios (`ST.media[exerc�
 
 ## Adicionar ou mudar exercícios
 
-Editar `DAYS` em `js/data.js`. Se o exercício for novo, acrescentar também:
+Normalmente **não é preciso mexer no código**: ✎ Editar num dia → ＋ Adicionar exercício
+do catálogo (1324 disponíveis, com GIF e instruções EN).
+
+Para mudar o plano *original* (a semente), editar `DEFAULT_DAYS` em `js/data.js`. Se o
+exercício for novo, acrescentar também:
 - `MUSCLES` em `js/charts.js` (mapa muscular) — senão o cartão cai no fallback 💪
 - `GUIDE` em `js/guide.js` (ficha técnica), opcional
 - `DEMOS` em `js/media.js` (pasta do free-exercise-db), opcional

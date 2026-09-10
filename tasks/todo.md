@@ -99,10 +99,26 @@ Fundação para o salto seguinte (catálogo de 1324 exercícios + motor de progr
 - [x] `sw.js` → `treino-v4`, catalog.json no `CORE` (instructions fica para runtime cache)
 - [x] Smoke alargado: 1324 exercícios, facets 10/28/19, ranking, media URLs com SHA, instruções
 - [x] Teste no browser confirma o catálogo a carregar dentro da página e o GIF do CDN a responder
-- [ ] **Falta a UI**: ecrã de pesquisa + editor de rotinas (`js/routine.js`, `ST.routine`)
+- [x] **UI feita** — ver Fase 11b
+
+## Fase 11b — Editor de rotinas + pesquisa no catálogo ✅
+Os 7 dias deixaram de ser fixos.
+- [x] `js/routine.js`: `ST.routine` editável, semeada de `DEFAULT_DAYS`. Exporta `DAYS` como
+      **Proxy** para state/ui/app/backup/volume/workout não precisarem de mudar
+- [x] `setDayExercises()` reindexa `ST.sets`/`ST.done` ao mover/remover — sem isto as séries
+      marcadas saltavam para o exercício errado (teste negativo confirmou)
+- [x] `js/editor.js`: ✎ Editar por dia → ▲▼ reordenar, ✕ remover, séries/reps, nome do dia,
+      ↺ repor plano original. O **nome** não é editável: é a chave de `ST.log`
+- [x] `js/catalog-ui.js`: pesquisa com debounce, chips de grupo + equipamento em PT, thumbs
+- [x] Exercício do catálogo guarda `catalogId` + `m` + `mus` → GIF e mapa muscular sem esperar
+      pelo catálogo; ficha mostra as instruções EN + atribuição a Gym visual
+- [x] GIF também no modo guiado
+- [x] `sw.js` → `treino-v5` (24 módulos)
+- [x] Testado no browser: 11 passos novos (editar, reordenar, pesquisar, filtrar, adicionar,
+      GIF a carregar mesmo, ficha EN, remover) — 0 erros
 
 ## Roadmap (restante do plano aprovado)
-- [ ] Fase 11b — UI de pesquisa + editor de rotinas (substitui os 7 dias fixos de `data.js`)
+
 - [ ] Fase 12 — motor de progressão: linear / Greyskull LP / dupla, com stalls e deload −10%
 - [ ] Fase 13 — log de sessão a sério: séries individuais, PRs, RIR/RPE, supersets
 - [ ] Fase 14 — dashboard: heatmap, volume real (feito, não planeado)

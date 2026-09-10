@@ -1,7 +1,7 @@
 /* myTraining — arranque da app: constrói os separadores e faz o primeiro render.
    Ponto de entrada (<script type="module" src="js/app.js">). */
 import './bridge.js';
-import { DAYS } from './data.js';
+import { DAYS } from './routine.js';
 import { ST, getProgress } from './state.js';
 import { REST_SEC } from './timer.js';
 import { render } from './ui.js';

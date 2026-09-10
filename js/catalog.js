@@ -8,6 +8,11 @@ import { bodyPartPT, equipmentPT, targetPT, muscleIdsOf } from './labels.js';
 const CATALOG_URL = 'data/catalog.json';          /* relativo: GitHub Pages serve num subcaminho */
 const INSTRUCTIONS_URL = 'data/instructions.en.json';
 
+/* Mesmo SHA que scripts/build-catalog.mjs — o smoke test confirma que batem certo.
+   Está aqui em duplicado de propósito: assim os cartões constroem as URLs de
+   media sem ter de esperar pelo catálogo (173 KB) a chegar da rede. */
+const MEDIA_BASE = 'https://cdn.jsdelivr.net/gh/hasaneyldrm/exercises-dataset@7455efae41b330c265e7cd4b78dfa848e7ce5ebd/';
+
 let catalog = null;        /* { meta, ex:[…] } depois do primeiro load */
 let instructions = null;
 let catalogPromise = null;
@@ -88,9 +93,12 @@ function search(query, { bodyPart, equipment, target, limit = 60 } = {}) {
   return limit > 0 ? out.slice(0, limit) : out;
 }
 
-/* URLs de media (o SHA está fixado em meta.media, gerado por build-catalog.mjs). */
-function thumbUrl(ex) { const m = meta(); return m ? `${m.media}images/${ex.id}-${ex.m}.jpg` : ''; }
-function gifUrl(ex) { const m = meta(); return m ? `${m.media}videos/${ex.id}-${ex.m}.gif` : ''; }
+/* URLs de media. As versões *For() são síncronas — usadas pelos cartões, que só
+   guardam o id e o media_id do exercício e não podem esperar pelo catálogo. */
+function thumbUrlFor(id, mediaId) { return `${MEDIA_BASE}images/${id}-${mediaId}.jpg`; }
+function gifUrlFor(id, mediaId) { return `${MEDIA_BASE}videos/${id}-${mediaId}.gif`; }
+function thumbUrl(ex) { return thumbUrlFor(ex.id, ex.m); }
+function gifUrl(ex) { return gifUrlFor(ex.id, ex.m); }
 
 /* Instruções EN (o dataset não tem PT). Devolve '' se ainda não carregadas. */
 function instructionOf(id) { return (instructions && instructions[id]) || ''; }
@@ -99,10 +107,15 @@ function instructionOf(id) { return (instructions && instructions[id]) || ''; }
    `tip` fica vazio de propósito: os 30 exercícios originais têm tips PT escritos
    à mão que não se devem perder, e para os novos a ficha EN chega. */
 function toRoutineEntry(ex, { s = 3, r = '8-12' } = {}) {
-  return { name: ex.n, s, r, tip: '', alt: '', catalogId: ex.id };
+  return {
+    name: ex.n, s, r, tip: '', alt: '',
+    catalogId: ex.id,
+    m: ex.m,                  /* media_id: chega para montar a URL do GIF sem o catálogo */
+    mus: muscleIdsOf(ex),     /* { p, s } já no formato do bodySVG */
+  };
 }
 
 export {
-  loadCatalog, loadInstructions, isLoaded, all, byId, meta, facets, search,
-  thumbUrl, gifUrl, instructionOf, toRoutineEntry, norm, muscleIdsOf,
+  MEDIA_BASE, loadCatalog, loadInstructions, isLoaded, all, byId, meta, facets, search,
+  thumbUrl, gifUrl, thumbUrlFor, gifUrlFor, instructionOf, toRoutineEntry, norm, muscleIdsOf,
 };

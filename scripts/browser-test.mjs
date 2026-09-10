@@ -50,6 +50,9 @@ const step = async (name, fn) => {
   await clearOverlays();
   for (const e of errors.slice(before)) fail.push(`${name} -> ${e}`);
 };
+/* passos que precisam do ecrã limpo antes de clicar */
+const stepClean = async (name, fn) => { await clearOverlays(); await step(name, fn); };
+
 const click = async sel => { await page.locator(sel).first().click({ timeout: 3000 }); };
 
 await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'networkidle' });
@@ -117,6 +120,89 @@ await step('catalogo carrega', async () => {
   if (r.n !== 1324) throw new Error(`catalogo com ${r.n} exercicios`);
   if (!r.squat || !r.squat.startsWith('squat')) throw new Error(`pesquisa ma: ${r.squat}`);
   if (!r.url.endsWith('.gif')) throw new Error('URL de GIF mal formada');
+});
+
+/* ── editor de dias + catálogo (Fase 11b) ───────────────────────────────── */
+await stepClean('entrar em modo edicao', async () => {
+  await click('[onclick*="toggleEdit"]');
+  if (!(await page.locator('.ed-row').count())) throw new Error('editor nao apareceu');
+});
+await step('descer exercicio', async () => {
+  const antes = await page.locator('.ed-name').first().innerText();
+  await page.locator('.ed-row').first().locator('.ed-btn').nth(1).click();
+  const depois = await page.locator('.ed-name').first().innerText();
+  if (antes === depois) throw new Error('ordem nao mudou');
+});
+await step('mudar series', async () => {
+  const input = page.locator('.ed-fields input[type="number"]').first();
+  await input.fill('5');
+  await input.blur();
+  await page.waitForTimeout(150);
+  const v = await page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')).routine['Segunda'].ex[0].s);
+  if (v !== 5) throw new Error(`series ficaram ${v}, esperado 5`);
+});
+await step('abrir catalogo', async () => {
+  await click('.ed-add');
+  await page.waitForSelector('.cat-row', { timeout: 8000 });
+  const n = await page.locator('.cat-row').count();
+  if (n < 10) throw new Error(`so ${n} resultados no catalogo`);
+});
+await step('pesquisar no catalogo', async () => {
+  await page.locator('#catQ').fill('squat');
+  await page.waitForTimeout(400);
+  const first = await page.locator('.cat-name').first().innerText();
+  if (!first.toLowerCase().startsWith('squat')) throw new Error(`primeiro resultado: ${first}`);
+});
+await step('filtrar por equipamento', async () => {
+  await page.locator('.cat-chip', { hasText: 'Halteres' }).first().click();
+  await page.waitForTimeout(300);
+  if (!(await page.locator('.cat-row').count())) throw new Error('filtro nao deu resultados');
+});
+await page.screenshot({ path: join(SHOTS, 'catalogo.png') });
+await step('adicionar exercicio', async () => {
+  const nome = await page.locator('.cat-name').first().innerText();
+  const antes = await page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')).routine['Segunda'].ex.length);
+  await page.locator('.cat-row').first().click();
+  await page.waitForTimeout(400);
+  const st = await page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')).routine['Segunda'].ex);
+  if (st.length !== antes + 1) throw new Error('exercicio nao foi acrescentado');
+  const novo = st[st.length - 1];
+  if (novo.name !== nome) throw new Error(`acrescentou "${novo.name}" em vez de "${nome}"`);
+  if (!novo.catalogId || !novo.m) throw new Error('entrada sem catalogId/media_id - GIF nao vai carregar');
+});
+await step('sair do modo edicao', async () => {
+  await click('[onclick*="toggleEdit"]');
+  if (await page.locator('.ed-row').count()) throw new Error('continua em modo edicao');
+});
+await step('GIF do exercicio novo aparece', async () => {
+  const gif = page.locator('.cat-gif').first();
+  await gif.waitFor({ state: 'attached', timeout: 5000 });
+  await gif.scrollIntoViewIfNeeded();          /* loading=lazy: fora do ecrã não descarrega */
+  await page.waitForTimeout(1500);
+  const ok = await gif.evaluate(img => new Promise(res => {
+    if (img.complete) return res(img.naturalWidth > 0);
+    img.onload = () => res(true); img.onerror = () => res(false);
+    setTimeout(() => res(img.naturalWidth > 0), 8000);
+  }));
+  if (!ok) throw new Error('GIF do exercicio do catalogo nao carregou');
+});
+await step('ficha EN do exercicio novo', async () => {
+  await page.locator('.card').last().locator('.info-btn').click();
+  await page.waitForTimeout(1500);
+  const txt = await page.locator('#infoBody').innerText();
+  if (txt.includes('A carregar')) throw new Error('instrucoes nunca chegaram');
+  if (txt.length < 80) throw new Error(`ficha vazia: ${txt}`);
+  if (!txt.includes('Gym visual')) throw new Error('falta a atribuicao obrigatoria a Gym visual');
+});
+await page.screenshot({ path: join(SHOTS, 'ficha-catalogo.png') });
+await stepClean('remover exercicio novo', async () => {
+  page.once('dialog', d => d.accept());
+  await click('[onclick*="toggleEdit"]');
+  const n = await page.locator('.ed-row').count();
+  await page.locator('.ed-row').last().locator('.ed-del').click();
+  await page.waitForTimeout(300);
+  if (await page.locator('.ed-row').count() !== n - 1) throw new Error('nao removeu');
+  await click('[onclick*="toggleEdit"]');
 });
 
 await step('GIF do CDN responde', async () => {

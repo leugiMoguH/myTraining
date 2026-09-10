@@ -1,13 +1,15 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
-import { MUSCLES, muscleSlide, noImgSlide } from './charts.js';
-import { DAYS } from './data.js';
+import { gifUrlFor } from './catalog.js';
+import { MUSCLES, bodySVG, muscleSlide, noImgSlide } from './charts.js';
+import { editorHTML, isEditing, toggleEdit } from './editor.js';
+import { DAYS } from './routine.js';
 import { openInfo } from './guide.js';
 import { saveLoad, toggleChart } from './loads.js';
 import { DEMOS, demoSlide, mediaSlide } from './media.js';
 import { renderNutri } from './nutrition.js';
 import { renderProfile } from './profile.js';
 import { slInit, slNext, slPrev, slTo } from './sliders.js';
-import { ST, getLog, getProgress, getSets, key, markDone, resetDay, save, toggleSet } from './state.js';
+import { ST, esc, getLog, getProgress, getSets, key, markDone, resetDay, save, toggleSet } from './state.js';
 import { REST_SEC, timerStart } from './timer.js';
 import { startWorkout } from './workout.js';
 
@@ -36,18 +38,28 @@ function refreshCard(day,i) {
   });
 }
 
+/* GIF animado do exercises-dataset (180x180, ~90 KB). loading=lazy porque um dia
+   pode ter 8 cartões e não vale a pena puxar todos de uma vez. */
+function gifSlide(ex){
+  return `<div class="slide"><img class="cat-gif" src="${gifUrlFor(ex.catalogId,ex.m)}" alt="${esc(ex.name)}" loading="lazy"
+    onerror="this.closest('.slide').innerHTML='<div class=\'no-img\'><span>💪</span><span>${esc(ex.name)}</span></div>'"></div>`;
+}
+
 function buildCard(day,ex,i) {
   const card=document.createElement('div');
   card.className='card'+(ST.done[key(day,i)]?' done':'');
   card.id=`card-${i}`;
 
   // slides: 1) demo real (CDN)  2) mapa muscular  3+) demos do utilizador  4+) diagramas (ex.dia)
-  const mm=MUSCLES[ex.name];
+  /* Exercício do catálogo: o GIF e os músculos vêm na própria entrada da rotina
+     (catalogId + m + mus), por isso o cartão não espera pelo catálogo a chegar. */
+  const mm=MUSCLES[ex.name] || (ex.mus && ex.mus.p && ex.mus.p.length ? ex.mus : null);
   const dmo=DEMOS[ex.name];
   const media=(ST.media&&ST.media[ex.name])||[];
   const extra=ex.dia||[];
   const slidesArr=[];
-  if(dmo) slidesArr.push(demoSlide(dmo,ex.name));
+  if(ex.catalogId && ex.m) slidesArr.push(gifSlide(ex));
+  else if(dmo) slidesArr.push(demoSlide(dmo,ex.name));
   slidesArr.push(mm ? muscleSlide(mm) : noImgSlide(ex.name));
   media.forEach((url,mi)=>slidesArr.push(mediaSlide(url,ex.name,mi)));
   extra.forEach(src=>slidesArr.push(`<div class="slide"><img src="${src}" alt="${ex.name}" loading="lazy"
@@ -100,7 +112,7 @@ function buildCard(day,ex,i) {
       <div class="slides" id="slides-${i}">${slidesHTML}</div>
       ${navHTML}
       ${dotsHTML}
-      <button class="info-btn" onclick="openInfo('${jsName}')" aria-label="Informação técnica">ℹ</button>
+      <button class="info-btn" onclick="openInfo('${jsName}','${ex.catalogId||''}')" aria-label="Informação técnica">ℹ</button>
     </div>
     <div class="card-body">
       <div class="card-title-row">
@@ -156,6 +168,8 @@ function render(day) {
   if(day==='__perfil'){ renderProfile(content); return; }
   content.innerHTML='';
 
+  const editing=isEditing(day);
+
   // day header
   const hdr=document.createElement('div');
   hdr.className='day-hdr';
@@ -165,11 +179,22 @@ function render(day) {
       <div class="day-hdr-sub">${DAYS[day].label}</div>
     </div>
     <div class="day-hdr-btns">
-      <button class="start-wo" onclick="startWorkout('${day}')">▶ Iniciar</button>
-      <button class="reset-btn" onclick="resetDay('${day}')">↺ Reset</button>
+      ${editing
+        ? `<button class="start-wo" onclick="toggleEdit('${day}')">✓ Pronto</button>`
+        : `<button class="start-wo" onclick="startWorkout('${day}')">▶ Iniciar</button>
+           <button class="reset-btn" onclick="toggleEdit('${day}')">✎ Editar</button>
+           <button class="reset-btn" onclick="resetDay('${day}')">↺ Reset</button>`}
     </div>
   `;
   content.appendChild(hdr);
+
+  if(editing){
+    const box=document.createElement('div');
+    box.innerHTML=editorHTML(day);
+    content.appendChild(box);
+    refreshProgress();
+    return;
+  }
 
   DAYS[day].ex.forEach((ex,i)=>content.appendChild(buildCard(day,ex,i)));
   refreshProgress();
@@ -177,4 +202,4 @@ function render(day) {
 
 // build tabs
 
-export { refreshProgress, refreshCard, buildCard, render };
+export { refreshProgress, refreshCard, buildCard, gifSlide, render };

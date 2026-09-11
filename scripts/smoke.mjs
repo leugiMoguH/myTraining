@@ -153,7 +153,81 @@ try {
   fail.push(`rotina rebentou: ${e.message}`);
 }
 
-/* ── 6. todos os handlers inline têm de existir no window (bridge.js) ────── */
+/* ── 6. motor de progressão: subir, estagnar, deload ─────────────────────── */
+try {
+  const P = await import(new URL('progression.js', JS));
+  const { ST } = await import(new URL('state.js', JS));
+
+  const sessoes = (...pares) => pares.map(([w, r], i) => ({ date: `2026-01-0${i + 1}`, w, r }));
+  const caso = (nome, log, ex, prog) => { ST.log = { ...ST.log, [nome]: log }; return P.evaluate(nome, ex, prog); };
+  const supino = { name: 'x', r: '8-12', mus: { p: ['peito'], s: [] } };
+  const agacha = { name: 'y', r: '8-12', mus: { p: ['quadriceps'], s: [] } };
+  const check = (cond, msg) => { if (!cond) fail.push(`progressão: ${msg}`); };
+
+  /* gamas de reps */
+  check(P.parseRange('8-12').hi === 12, 'parseRange("8-12") errado');
+  check(P.parseRange('5').lo === 5, 'parseRange("5") errado');
+  check(P.parseRange('30-60s') === null, '"30-60s" devia ser tempo, não carga');
+  check(P.parseRange('20-30 min') === null, '"20-30 min" devia ser tempo, não carga');
+
+  /* incremento maior nas pernas */
+  check(P.incrementFor(supino) === 2.5, 'incremento do tronco devia ser 2.5kg');
+  check(P.incrementFor(agacha) === 5, 'incremento das pernas devia ser 5kg');
+
+  /* sem histórico */
+  check(caso('p1', [], supino).kind === 'first', 'sem registos devia pedir a primeira carga');
+
+  /* exercício por tempo não progride por carga */
+  check(caso('p2', sessoes([0, 45]), { r: '30-60s' }).kind === 'none', 'exercício por tempo não devia sugerir carga');
+
+  /* dupla progressão: a meio da gama sobe uma repetição */
+  const meio = caso('p3', sessoes([50, 10]), supino);
+  check(meio.kind === 'hold' && meio.w === 50 && meio.r === 11, `dupla progressão a meio deu ${meio.kind} ${meio.w}x${meio.r}`);
+
+  /* topo da gama: sobe o peso e as reps voltam ao fundo */
+  const topo = caso('p4', sessoes([50, 12]), supino);
+  check(topo.kind === 'up' && topo.w === 52.5 && topo.r === 8, `topo da gama deu ${topo.kind} ${topo.w}x${topo.r}`);
+
+  /* pernas sobem 5kg */
+  const pernas = caso('p5', sessoes([100, 12]), agacha);
+  check(pernas.w === 105, `agachamento devia subir para 105, deu ${pernas.w}`);
+
+  /* 2 falhas = aviso, 3 = deload de 10% */
+  const duas = caso('p6', sessoes([50, 9], [50, 9]), supino);
+  check(duas.kind === 'hold' && duas.stalls === 2, `2 falhas deram ${duas.kind}/${duas.stalls}`);
+  const tres = caso('p7', sessoes([50, 9], [50, 9], [50, 9]), supino);
+  check(tres.kind === 'deload' && tres.w === 45, `3 falhas deviam dar deload 45kg, deram ${tres.kind} ${tres.w}`);
+
+  /* um sucesso pelo meio corta a contagem */
+  const cortado = caso('p8', sessoes([50, 9], [50, 12], [50, 9]), supino);
+  check(cortado.stalls === 1, `sucesso pelo meio devia repor a contagem, ficou ${cortado.stalls}`);
+
+  /* mudar de peso também corta */
+  const trocou = caso('p9', sessoes([45, 9], [45, 9], [50, 9]), supino);
+  check(trocou.stalls === 1, `mudar de peso devia repor a contagem, ficou ${trocou.stalls}`);
+
+  /* linear: alvo é o fundo da gama */
+  const lin = caso('p10', sessoes([60, 8]), supino, { p10: { scheme: 'linear' } });
+  check(lin.kind === 'up' && lin.w === 62.5, `linear com 8 reps devia subir, deu ${lin.kind} ${lin.w}`);
+
+  /* greyskull: dobro do alvo = salto duplo */
+  const gs = caso('p11', sessoes([60, 16]), supino, { p11: { scheme: 'greyskull' } });
+  check(gs.kind === 'up' && gs.w === 65, `greyskull com 16 reps devia saltar 5kg (2x2.5), deu ${gs.w}`);
+  const gs1 = caso('p12', sessoes([60, 9]), supino, { p12: { scheme: 'greyskull' } });
+  check(gs1.w === 62.5, `greyskull com 9 reps devia subir 2.5kg, deu ${gs1.w}`);
+
+  /* incremento à medida do utilizador ganha ao predefinido */
+  const custom = caso('p13', sessoes([50, 12]), supino, { p13: { inc: 1 } });
+  check(custom.w === 51, `incremento personalizado ignorado: deu ${custom.w}`);
+
+  /* pesos sempre em múltiplos de 0,5kg */
+  const meia = caso('p14', sessoes([47, 9], [47, 9], [47, 9]), supino);
+  check(meia.w * 2 === Math.round(meia.w * 2), `peso de deload não arredondado: ${meia.w}`);
+} catch (e) {
+  fail.push(`progressão rebentou: ${e.message}`);
+}
+
+/* ── 7. todos os handlers inline têm de existir no window (bridge.js) ────── */
 const NOISE = new Set(['add', 'click', 'closest', 'getElementById', 'remove', 'replace',
   'setTimeout', 'stopPropagation', 'preventDefault', 'focus', 'blur', 'submit', 'load', 'forEach', 'play']);
 const sources = [readFileSync(new URL('../index.html', import.meta.url), 'utf8'), ...files.map(read)];
@@ -165,7 +239,7 @@ for (const src of sources)
 for (const h of handlers)
   if (typeof globalThis[h] !== 'function') fail.push(`handler inline sem ponte em bridge.js: ${h}()`);
 
-/* ── 7. cada import resolve para um export real ──────────────────────────── */
+/* ── 8. cada import resolve para um export real ──────────────────────────── */
 const exportsOf = {};
 for (const f of files) {
   const m = read(f).match(/^export \{([\s\S]*?)\};$/m);   /* o bloco pode ocupar várias linhas */

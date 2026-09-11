@@ -26,6 +26,16 @@ function getDay(day) { return routine()[day] || null; }
 function exercisesOf(day) { const d = getDay(day); return d ? d.ex : []; }
 function isCustom(day, i) { return !!(exercisesOf(day)[i] || {}).catalogId; }
 
+/* Primeira entrada com este nome, em qualquer dia. O histórico de cargas é por
+   nome, por isso a progressão precisa de encontrar a gama de reps sem saber o dia. */
+function findExercise(name) {
+  for (const day of dayNames()) {
+    const hit = exercisesOf(day).find(e => e.name === name);
+    if (hit) return hit;
+  }
+  return null;
+}
+
 /* Proxy para os módulos que ainda importam `DAYS`. Reencaminha leituras e
    Object.keys() para ST.routine, para continuarem a ver a rotina atual. */
 const DAYS = new Proxy({}, {
@@ -110,7 +120,7 @@ function resetRoutine() {
 }
 
 export {
-  DAYS, routine, dayNames, getDay, exercisesOf, isCustom,
+  DAYS, routine, dayNames, getDay, exercisesOf, isCustom, findExercise,
   addExercise, removeExercise, moveExercise, updateExercise,
   setDayExercises, setDayLabel, resetRoutine,
 };

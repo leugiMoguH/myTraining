@@ -48,7 +48,7 @@ try {
 
 /* ── 3. percorrer os ecrãs principais: apanha erros dentro dos render ────── */
 const { DAYS } = await import(new URL('routine.js', JS));
-const screens = [...Object.keys(DAYS), '__perfil', '__nutri'];
+const screens = ['__hoje', '__semana', ...Object.keys(DAYS), '__perfil', '__nutri'];
 for (const s of screens) {
   try { globalThis.render(s); } catch (e) { fail.push(`render('${s}') rebentou: ${e.message}`); }
 }
@@ -227,7 +227,66 @@ try {
   fail.push(`progressão rebentou: ${e.message}`);
 }
 
-/* ── 7. todos os handlers inline têm de existir no window (bridge.js) ────── */
+/* ── 7. agenda: fila que desliza, descanso e reset semanal ──────────────── */
+try {
+  const S = await import(new URL('schedule.js', JS));
+  const R = await import(new URL('routine.js', JS));
+  const { ST, key } = await import(new URL('state.js', JS));
+  const check = (cond, msg) => { if (!cond) fail.push(`agenda: ${msg}`); };
+
+  /* semana ISO: de Segunda a Domingo é a mesma; a Segunda seguinte já não */
+  check(S.weekKey('2026-09-07') === S.weekKey('2026-09-13'), 'Segunda e Domingo deviam cair na mesma semana');
+  check(S.weekKey('2026-09-13') !== S.weekKey('2026-09-14'), 'a semana devia mudar na Segunda');
+
+  R.resetRoutine();
+  ST.sched = { week: S.weekKey(), done: {}, swaps: {} };
+
+  check(S.dayStatus('Domingo') === 'rest', 'Domingo ("Descanso Ativo") devia ser descanso sem configuração nenhuma');
+  check(S.currentDay() === 'Segunda', `a fila devia começar na Segunda, deu ${S.currentDay()}`);
+
+  S.completeDay('Segunda');
+  check(S.currentDay() === 'Terça', 'concluída a Segunda, segue a Terça');
+
+  /* o coração disto: falhar um dia não o salta — fica pendente */
+  S.completeDay('Quarta');
+  check(S.currentDay() === 'Terça', 'treino falhado devia ficar pendente, não ser saltado');
+
+  ['Terça', 'Quinta', 'Sexta', 'Sábado'].forEach(d => S.completeDay(d));
+  check(S.currentDay() === null, 'com tudo feito e o Domingo em descanso, a semana devia fechar');
+  check(S.agenda().allDone === true, 'agenda() devia dar a semana como fechada');
+
+  /* marcar todas as séries fecha o dia sem carregar em "Concluir" */
+  ST.sched.done = {};
+  R.exercisesOf('Segunda').forEach((_, i) => { ST.done[key('Segunda', i)] = true; });
+  check(S.dayStatus('Segunda') === 'done', 'todas as séries feitas deviam fechar o dia');
+  check(S.dayStatus('Terça') === 'todo', 'a Terça devia continuar por fazer');
+
+  /* dia marcado como descanso sai da fila */
+  S.setRest('Terça', true);
+  check(S.currentDay() === 'Quarta', 'um dia de descanso devia ser ignorado pela fila');
+  S.setRest('Terça', false);
+
+  /* reset semanal */
+  ST.sched.week = '2000-W01';
+  check(S.ensureWeek() === true, 'uma semana antiga devia disparar o reset');
+  check(Object.keys(ST.done).length === 0, 'o reset semanal devia limpar as séries feitas');
+  check(S.currentDay() === 'Segunda', 'depois do reset a fila volta ao início');
+  check(S.ensureWeek() === false, 'segundo ensureWeek na mesma semana não devia limpar nada');
+
+  /* troca "só esta semana" é reposta no reset */
+  const orig = R.exercisesOf('Segunda')[0];
+  S.rememberSwap('Segunda', 0, orig);
+  const lista = R.exercisesOf('Segunda');
+  R.setDayExercises('Segunda', lista.map((e, i) => (i ? e : { ...e, name: 'Trocado' })), lista.map((_, i) => i));
+  check(R.exercisesOf('Segunda')[0].name === 'Trocado', 'a troca não chegou a ser aplicada');
+  ST.sched.week = '2000-W01';
+  S.ensureWeek();
+  check(R.exercisesOf('Segunda')[0].name === orig.name, 'o reset semanal devia repor o exercício original');
+} catch (e) {
+  fail.push(`agenda rebentou: ${e.message}`);
+}
+
+/* ── 8. todos os handlers inline têm de existir no window (bridge.js) ────── */
 const NOISE = new Set(['add', 'click', 'closest', 'getElementById', 'remove', 'replace',
   'setTimeout', 'stopPropagation', 'preventDefault', 'focus', 'blur', 'submit', 'load', 'forEach', 'play']);
 const sources = [readFileSync(new URL('../index.html', import.meta.url), 'utf8'), ...files.map(read)];
@@ -239,7 +298,7 @@ for (const src of sources)
 for (const h of handlers)
   if (typeof globalThis[h] !== 'function') fail.push(`handler inline sem ponte em bridge.js: ${h}()`);
 
-/* ── 8. cada import resolve para um export real ──────────────────────────── */
+/* ── 9. cada import resolve para um export real ──────────────────────────── */
 const exportsOf = {};
 for (const f of files) {
   const m = read(f).match(/^export \{([\s\S]*?)\};$/m);   /* o bloco pode ocupar várias linhas */

@@ -1,38 +1,37 @@
 /* myTraining — arranque da app: constrói os separadores e faz o primeiro render.
    Ponto de entrada (<script type="module" src="js/app.js">). */
 import './bridge.js';
-import { DAYS } from './routine.js';
-import { ST, getProgress } from './state.js';
+import { agenda, ensureWeek } from './schedule.js';
+import { ST } from './state.js';
 import { REST_SEC } from './timer.js';
 import { render } from './ui.js';
 import { acquireWake, syncWakeUI } from './wake.js';
 
+/* Reset semanal antes do primeiro render: a semana nova começa limpa. */
+ensureWeek();
+
+/* Quatro separadores fixos. Os 7 dias saíram daqui para a tira da semana —
+   o que interessa é o treino de hoje, não a lista toda. */
+const TABS=[
+  { id:'__hoje',   html:()=>{ const a=agenda(); return `📅 Hoje${a.pending?`<span class="tab-badge">${a.pending}</span>`:''}`; } },
+  { id:'__semana', html:()=>'📋 Semana' },
+  { id:'__perfil', html:()=>'👤 Perfil' },
+  { id:'__nutri',  html:()=>'🥗 Nutrição' },
+];
+
 const tabsEl=document.getElementById('tabs');
-Object.keys(DAYS).forEach(day=>{
+TABS.forEach(({id,html})=>{
   const t=document.createElement('div');
-  t.className='tab'+(day===ST.day?' active':'');
-  t.dataset.day=day;
-  const {done,total}=getProgress(day);
-  t.innerHTML=`${day}<span class="tab-badge" style="display:${done>0?'':'none'}">${done>0?done+'/'+total:''}</span>`;
-  t.onclick=()=>render(day);
+  t.className='tab';
+  t.dataset.day=id;
+  t.innerHTML=html();
+  t.onclick=()=>render(id);
   tabsEl.appendChild(t);
 });
 
-const perfilTab=document.createElement('div');
-perfilTab.className='tab'+(ST.day==='__perfil'?' active':'');
-perfilTab.dataset.day='__perfil';
-perfilTab.innerHTML='👤 Perfil';
-perfilTab.onclick=()=>render('__perfil');
-tabsEl.appendChild(perfilTab);
-
-const nutriTab=document.createElement('div');
-nutriTab.className='tab'+(ST.day==='__nutri'?' active':'');
-nutriTab.dataset.day='__nutri';
-nutriTab.innerHTML='🥗 Nutrição';
-nutriTab.onclick=()=>render('__nutri');
-tabsEl.appendChild(nutriTab);
-
-render(ST.day);
+/* ST.view guarda o ecrã; ST.day continua a ser um dia real da rotina. */
+const start = ST.view && String(ST.view).startsWith('__') && ST.view!=='__dia' ? ST.view : '__hoje';
+render(start);
 document.getElementById('restLabel').textContent = REST_SEC + 's';
 
 /* ═══════════════ PWA + WAKE INIT ════════════════════ */

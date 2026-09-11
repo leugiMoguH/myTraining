@@ -9,6 +9,7 @@ import { DEMOS, demoSlide, mediaSlide } from './media.js';
 import { renderNutri } from './nutrition.js';
 import { renderProfile } from './profile.js';
 import { slInit, slNext, slPrev, slTo } from './sliders.js';
+import { agenda, completeDay, dayStatus, reopenDay } from './schedule.js';
 import { ST, esc, getLog, getProgress, getSets, key, markDone, resetDay, save, toggleSet } from './state.js';
 import { REST_SEC, timerStart } from './timer.js';
 import { startWorkout } from './workout.js';
@@ -159,21 +160,109 @@ function buildCard(day,ex,i) {
 }
 
 
-function render(day) {
-  ST.day=day; save();
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.day===day));
+/* ═══════════════════════ AGENDA ═════════════════════ */
 
-  const content=document.getElementById('content');
-  if(day==='__nutri'){ renderNutri(content); return; }
-  if(day==='__perfil'){ renderProfile(content); return; }
-  content.innerHTML='';
+/* Tira dos 7 dias com o estado de cada um. Substitui a antiga fila de
+   separadores: é por aqui que se salta para um dia concreto. */
+function weekStripHTML(a) {
+  return `<div class="week-strip">${a.days.map(d=>`
+    <button class="wk-chip s-${d.status}${d.isToday?' today':''}${d.isCurrent?' current':''}"
+            data-day="${d.day}" onclick="goDay('${d.day}')" title="${esc(d.label)}">
+      <span class="wk-d">${d.short}</span>
+      <span class="wk-i">${d.icon}</span>
+    </button>`).join('')}</div>`;
+}
 
-  const editing=isEditing(day);
+function bannerHTML(a) {
+  if (a.restToday && a.late) return `<div class="sched-note warn">😴 Hoje é descanso, mas <b>${a.current}</b> ficou pendente.</div>`;
+  if (a.late) return `<div class="sched-note warn">⏳ Em atraso: <b>${a.current}</b> ficou por fazer. Faz este antes de avançar.</div>`;
+  return `<div class="sched-note">✅ Estás em dia. Faltam ${a.pending} treino${a.pending===1?'':'s'} esta semana.</div>`;
+}
 
-  // day header
-  const hdr=document.createElement('div');
-  hdr.className='day-hdr';
-  hdr.innerHTML=`
+/* Nada para treinar hoje: ou é dia de descanso, ou a semana já está fechada. */
+function restCardHTML(a) {
+  const next = a.current;
+  return `
+    <div class="rest-card">
+      <div class="rest-emoji">${a.allDone?'🎉':'😴'}</div>
+      <div class="rest-title">${a.allDone?'Semana concluída':'Dia de descanso'}</div>
+      <div class="rest-sub">${a.allDone
+        ? 'Todos os treinos do plano estão feitos. O progresso faz reset na Segunda.'
+        : 'Recupera. Dormir e comer é onde o músculo cresce.'}</div>
+      ${next?`<button class="start-wo" onclick="goDay('${next}')">▶ Treinar na mesma: ${next}</button>`:''}
+    </div>`;
+}
+
+function renderToday(content) {
+  const a = agenda();
+  content.innerHTML = '';
+
+  const head = document.createElement('div');
+  head.className = 'full';
+  head.innerHTML = weekStripHTML(a);
+  content.appendChild(head);
+
+  /* dia de descanso e sem atrasos, ou semana fechada → não há treino a mostrar */
+  if (a.allDone || (a.restToday && !a.late)) {
+    const box = document.createElement('div');
+    box.className = 'full';
+    box.innerHTML = restCardHTML(a);
+    content.appendChild(box);
+    document.getElementById('hdrSub').textContent = a.allDone ? 'Semana concluída' : 'Descanso';
+    document.getElementById('progFill').style.width = a.allDone ? '100%' : '0';
+    return;
+  }
+
+  /* ST.day tem de ser um dia real: é a chave do progresso (`dia:índice`) */
+  ST.day = a.current; save();
+
+  const note = document.createElement('div');
+  note.className = 'full';
+  note.innerHTML = bannerHTML(a);
+  content.appendChild(note);
+  renderDay(content, a.current, false);
+}
+
+/* Vista da semana: uma linha por dia, para editar ou saltar para qualquer um. */
+function renderWeek(content) {
+  const a = agenda();
+  const LBL = { done:'Feito', partial:'A meio', todo:'Por fazer', rest:'Descanso' };
+  content.innerHTML = `<div class="full">
+    ${weekStripHTML(a)}
+    <div class="week-list">${a.days.map(d=>{
+      const {done,total} = d.status==='rest' ? {done:0,total:0} : getProgress(d.day);
+      return `<div class="wk-row s-${d.status}" data-day="${d.day}" onclick="goDay('${d.day}')">
+        <div class="wk-row-main">
+          <div class="wk-row-day">${d.icon} ${d.day}${d.isToday?' <span class="wk-today">hoje</span>':''}</div>
+          <div class="wk-row-sub">${esc(d.label)}${total?` · ${done}/${total}`:''}</div>
+        </div>
+        <div class="wk-row-st">${LBL[d.status]}</div>
+      </div>`;
+    }).join('')}</div>
+  </div>`;
+  document.getElementById('hdrSub').textContent = `Semana · ${a.pending} treino${a.pending===1?'':'s'} por fazer`;
+  document.getElementById('progFill').style.width = `${a.days.length?(a.days.filter(d=>d.status==='done').length/a.days.filter(d=>d.status!=='rest').length)*100:0}%`;
+}
+
+/* Um dia concreto. `standalone` a falso = está embutido no ecrã "Hoje". */
+function renderDay(content, day, standalone = true) {
+  if (standalone) {
+    content.innerHTML = '';
+    if (!DAYS[day]) { content.innerHTML = '<div class="full sched-note warn">Dia desconhecido.</div>'; return; }
+    /* a tira da semana anda sempre com o utilizador: é a navegação entre dias */
+    const strip = document.createElement('div');
+    strip.className = 'full';
+    strip.innerHTML = weekStripHTML(agenda());
+    content.appendChild(strip);
+  }
+  if (!DAYS[day]) return;
+
+  const editing = isEditing(day);
+  const st = dayStatus(day);
+
+  const hdr = document.createElement('div');
+  hdr.className = 'day-hdr';
+  hdr.innerHTML = `
     <div class="day-hdr-text">
       <div class="day-hdr-name">${day}</div>
       <div class="day-hdr-sub">${DAYS[day].label}</div>
@@ -188,18 +277,58 @@ function render(day) {
   `;
   content.appendChild(hdr);
 
-  if(editing){
-    const box=document.createElement('div');
-    box.innerHTML=editorHTML(day);
+  if (editing) {
+    const box = document.createElement('div');
+    box.innerHTML = editorHTML(day);
     content.appendChild(box);
     refreshProgress();
     return;
   }
 
   DAYS[day].ex.forEach((ex,i)=>content.appendChild(buildCard(day,ex,i)));
+
+  if (st !== 'rest') {
+    const foot = document.createElement('div');
+    foot.className = 'day-foot';
+    foot.innerHTML = st === 'done'
+      ? `<button class="reset-btn" onclick="toggleDayDone('${day}')">↩ Reabrir treino</button>`
+      : `<button class="start-wo wide" onclick="toggleDayDone('${day}')">✓ Concluir treino</button>`;
+    content.appendChild(foot);
+  }
   refreshProgress();
+}
+
+/* Marca/desmarca o treino do dia e volta ao ecrã onde estavas. */
+function toggleDayDone(day) {
+  dayStatus(day) === 'done' ? reopenDay(day) : completeDay(day);
+  render(ST.view === '__hoje' ? '__hoje' : day);
+}
+
+function goDay(day) { render(day); }
+
+/* `target` é um dia da rotina ou um dos ecrãs `__…`. */
+function render(target) {
+  const content = document.getElementById('content');
+  const isView = String(target).startsWith('__');
+
+  /* Quem chama render(dia) depois de mexer no progresso (reset, treino guiado,
+     media) não devia arrancar o utilizador do ecrã "Hoje" quando é o mesmo dia. */
+  if (!isView && ST.view === '__hoje' && target === ST.day) target = '__hoje';
+  ST.view = String(target).startsWith('__') ? target : '__dia';
+  if (ST.view === '__dia') ST.day = target;
+  save();
+
+  /* o separador "Semana" fica ativo enquanto se vê um dia concreto */
+  const tab = ST.view === '__dia' ? '__semana' : ST.view;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.day===tab));
+
+  if (target === '__nutri') { renderNutri(content); return; }
+  if (target === '__perfil'){ renderProfile(content); return; }
+  if (target === '__semana'){ renderWeek(content); return; }
+  if (target === '__hoje')  { renderToday(content); return; }
+  renderDay(content, target);
 }
 
 // build tabs
 
-export { refreshProgress, refreshCard, buildCard, gifSlide, render };
+export { refreshProgress, refreshCard, buildCard, gifSlide, render, renderDay, renderToday, renderWeek, goDay, toggleDayDone };

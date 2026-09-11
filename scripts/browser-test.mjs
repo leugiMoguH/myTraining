@@ -59,20 +59,34 @@ await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'networkidle
 
 await step('arranque', async () => {
   const tabs = await page.locator('.tab').count();
-  if (tabs < 9) throw new Error(`so ${tabs} separadores (esperado 9)`);
-  const cards = await page.locator('.card').count();
-  if (cards < 1) throw new Error('nenhum cartao de exercicio renderizado');
+  if (tabs !== 4) throw new Error(`${tabs} separadores (esperado 4: Hoje/Semana/Perfil/Nutricao)`);
+  const chips = await page.locator('.week-strip .wk-chip').count();
+  if (chips !== 7) throw new Error(`tira da semana com ${chips} dias`);
+  /* ou ha treino pendente (cartoes), ou e dia de descanso/semana fechada */
+  const treino = await page.locator('.card').count();
+  const descanso = await page.locator('.rest-card').count();
+  if (!treino && !descanso) throw new Error('ecra Hoje vazio: nem treino nem cartao de descanso');
+});
+
+await step('tab Semana', async () => {
+  await click('.tab[data-day="__semana"]');
+  const rows = await page.locator('.wk-row').count();
+  if (rows !== 7) throw new Error(`lista da semana com ${rows} dias`);
 });
 
 for (const day of ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']) {
-  await step(`tab ${day}`, async () => {
-    await click(`.tab[data-day="${day}"]`);
+  await step(`dia ${day}`, async () => {
+    await click(`.wk-chip[data-day="${day}"]`);
     if (!(await page.locator('.card').count())) throw new Error('sem cartoes');
   });
 }
 await step('tab Perfil', () => click('.tab[data-day="__perfil"]'));
 await step('tab Nutricao', () => click('.tab[data-day="__nutri"]'));
-await step('volta a Segunda', () => click('.tab[data-day="Segunda"]'));
+await step('volta a Segunda', async () => {
+  await click('.tab[data-day="__semana"]');
+  await click('.wk-row[data-day="Segunda"]');
+  if (!(await page.locator('.card').count())) throw new Error('sem cartoes na Segunda');
+});
 
 await step('marcar serie 1', async () => {
   await click('.set-btn');
@@ -215,7 +229,46 @@ await step('GIF do CDN responde', async () => {
   if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
 });
 
-await page.locator('.tab[data-day="Segunda"]').click();
+/* ── agenda dinamica (Fase 2) ───────────────────────────────────────────── */
+await stepClean('concluir treino da Segunda', async () => {
+  await click('.wk-chip[data-day="Segunda"]');
+  await click('[onclick*="toggleDayDone"]');
+  await page.waitForTimeout(200);
+  const done = await page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')).sched.done);
+  if (!done || !done['Segunda']) throw new Error('o treino nao ficou marcado como concluido');
+  if (!(await page.locator('.wk-chip[data-day="Segunda"].s-done').count())) throw new Error('a tira da semana nao mostra o dia como feito');
+});
+await step('Hoje salta o dia ja feito', async () => {
+  await click('.tab[data-day="__hoje"]');
+  const cur = await page.evaluate(async () => (await import('./js/schedule.js')).currentDay());
+  if (cur === 'Segunda') throw new Error('Segunda concluida continua a ser o treino atual');
+});
+await step('reabrir treino', async () => {
+  await click('.wk-chip[data-day="Segunda"]');
+  await click('[onclick*="toggleDayDone"]');
+  await page.waitForTimeout(200);
+  const done = await page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')).sched.done);
+  if (done && done['Segunda']) throw new Error('o treino continua marcado como concluido');
+});
+await stepClean('marcar dia de descanso', async () => {
+  await click('.wk-chip[data-day="Terça"]');
+  await click('[onclick*="toggleEdit"]');
+  await page.locator('.ed-check input').check();
+  await page.waitForTimeout(200);
+  const rest = await page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')).routine['Terça'].rest);
+  if (rest !== true) throw new Error('a flag de descanso nao ficou gravada');
+  await page.locator('.ed-check input').uncheck();
+  await page.waitForTimeout(200);
+  await click('[onclick*="toggleEdit"]');
+});
+
+await page.locator('.tab[data-day="__hoje"]').click();
+await page.waitForTimeout(200);
+await page.screenshot({ path: join(SHOTS, 'hoje.png'), fullPage: true });
+await page.locator('.tab[data-day="__semana"]').click();
+await page.waitForTimeout(200);
+await page.screenshot({ path: join(SHOTS, 'semana.png'), fullPage: true });
+await page.locator('.wk-chip[data-day="Segunda"]').click();
 await page.waitForTimeout(200);
 await page.screenshot({ path: join(SHOTS, 'segunda.png'), fullPage: true });
 await page.locator('.tab[data-day="__perfil"]').click();

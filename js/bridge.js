@@ -3,7 +3,7 @@
    Regra: um handler novo usado num atributo inline tem de ser acrescentado aqui. */
 import { closeSheet, exportBackup, exportIntakeCSV, exportLoadCSV, exportMeasuresCSV, importBackup, openSheet } from './backup.js';
 import { catAdd, catFilter, catInput, closeCatalog } from './catalog-ui.js';
-import { edAdd, edField, edLabel, edMove, edRemove, edReset, toggleEdit } from './editor.js';
+import { edAdd, edField, edLabel, edMove, edRemove, edReset, edRest, toggleEdit } from './editor.js';
 import { closeInfo, openInfo } from './guide.js';
 import { saveLoad, toggleChart } from './loads.js';
 import { addMedia, delMedia } from './media.js';
@@ -13,7 +13,7 @@ import { cancelMeasureEdit, delMeasure, editMeasure, saveMeasure, saveProfile, s
 import { slNext, slPrev, slTo } from './sliders.js';
 import { esc, markDone, resetDay, toggleSet } from './state.js';
 import { adjustRest, timerAdd, timerDismiss, timerStart } from './timer.js';
-import { render } from './ui.js';
+import { goDay, render, toggleDayDone } from './ui.js';
 import { toggleWake } from './wake.js';
 import { closeWorkout, startWorkout, woGo, woSaveLoad, woToggle } from './workout.js';
 
@@ -39,6 +39,7 @@ Object.assign(window, {
   edMove,
   edRemove,
   edReset,
+  edRest,
   editMeasure,
   editNutri,
   enableNotif,
@@ -48,6 +49,7 @@ Object.assign(window, {
   exportLoadCSV,
   exportMeasuresCSV,
   fillIntake,
+  goDay,
   importBackup,
   markDone,
   openInfo,
@@ -69,6 +71,7 @@ Object.assign(window, {
   timerDismiss,
   timerStart,
   toggleChart,
+  toggleDayDone,
   toggleEdit,
   toggleSet,
   toggleWake,

@@ -1,6 +1,7 @@
 /* Modo de edição de um dia: reordenar, apagar, mudar séries/reps, adicionar do catálogo. */
 import { openCatalog } from './catalog-ui.js';
 import { exercisesOf, moveExercise, removeExercise, updateExercise, resetRoutine, setDayLabel, getDay } from './routine.js';
+import { isRest, setRest } from './schedule.js';
 import { esc } from './state.js';
 import { render } from './ui.js';
 
@@ -30,6 +31,10 @@ function edField(day, i, field, value) {
 }
 
 function edLabel(day, value) { if (setDayLabel(day, value)) render(day); }
+
+/* Dia de descanso: sai da fila de treinos pendentes, mas os exercícios ficam
+   guardados (mobilidade, caminhada) para quem quiser fazê-los na mesma. */
+function edRest(day, checked) { if (setRest(day, checked)) render(day); }
 
 function edReset(day) {
   if (!confirm('Repor o plano original?\n\nPerdes os exercícios que acrescentaste e as séries marcadas. O histórico de cargas fica.')) return;
@@ -65,6 +70,10 @@ function editorHTML(day) {
       <label class="ed-label">Nome do dia
         <input type="text" value="${esc(d ? d.label : '')}" onchange="edLabel('${day}',this.value)">
       </label>
+      <label class="ed-check">
+        <input type="checkbox" ${isRest(day) ? 'checked' : ''} onchange="edRest('${day}',this.checked)">
+        <span>😴 Dia de descanso — não entra na fila de treinos</span>
+      </label>
       ${rows || '<div class="cat-msg">Este dia está vazio. Acrescenta exercícios do catálogo.</div>'}
       <button class="ed-add" onclick="edAdd('${day}')">＋ Adicionar exercício do catálogo</button>
       <button class="ed-reset" onclick="edReset('${day}')">↺ Repor plano original</button>
@@ -73,4 +82,4 @@ function editorHTML(day) {
     </div>`;
 }
 
-export { isEditing, toggleEdit, stopEdit, edMove, edRemove, edField, edLabel, edReset, edAdd, editorHTML };
+export { isEditing, toggleEdit, stopEdit, edMove, edRemove, edField, edLabel, edRest, edReset, edAdd, editorHTML };

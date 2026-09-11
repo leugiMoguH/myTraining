@@ -38,7 +38,24 @@ document.getElementById('restLabel').textContent = REST_SEC + 's';
 /* ═══════════════ PWA + WAKE INIT ════════════════════ */
 syncWakeUI();
 acquireWake();
+/* Atualizações: o sw.js faz skipWaiting+claim, mas a página já carregou os módulos
+   antigos da cache. Sem isto, uma PWA instalada (que nunca fecha) fica presa na versão
+   antiga. Recarrega uma vez quando um SW novo assume o controlo — nunca na 1ª visita. */
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+  window.addEventListener('load',()=>{
+    const tinhaControlo = !!navigator.serviceWorker.controller;
+    let aRecarregar = false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      if(!tinhaControlo || aRecarregar) return;
+      aRecarregar = true;
+      location.reload();
+    });
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      /* a app instalada volta do background sem navegar: força a verificação */
+      document.addEventListener('visibilitychange',()=>{
+        if(!document.hidden) reg.update().catch(()=>{});
+      });
+    }).catch(()=>{});
+  });
 }
 

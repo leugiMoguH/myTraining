@@ -5,7 +5,7 @@ import { closeSheet, exportBackup, exportIntakeCSV, exportLoadCSV, exportMeasure
 import { catAdd, catFilter, catInput, catPick, catScope, closeCatalog, openSwap, undoSwap } from './catalog-ui.js';
 import { edAdd, edField, edLabel, edMove, edRemove, edReset, edRest, toggleEdit } from './editor.js';
 import { closeInfo, openInfo } from './guide.js';
-import { saveLoad, toggleChart } from './loads.js';
+import { progInc, progScheme, saveLoad, toggleChart } from './loads.js';
 import { addMedia, delMedia } from './media.js';
 import { enableNotif } from './notify.js';
 import { addIntakeUI, cancelNutri, delIntake, editNutri, fillIntake, saveNutri, scanBarcode, stopScan } from './nutrition.js';
@@ -57,6 +57,8 @@ Object.assign(window, {
   openInfo,
   openSheet,
   openSwap,
+  progInc,
+  progScheme,
   render,
   resetDay,
   saveLoad,

@@ -5,12 +5,13 @@ import { refreshCard, refreshProgress, render } from './ui.js';
 
 /* ═══════════════════════ STATE ══════════════════════ */
 const STORE_KEY = "treino_v2";
-let ST = { day:"Segunda", sets:{}, done:{}, log:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], media:{} };
+let ST = { day:"Segunda", sets:{}, done:{}, log:{}, prog:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], media:{} };
 try { const s=localStorage.getItem(STORE_KEY); if(s) ST={...ST,...JSON.parse(s)}; } catch(_){}
 if(!ST.profile || typeof ST.profile!=='object') ST.profile={};
 if(!Array.isArray(ST.measures)) ST.measures=[];
 if(!Array.isArray(ST.intake)) ST.intake=[];
 if(!ST.media || typeof ST.media!=='object') ST.media={};
+if(!ST.prog || typeof ST.prog!=='object') ST.prog={};
 /* migração: dados do corpo da nutrição antiga → Perfil + 1ª medida */
 if(!ST.profile.height && ST.nutri && ST.nutri.profile && ST.nutri.profile.height){
   const o=ST.nutri.profile;
@@ -49,6 +50,16 @@ function logSet(name,w,r){
 }
 function est1RM(w,r){ return Math.round(w*(1+r/30)); }
 
+/* Configuração de progressão por exercício (esquema, incremento). Indexada pelo
+   nome, como o histórico — trocar de dia ou de ordem não a perde. */
+function setProg(name,patch){
+  if(!name) return false;
+  const cur=(ST.prog && ST.prog[name])||{};
+  ST.prog=Object.assign({}, ST.prog, {[name]:{...cur, ...patch}});
+  save();
+  return true;
+}
+
 function toggleSet(day,i,si) {
   const k=key(day,i), arr=getSets(day,i);
   const idx=arr.indexOf(si);
@@ -85,4 +96,4 @@ function getProgress(day) {
   return {total,done};
 }
 
-export { STORE_KEY, ST, setST, save, key, getSets, todayStr, nowISO, esc, fmtTime, fmtDateTime, getLog, logSet, est1RM, toggleSet, markDone, resetDay, getProgress };
+export { STORE_KEY, ST, setST, save, key, getSets, todayStr, nowISO, esc, fmtTime, fmtDateTime, getLog, logSet, est1RM, setProg, toggleSet, markDone, resetDay, getProgress };

@@ -73,6 +73,12 @@ senão as séries marcadas saltam para o exercício errado.
 mudar séries, reps e a etiqueta do dia, mas nunca o nome. Trocar por outro exercício
 (`replaceExercise`) é diferente de mudar o nome: é outro exercício, com outro histórico.
 
+**Progressão (`js/progression.js`):** `evaluate(nome)` lê o histórico e diz o que fazer
+a seguir. A configuração por exercício (esquema, salto de peso) está em `ST.prog[nome]` —
+também indexada pelo nome. O 3.º argumento `prog` só existe para os testes poderem
+injetar configurações sem tocar no estado. As sessões estagnadas são **contadas a partir
+do log**, nunca guardadas: não há contador para ficar dessincronizado.
+
 **Agenda (`js/schedule.js`):** o treino atual não é o dia da semana — é o **primeiro dia
 ainda por fazer** (`currentDay()`). Um dia falhado fica pendente em vez de ser saltado.
 Dias com `rest: true` (ou com "Descanso" na etiqueta) saem da fila. `ST.sched.week` é a

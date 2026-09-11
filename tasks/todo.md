@@ -38,3 +38,9 @@
 - [x] smoke: semana nova limpa o progresso, dia pendente desliza, descanso ignorado
 - [x] test:browser: Hoje abre, tira de semana navega, concluir treino
 - [x] `sw.js`: CORE + versão de CACHE
+
+### 5. Progressão por exercício
+- [x] `ST.prog[nome] = { scheme, inc }` + `setProg()` (`state.js`)
+- [x] `configOf` lê o ST.prog quando não lhe passam nada
+- [x] Painel no 📈 de cada exercício: esquema + salto de peso + porquê
+- [x] smoke (ST.prog manda) + 2 passos no browser

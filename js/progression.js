@@ -15,7 +15,7 @@
    Os "stalls" não são guardados em lado nenhum: são contados a partir de ST.log,
    por isso não há um contador que possa ficar dessincronizado do histórico. */
 import { findExercise } from './routine.js';
-import { getLog } from './state.js';
+import { ST, getLog } from './state.js';
 
 const STALLS_TO_DELOAD = 3;
 const DELOAD_PCT = 0.10;
@@ -51,10 +51,11 @@ function incrementFor(exercise) {
   return p.some(id => LOWER.includes(id)) ? INC_LOWER : INC_UPPER;
 }
 
-/* Configuração de um exercício: o que o utilizador escolheu, ou o predefinido. */
+/* Configuração de um exercício: o que o utilizador escolheu, ou o predefinido.
+   `prog` só é passado nos testes; a app lê o que está guardado em ST.prog. */
 function configOf(name, exercise, prog) {
   const ex = exercise || findExercise(name);
-  const saved = (prog && prog[name]) || {};
+  const saved = ((prog || ST.prog || {})[name]) || {};
   const range = parseRange(ex && ex.r);
   const scheme = SCHEMES[saved.scheme] ? saved.scheme : DEFAULT_SCHEME;
   const inc = saved.inc > 0 ? +saved.inc : incrementFor(ex);

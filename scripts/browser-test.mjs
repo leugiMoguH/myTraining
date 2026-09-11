@@ -93,6 +93,23 @@ await step('marcar serie 1', async () => {
   if (!(await page.locator('.set-btn.on').count())) throw new Error('serie nao ficou marcada - handler morto?');
 });
 await step('grafico de carga', () => click('.load-chart-btn'));
+await step('escolher esquema de progressao', async () => {
+  const nome = await page.locator('.card-title').first().innerText();
+  await page.locator('.lc-prog .cat-chip', { hasText: 'Greyskull' }).first().click();
+  await page.waitForTimeout(250);
+  const cfg = await page.evaluate(n => (JSON.parse(localStorage.getItem('treino_v2')).prog || {})[n], nome);
+  if (!cfg || cfg.scheme !== 'greyskull') throw new Error(`esquema nao gravou: ${JSON.stringify(cfg)}`);
+  if (!(await page.locator('.lc-prog .cat-chip.on', { hasText: 'Greyskull' }).count())) throw new Error('chip nao ficou ativo depois de repintar');
+});
+await step('mudar salto de peso', async () => {
+  const nome = await page.locator('.card-title').first().innerText();
+  const input = page.locator('.lc-inc input').first();
+  await input.fill('1.5');
+  await input.blur();
+  await page.waitForTimeout(250);
+  const cfg = await page.evaluate(n => (JSON.parse(localStorage.getItem('treino_v2')).prog || {})[n], nome);
+  if (!cfg || cfg.inc !== 1.5) throw new Error(`incremento ficou ${cfg && cfg.inc}`);
+});
 await step('slider seguinte', () => click('.slide-next'));
 await step('ficha tecnica', async () => {
   await click('.info-btn');

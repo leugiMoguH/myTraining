@@ -220,6 +220,13 @@ try {
   const custom = caso('p13', sessoes([50, 12]), supino, { p13: { inc: 1 } });
   check(custom.w === 51, `incremento personalizado ignorado: deu ${custom.w}`);
 
+  /* sem `prog` passado à mão, vale o que o utilizador escolheu em ST.prog */
+  ST.log = { ...ST.log, p15: sessoes([60, 12]) };
+  ST.prog = { p15: { scheme: 'greyskull', inc: 10 } };
+  const guardado = P.evaluate('p15', supino);
+  check(guardado.w === 70, `ST.prog ignorado: esperado 70kg, deu ${guardado.w}`);
+  ST.prog = {};
+
   /* pesos sempre em múltiplos de 0,5kg */
   const meia = caso('p14', sessoes([47, 9], [47, 9], [47, 9]), supino);
   check(meia.w * 2 === Math.round(meia.w * 2), `peso de deload não arredondado: ${meia.w}`);

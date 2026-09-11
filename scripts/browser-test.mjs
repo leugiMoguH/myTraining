@@ -262,6 +262,33 @@ await stepClean('marcar dia de descanso', async () => {
   await click('[onclick*="toggleEdit"]');
 });
 
+let trocaOriginal = null;
+await stepClean('trocar exercicio por equivalente', async () => {
+  await click('.wk-chip[data-day="Segunda"]');
+  const antes = await page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')).routine['Segunda'].ex[0]);
+  trocaOriginal = antes.name;
+  await click('.act-swap');
+  await page.waitForSelector('.cat-swap', { timeout: 8000 });
+  await page.waitForSelector('.cat-row', { timeout: 8000 });
+  const sugerido = await page.locator('.cat-name').first().innerText();
+  await page.locator('.cat-row').first().click();
+  await page.waitForTimeout(400);
+  const st = await page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')));
+  const novo = st.routine['Segunda'].ex[0];
+  if (novo.name !== sugerido) throw new Error(`trocou para "${novo.name}" em vez de "${sugerido}"`);
+  if (novo.s !== antes.s || novo.r !== antes.r) throw new Error('a troca perdeu as series/reps do plano');
+  if (!st.sched.swaps['Segunda:0']) throw new Error('a troca temporaria nao guardou o original');
+  await page.screenshot({ path: join(SHOTS, 'troca.png') });
+});
+await step('repor exercicio trocado', async () => {
+  if (!(await page.locator('.card-swap').count())) throw new Error('cartao nao avisa que esta trocado');
+  await click('.card-swap .linklike');
+  await page.waitForTimeout(300);
+  const st = await page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')));
+  if (st.routine['Segunda'].ex[0].name !== trocaOriginal) throw new Error(`repos "${st.routine['Segunda'].ex[0].name}" em vez de "${trocaOriginal}"`);
+  if (st.sched.swaps['Segunda:0']) throw new Error('o original ficou guardado depois de reposto');
+});
+
 await page.locator('.tab[data-day="__hoje"]').click();
 await page.waitForTimeout(200);
 await page.screenshot({ path: join(SHOTS, 'hoje.png'), fullPage: true });

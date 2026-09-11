@@ -9,7 +9,7 @@ import { DEMOS, demoSlide, mediaSlide } from './media.js';
 import { renderNutri } from './nutrition.js';
 import { renderProfile } from './profile.js';
 import { slInit, slNext, slPrev, slTo } from './sliders.js';
-import { agenda, completeDay, dayStatus, reopenDay } from './schedule.js';
+import { agenda, completeDay, dayStatus, reopenDay, swapOriginal } from './schedule.js';
 import { ST, esc, getLog, getProgress, getSets, key, markDone, resetDay, save, toggleSet } from './state.js';
 import { REST_SEC, timerStart } from './timer.js';
 import { startWorkout } from './workout.js';
@@ -80,6 +80,7 @@ function buildCard(day,ex,i) {
 
   const totalSets=typeof ex.s==='number'?ex.s:0;
   const completedSets=getSets(day,i);
+  const trocado=swapOriginal(day,i);
 
   const setsHTML = totalSets>0
     ? `<div>
@@ -134,8 +135,11 @@ function buildCard(day,ex,i) {
       ${loadHTML}
       ${ex.tip?`<div class="tip">💡 ${ex.tip}</div>`:''}
       ${ex.alt?`<div class="card-alt"><strong>Alternativa:</strong> ${ex.alt}</div>`:''}
+      ${trocado?`<div class="card-swap">🔄 Trocado só esta semana ·
+        <button class="linklike" onclick="undoSwap('${day}',${i})">repor ${esc(trocado.name)}</button></div>`:''}
       <div class="card-actions">
         <button class="act-btn act-timer" onclick="timerStart(REST_SEC)">⏱ <span class="rest-lbl">${REST_SEC}s</span></button>
+        <button class="act-btn act-swap" onclick="openSwap('${day}',${i})" title="Trocar por um equivalente">🔄</button>
         <button class="act-btn act-done" onclick="markDone('${day}',${i})">
           ${ST.done[key(day,i)]?'✓ Concluído':'Marcar feito'}
         </button>

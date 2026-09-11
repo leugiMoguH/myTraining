@@ -2,7 +2,7 @@
    Em ES modules nada é global: sem isto TODOS os botões falham em silêncio.
    Regra: um handler novo usado num atributo inline tem de ser acrescentado aqui. */
 import { closeSheet, exportBackup, exportIntakeCSV, exportLoadCSV, exportMeasuresCSV, importBackup, openSheet } from './backup.js';
-import { catAdd, catFilter, catInput, closeCatalog } from './catalog-ui.js';
+import { catAdd, catFilter, catInput, catPick, catScope, closeCatalog, openSwap, undoSwap } from './catalog-ui.js';
 import { edAdd, edField, edLabel, edMove, edRemove, edReset, edRest, toggleEdit } from './editor.js';
 import { closeInfo, openInfo } from './guide.js';
 import { saveLoad, toggleChart } from './loads.js';
@@ -26,6 +26,8 @@ Object.assign(window, {
   catAdd,
   catFilter,
   catInput,
+  catPick,
+  catScope,
   closeCatalog,
   closeInfo,
   closeSheet,
@@ -54,6 +56,7 @@ Object.assign(window, {
   markDone,
   openInfo,
   openSheet,
+  openSwap,
   render,
   resetDay,
   saveLoad,
@@ -75,6 +78,7 @@ Object.assign(window, {
   toggleEdit,
   toggleSet,
   toggleWake,
+  undoSwap,
   woGo,
   woSaveLoad,
   woToggle,

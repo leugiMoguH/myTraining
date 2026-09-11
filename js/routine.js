@@ -102,6 +102,16 @@ function updateExercise(day, i, patch) {
   return setDayExercises(day, next, ex.map((_, k) => k));
 }
 
+/* Troca o exercício da posição i por outro. As séries marcadas não vêm com ele
+   (é outro exercício, com outro histórico), por isso o índice entra como novo.
+   Séries e reps do plano ficam: a prescrição é do utilizador, não do catálogo. */
+function replaceExercise(day, i, entry) {
+  const ex = exercisesOf(day);
+  if (i < 0 || i >= ex.length || !entry || !entry.name) return false;
+  const keep = { ...entry, s: ex[i].s, r: ex[i].r };
+  return setDayExercises(day, ex.map((e, k) => (k === i ? keep : e)), ex.map((_, k) => (k === i ? -1 : k)));
+}
+
 function setDayLabel(day, label) {
   const d = getDay(day);
   if (!d) return false;
@@ -121,6 +131,6 @@ function resetRoutine() {
 
 export {
   DAYS, routine, dayNames, getDay, exercisesOf, isCustom, findExercise,
-  addExercise, removeExercise, moveExercise, updateExercise,
+  addExercise, removeExercise, moveExercise, updateExercise, replaceExercise,
   setDayExercises, setDayLabel, resetRoutine,
 };

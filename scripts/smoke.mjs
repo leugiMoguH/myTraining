@@ -282,6 +282,23 @@ try {
   ST.sched.week = '2000-W01';
   S.ensureWeek();
   check(R.exercisesOf('Segunda')[0].name === orig.name, 'o reset semanal devia repor o exercício original');
+
+  /* substituição: fica com as séries/reps do plano e não herda o progresso */
+  const antesLen = R.exercisesOf('Segunda').length;
+  const alvo = R.exercisesOf('Segunda')[1];
+  ST.sets[key('Segunda', 1)] = [0, 1];
+  ST.done[key('Segunda', 1)] = true;
+  R.replaceExercise('Segunda', 1, { name: 'Substituto', s: 99, r: '1', catalogId: '0002' });
+  const novo = R.exercisesOf('Segunda')[1];
+  check(novo.name === 'Substituto', 'replaceExercise não trocou o exercício');
+  check(novo.s === alvo.s && novo.r === alvo.r, 'a troca devia manter as séries e reps do plano');
+  check(!ST.done[key('Segunda', 1)] && !ST.sets[key('Segunda', 1)], 'o exercício trocado herdou o progresso do antigo');
+  check(R.exercisesOf('Segunda').length === antesLen, 'replaceExercise mudou o tamanho do dia');
+  check(R.exercisesOf('Segunda')[0].name === orig.name, 'replaceExercise mexeu no exercício errado');
+
+  S.rememberSwap('Segunda', 1, alvo);
+  S.forgetSwap('Segunda', 1);
+  check(S.swapOriginal('Segunda', 1) === null, 'forgetSwap não esqueceu o original (troca permanente)');
 } catch (e) {
   fail.push(`agenda rebentou: ${e.message}`);
 }

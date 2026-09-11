@@ -145,6 +145,14 @@ function rememberSwap(day, i, original) {
 
 function swapOriginal(day, i) { return sched().swaps[key(day, i)] || null; }
 
+/* Esquece o original de uma posição (troca tornada permanente, ou já reposta). */
+function forgetSwap(day, i) {
+  const swaps = { ...sched().swaps };
+  delete swaps[key(day, i)];
+  sched().swaps = swaps;
+  save();
+}
+
 /* Repõe todos os originais. Não mexe em ST.sets: quem chama (o reset semanal)
    limpa-os logo a seguir, e uma reposição manual quer manter o índice. */
 function restoreSwaps() {
@@ -190,6 +198,6 @@ export {
   weekKey, todayName, shortName,
   isRest, setRest, dayStatus, currentDay, agenda,
   completeDay, reopenDay,
-  rememberSwap, swapOriginal, restoreSwaps,
+  rememberSwap, swapOriginal, forgetSwap, restoreSwaps,
   ensureWeek,
 };

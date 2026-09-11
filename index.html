@@ -372,6 +372,19 @@ body {
 }
 .act-done:hover  { background: rgba(34,197,94,0.16); }
 .card.done .act-done { background: rgba(34,197,94,0.2); }
+.act-swap {
+  flex: 0 0 auto; padding: 11px 12px;
+  background: transparent; border-color: var(--border); color: var(--muted);
+}
+.act-swap:hover { border-color: var(--accent); color: var(--accent); }
+.card-swap {
+  font-size: 12px; color: #fbbf24;
+  background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25);
+  border-radius: var(--r-sm); padding: 8px 10px;
+}
+.cat-swap { display: flex; flex-direction: column; gap: 6px; padding-bottom: 4px; }
+.cat-swap-t { font-size: 13px; color: var(--text); }
+.cat-swap-alt { font-size: 12px; color: var(--muted); }
 
 /* ── ANIMATIONS ───────────────────────────────────── */
 @keyframes pop { 0%{transform:scale(0.85)} 60%{transform:scale(1.08)} 100%{transform:scale(1)} }

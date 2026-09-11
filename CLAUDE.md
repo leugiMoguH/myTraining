@@ -25,11 +25,12 @@ No build, no bundler, no framework. HTML/CSS estáticos + **ES modules** nativos
 | `state.js` | `ST` (localStorage `treino_v2`), `save()`, migrações, log de carga, séries feitas |
 | `data.js` | `DEFAULT_DAYS` — plano original, só a **semente** da rotina |
 | `routine.js` | `ST.routine`: a rotina editável. Exporta `DAYS` (Proxy) para os módulos antigos |
-| `editor.js` | modo de edição de um dia: reordenar, apagar, séries/reps |
-| `catalog-ui.js` | ecrã de pesquisa do catálogo |
+| `schedule.js` | `ST.sched`: treino atual, dias de descanso, reset semanal, trocas |
+| `editor.js` | modo de edição de um dia: reordenar, apagar, séries/reps, descanso |
+| `catalog-ui.js` | ecrã de pesquisa do catálogo (modo `add` e modo `swap`) |
 | `catalog.js` | catálogo de 1324 exercícios: load lazy, pesquisa, filtros, URLs de media |
 | `labels.js` | traduções PT da taxonomia EN + mapa músculo → id do `bodySVG` |
-| `ui.js` | `render(day)`, `buildCard`, `refreshCard`, `refreshProgress` |
+| `ui.js` | `render(alvo)`, ecrãs Hoje/Semana/dia, `buildCard`, `refreshCard` |
 | `loads.js` | UI de carga (kg × reps) e gráfico por exercício |
 | `charts.js` | `chartSVG`, `MUSCLES`, `bodySVG` (mapa muscular frente/costas) |
 | `progression.js` | `nextTarget` / `progHint` — sugestão de carga |
@@ -69,7 +70,17 @@ remoção tem de passar por `setDayExercises()` (`routine.js`), que reindexa o p
 senão as séries marcadas saltam para o exercício errado.
 
 **O nome do exercício é a chave do histórico** (`ST.log[name]`). Por isso o editor deixa
-mudar séries, reps e a etiqueta do dia, mas nunca o nome.
+mudar séries, reps e a etiqueta do dia, mas nunca o nome. Trocar por outro exercício
+(`replaceExercise`) é diferente de mudar o nome: é outro exercício, com outro histórico.
+
+**Agenda (`js/schedule.js`):** o treino atual não é o dia da semana — é o **primeiro dia
+ainda por fazer** (`currentDay()`). Um dia falhado fica pendente em vez de ser saltado.
+Dias com `rest: true` (ou com "Descanso" na etiqueta) saem da fila. `ST.sched.week` é a
+semana ISO; quando muda, `ensureWeek()` limpa `ST.sets`/`ST.done` e repõe as trocas
+temporárias guardadas em `ST.sched.swaps`. `ST.log` nunca é tocado por nada disto.
+
+**`ST.view` é o ecrã (`__hoje`, `__semana`, `__dia`, `__perfil`, `__nutri`); `ST.day` tem
+de continuar a ser um dia real da rotina**, porque o progresso indexa por `dia:índice`.
 
 Caminhos de ficheiros são **relativos** (sem `/` inicial): absolutos partem no subcaminho
 do GitHub Pages.

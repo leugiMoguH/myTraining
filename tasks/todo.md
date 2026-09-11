@@ -4,7 +4,7 @@
 - [x] Motor de progressão (`js/progression.js`) + 14 casos no smoke
 - [x] PWA presa na versão antiga: reload no `controllerchange` (`js/app.js`), cache v6
 
-## A fazer
+## Feito nesta sessão
 
 ### 1. Agenda (`js/schedule.js`)
 - [x] `ST.sched = { week, done:{dia:data}, swaps:{'dia:i':original} }`
@@ -28,10 +28,10 @@
 - [x] Editor: interruptor "dia de descanso"
 
 ### 3. Substituições
-- [ ] Botão 🔄 Trocar no cartão
-- [ ] Alternativas: `ex.alt` (texto PT escrito à mão) + catálogo pelo mesmo
+- [x] Botão 🔄 Trocar no cartão
+- [x] Alternativas: `ex.alt` (texto PT escrito à mão) + catálogo pelo mesmo
       músculo alvo, equipamento diferente
-- [ ] "Só esta semana" (guarda o original em `ST.sched.swaps`, reposto no reset)
+- [x] "Só esta semana" (guarda o original em `ST.sched.swaps`, reposto no reset)
       vs "Trocar sempre"
 
 ### 4. Testes

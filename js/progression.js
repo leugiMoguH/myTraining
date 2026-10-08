@@ -68,6 +68,13 @@ function targetReps(cfg) {
   return cfg.scheme === 'double' ? cfg.range.hi : cfg.range.lo;
 }
 
+/* Reps que contam para a sessão: normalmente as da série representativa (w/r); no Greyskull
+   a última série é a série até à falha, é essa que decide. */
+function repsOf(entry, cfg) {
+  if (cfg.scheme === 'greyskull' && entry.sets && entry.sets.length) return entry.sets[entry.sets.length - 1].r;
+  return entry.r;
+}
+
 /* Sessões seguidas, ao peso atual, em que não se atingiu o alvo. */
 function countStalls(log, cfg) {
   const target = targetReps(cfg);
@@ -76,7 +83,7 @@ function countStalls(log, cfg) {
   let n = 0;
   for (let i = log.length - 1; i >= 0; i--) {
     if (log[i].w !== w) break;
-    if (log[i].r >= target) break;
+    if (repsOf(log[i], cfg) >= target) break;
     n++;
   }
   return n;
@@ -103,12 +110,13 @@ function evaluate(name, exercise, prog) {
     };
   }
 
-  if (last.r >= target) {
+  const lastReps = repsOf(last, cfg);
+  if (lastReps >= target) {
     /* Greyskull: bater o dobro do alvo vale salto duplo. */
-    const jump = cfg.scheme === 'greyskull' && last.r >= target * 2 ? cfg.inc * 2 : cfg.inc;
+    const jump = cfg.scheme === 'greyskull' && lastReps >= target * 2 ? cfg.inc * 2 : cfg.inc;
     return {
       kind: 'up', cfg, stalls: 0, w: roundKg(last.w + jump), r: cfg.range.lo, target,
-      msg: jump > cfg.inc ? `Bateste ${last.r} reps — salto duplo de ${jump}kg.` : `Alvo atingido. Sobe ${jump}kg.`,
+      msg: jump > cfg.inc ? `Bateste ${lastReps} reps — salto duplo de ${jump}kg.` : `Alvo atingido. Sobe ${jump}kg.`,
     };
   }
 

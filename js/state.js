@@ -40,39 +40,50 @@ function getLog(name){ return (ST.log && ST.log[name]) || []; }
 function logSet(name,w,r,custom){
   w=parseFloat(w); r=parseInt(r,10);
   if(!(w>0) || !(r>0)) return false;
-  const arr=getLog(name).slice();
-  const t=todayStr();
-  const idx=arr.findIndex(e=>e.date===t);
-  const entry={date:t,ts:nowISO(),w,r};
-  if(custom) entry.c=1;      /* feito num treino personalizado (distingue do programado no histórico) */
-  if(idx>=0) arr[idx]=entry; else arr.push(entry);
-  arr.sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0));
-  ST.log=Object.assign({}, ST.log, {[name]:arr});
+  const t=todayStr(), old=getLog(name).find(e=>e.date===t);
+  /* "Registar" à mão corrige a ÚLTIMA série do dia (idempotente: carregar duas vezes não duplica)
+     e conserva as anteriores. Sem séries guardadas, é a única série do dia. */
+  const had=old && old.sets ? old.sets : [];
+  const last=had[had.length-1];
+  const sets=[...had.slice(0,-1), {w,r,ts:nowISO(), ...(last && last.k ? {k:last.k} : {})}];
+  const bs=bestSet(sets);
+  putEntry(name,{...(old||{}), date:t, ts:nowISO(), w:bs.w, r:bs.r, sets, ...(custom?{c:1}:{})});
   save();
   return true;
 }
-/* Séries individuais do dia: entry.sets=[{w,r,ts}]; entry.w/r = melhor série (mais peso, depois reps).
-   Um só registo por exercício/dia, compatível com a progressão e com backups antigos. */
-function bestSet(sets){ return sets.reduce((b,x)=> (!b || x.w>b.w || (x.w===b.w && x.r>b.r)) ? x : b, null); }
+/* Séries individuais do dia: entry.sets=[{w,r,ts,k?}]; `k` ("dia:série") liga a série à marca em ST.sets; não leva o índice do exercício, por isso reordenar o dia não o desliga. entry.w/r = série representativa, sempre
+   UMA série realmente executada: a de maior peso e, nesse peso, a com MENOS reps. É a leitura
+   conservadora que a progressão sempre assumiu (a última série, a mais cansada): usar as reps
+   máximas faria uma só série boa contar como "alvo atingido" mesmo com as outras abaixo. */
+function bestSet(sets){ return sets.reduce((b,x)=> (!b || x.w>b.w || (x.w===b.w && x.r<b.r)) ? x : b, null); }
+/* valores para pré-preencher a próxima série: a última de hoje, senão o registo mais recente */
+function lastSetOf(name){
+  const arr=getLog(name), t=arr.find(e=>e.date===todayStr());
+  if(t && t.sets && t.sets.length) return t.sets[t.sets.length-1];
+  return arr.length ? arr[arr.length-1] : null;
+}
 function putEntry(name,entry){
   const arr=getLog(name).filter(e=>e.date!==entry.date);
   arr.push(entry); arr.sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0));
   ST.log=Object.assign({}, ST.log, {[name]:arr});
 }
-function addSetLog(name,w,r,custom){
+function addSetLog(name,w,r,custom,slot){
   w=parseFloat(w); r=parseInt(r,10);
   if(!(w>0) || !(r>0)) return false;
   const t=todayStr(), old=getLog(name).find(e=>e.date===t);
-  const sets=[...(old && old.sets ? old.sets : (old ? [{w:old.w,r:old.r,ts:old.ts}] : [])), {w,r,ts:nowISO()}];
+  const base=old && old.sets ? old.sets : (old ? [{w:old.w,r:old.r,ts:old.ts}] : []);
+  /* a mesma série (slot) registada duas vezes substitui, nunca duplica */
+  const sets=[...(slot ? base.filter(x=>x.k!==slot) : base), {w,r,ts:nowISO(), ...(slot?{k:slot}:{})}];
   const b=bestSet(sets);
   putEntry(name,{...(old||{}), date:t, ts:nowISO(), w:b.w, r:b.r, sets, ...(custom?{c:1}:{})});
   save();
   return true;
 }
-function undoSetLog(name){
+/* retira a série ligada a esta marca (desmarcar em qualquer ecrã); sem série ligada não faz nada */
+function removeSetLog(name,slot){
   const t=todayStr(), old=getLog(name).find(e=>e.date===t);
-  if(!old || !old.sets || !old.sets.length) return false;
-  const sets=old.sets.slice(0,-1);
+  if(!old || !old.sets || !old.sets.some(x=>x.k===slot)) return false;
+  const sets=old.sets.filter(x=>x.k!==slot);
   if(!sets.length) ST.log=Object.assign({}, ST.log, {[name]:getLog(name).filter(e=>e.date!==t)});
   else { const b=bestSet(sets); putEntry(name,{...old, w:b.w, r:b.r, sets}); }
   save();
@@ -96,6 +107,7 @@ function toggleSet(day,i,si) {
   if(idx>=0) arr.splice(idx,1); else arr.push(si);
   ST.sets[k]=arr;
   const ex=DAYS[day].ex[i];
+  if(idx>=0) removeSetLog(ex.name,`${day}:${si}`);   /* desmarcar retira a carga dessa série, venha de onde vier */
   const total=typeof ex.s==='number'?ex.s:0;
   ST.done[k] = total>0 && arr.length>=total;
   save();
@@ -126,4 +138,4 @@ function getProgress(day) {
   return {total,done};
 }
 
-export { STORE_KEY, ST, setST, save, key, getSets, todayStr, nowISO, esc, fmtTime, fmtDateTime, getLog, logSet, addSetLog, undoSetLog, est1RM, setProg, toggleSet, markDone, resetDay, getProgress };
+export { STORE_KEY, ST, setST, save, key, getSets, todayStr, nowISO, esc, fmtTime, fmtDateTime, getLog, logSet, addSetLog, removeSetLog, lastSetOf, est1RM, setProg, toggleSet, markDone, resetDay, getProgress };

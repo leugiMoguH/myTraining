@@ -128,36 +128,30 @@ body {
   transition: width 0.5s ease;
 }
 
-/* ── TABS ─────────────────────────────────────────── */
-.tabs {
-  display: flex; gap: 2px; overflow-x: auto;
-  scrollbar-width: none; padding: 10px 0 0;
-  margin: 0 -20px; padding-left: 20px; padding-right: 20px;
-}
-.tabs::-webkit-scrollbar { display: none; }
-.tab {
-  flex-shrink: 0; cursor: pointer;
-  padding: 8px 14px; border-radius: var(--r-sm) var(--r-sm) 0 0;
-  font-size: 13px; font-weight: 600; color: var(--muted);
-  border-bottom: 2px solid transparent;
-  transition: color 0.2s, border-color 0.2s, background 0.2s;
-  display: flex; align-items: center; gap: 5px;
-}
-.tab:hover { color: var(--text); }
-.tab.active {
-  color: var(--accent); border-bottom-color: var(--accent);
-  background: rgba(239,68,68,0.06);
-}
-.tab-badge {
-  background: var(--green); color: #000;
-  font-size: 9px; font-weight: 900; padding: 2px 5px;
-  border-radius: 4px; line-height: 1;
-}
+/* ── NAVEGAÇÃO INFERIOR ───────────────────────────── */
+#bnav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 250; background: var(--card); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
+body.kb #bnav { display: none; }
+.nav-row { display: flex; align-items: stretch; max-width: 640px; margin: 0 auto; }
+.nb { flex: 1; min-width: 0; min-height: 58px; background: none; border: 0; color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-family: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.nb-i { font-size: 20px; line-height: 1; position: relative; }
+.nb-i[data-badge]:not([data-badge=""])::after { content: attr(data-badge); position: absolute; top: -5px; left: 60%; background: var(--green); color: #000; font-size: 9px; font-weight: 900; padding: 2px 5px; border-radius: 6px; line-height: 1; }
+.nb-l { font-size: 11px; font-weight: 700; }
+.nb.active { color: var(--accent); }
+.nb:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.nb-main { flex: 0 0 84px; margin-top: -16px; min-height: 74px; border-radius: 22px 22px 0 0; background: var(--accent); color: #fff; box-shadow: 0 -4px 14px rgba(0,0,0,0.35); }
+.nb-main.live { background: #b45309; }
+.nb-main.paused { background: var(--green); color: #000; }
+.nb-main .nb-i { font-size: 24px; }
+.nav-livewrap { display: flex; align-items: stretch; max-width: 640px; margin: 0 auto; border-bottom: 1px solid var(--border); }
+.nav-livewrap[hidden], .nav-live[hidden], .nav-drop[hidden] { display: none; }
+.nav-live { flex: 1; min-height: 44px; background: rgba(239,68,68,0.10); border: 0; color: var(--text); font-family: inherit; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; cursor: pointer; }
+.nav-drop { flex: none; width: 48px; border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; }
+#content { padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important; }
 
 /* ── CONTENT GRID ─────────────────────────────────── */
 #content {
   padding: 16px; max-width: 1280px; margin: 0 auto;
-  display: grid; grid-template-columns: 1fr; gap: 14px;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px;
 }
 @media (min-width: 640px)  { #content { grid-template-columns: repeat(2, 1fr); padding: 20px; } }
 @media (min-width: 1024px) { #content { grid-template-columns: repeat(3, 1fr); } }
@@ -165,7 +159,7 @@ body {
 /* ── AGENDA (tira da semana, avisos, descanso) ────── */
 .full { grid-column: 1/-1; }
 .week-strip {
-  display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px;
   margin-bottom: 2px;
 }
 .wk-chip {
@@ -244,7 +238,7 @@ body {
 /* ── DAY HEADER ───────────────────────────────────── */
 .day-hdr {
   grid-column: 1/-1;
-  display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;
   padding-bottom: 4px; border-bottom: 1px solid var(--border);
 }
 .day-hdr-name { font-size: 22px; font-weight: 800; }
@@ -613,7 +607,7 @@ body {
 .vol-v { width: 26px; text-align: right; font-weight: 700; color: var(--text); }
 
 /* day header buttons + iniciar */
-.day-hdr-btns { display: flex; gap: 8px; flex-shrink: 0; }
+.day-hdr-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .start-wo { background: linear-gradient(90deg, var(--accent), var(--accent2)); border: none; color: #fff; font-size: 13px; font-weight: 800; padding: 8px 14px; border-radius: var(--r-sm); cursor: pointer; white-space: nowrap; }
 .start-wo:active { transform: scale(0.97); }
 
@@ -755,15 +749,19 @@ body {
       <button class="hdr-timer-adj" onclick="adjustRest(-15)">−</button>
       <button class="hdr-timer-btn" onclick="timerStart(REST_SEC)">⏱ <span id="restLabel">60s</span></button>
       <button class="hdr-timer-adj" onclick="adjustRest(15)">+</button>
-      <button class="hdr-gear" onclick="openSheet()" aria-label="Definições">⚙</button>
     </div>
   </div>
   <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0"></div></div>
-  <div class="tabs" id="tabs"></div>
 </div>
 
 <!-- MAIN -->
 <div id="content"></div>
+
+<!-- NAVEGAÇÃO INFERIOR (js/nav.js) -->
+<nav id="bnav" aria-label="Navegação principal">
+  <div class="nav-livewrap"><button id="navLive" class="nav-live" type="button" hidden><span class="nl-t"></span><span>Abrir ›</span></button><button id="navDrop" class="nav-drop" type="button" hidden aria-label="Descartar treino por terminar">✕</button></div>
+  <div class="nav-row" id="navRow"></div>
+</nav>
 
 <!-- INFO MODAL (ficha técnica) -->
 <div id="infoBg" class="info-bg" onclick="closeInfo()">
@@ -803,6 +801,9 @@ body {
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-grip"></div>
     <div class="sheet-title">Definições</div>
+    <button class="sheet-item" onclick="closeSheet();goDay('__nutri')">
+      <span>🥗 Nutrição</span><span class="sheet-arrow">›</span>
+    </button>
     <button class="sheet-item" onclick="toggleWake()">
       <span>🔆 Manter ecrã ligado</span>
       <span class="sw" id="wakeSw"></span>

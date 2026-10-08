@@ -25,7 +25,7 @@ const store = new Map();
 globalThis.window = globalThis;
 globalThis.document = {
   getElementById: el, querySelector: el, querySelectorAll: () => [],
-  createElement: el, addEventListener() {}, visibilityState: 'hidden', body: el(),
+  createElement: el, addEventListener() {}, hidden: false, visibilityState: 'hidden', body: el(),
 };
 globalThis.localStorage = {
   getItem: k => (store.has(k) ? store.get(k) : null),
@@ -36,6 +36,7 @@ Object.defineProperty(globalThis, 'navigator', {
   value: { vibrate() {}, mediaDevices: undefined }, configurable: true, writable: true,
 });
 globalThis.alert = () => {};
+globalThis.addEventListener = () => {};
 globalThis.confirm = () => false;
 globalThis.prompt = () => null;
 
@@ -479,7 +480,7 @@ for (const f of files)
 /* ── sessão de treino + registo por série ───────────────────────────────── */
 {
   const X = await import(new URL('session.js', JS));
-  const { ST, addSetLog, undoSetLog, getLog, logSet } = await import(new URL('state.js', JS));
+  const { ST, todayStr, addSetLog, removeSetLog, getLog, logSet, lastSetOf } = await import(new URL('state.js', JS));
   const check = (cond, msg) => { if (!cond) fail.push(`sessão: ${msg}`); };
   ST.session = null; ST.workouts = []; ST.log = {};
   check(X.sessionState() === 'NOT_STARTED', 'sem sessão devia ser NOT_STARTED');
@@ -499,22 +500,77 @@ for (const f of files)
   check(X.startSession('Terça', 'Pernas') && X.abandonSession() && ST.workouts.length === 2 && ST.workouts[1].state === 'ABANDONED', 'abandonar é explícito e fica registado');
 
   check(!addSetLog('Supino', 0, 10) && !addSetLog('Supino', 60, 0), 'séries inválidas rejeitadas');
-  addSetLog('Supino', 60, 10); addSetLog('Supino', 60, 8); addSetLog('Supino', 62.5, 6);
+  addSetLog('Supino', 60, 10, false, 'D:0'); addSetLog('Supino', 60, 8, false, 'D:1'); addSetLog('Supino', 62.5, 6, false, 'D:2');
   const e = getLog('Supino')[0];
   check(getLog('Supino').length === 1 && e.sets.length === 3, 'um registo por dia com 3 séries');
-  check(e.w === 62.5 && e.r === 6, 'w/r = melhor série (mais peso)');
-  undoSetLog('Supino');
-  check(getLog('Supino')[0].sets.length === 2 && getLog('Supino')[0].w === 60 && getLog('Supino')[0].r === 10, 'desfazer recalcula a melhor série');
-  undoSetLog('Supino'); undoSetLog('Supino');
-  check(getLog('Supino').length === 0 && !undoSetLog('Supino'), 'desfazer tudo remove o registo do dia');
+  check(e.w === 62.5 && e.r === 6, 'w/r = série de maior peso');
+  check(e.sets.some(x => x.w === e.w && x.r === e.r), 'w/r tem de ser uma série realmente executada, nunca uma mistura');
+  addSetLog('Press', 40, 12); addSetLog('Press', 40, 9); addSetLog('Press', 40, 8);
+  check(getLog('Press')[0].r === 8, 'ao mesmo peso conta a série mais fraca (uma boa série não inflaciona a progressão)');
+  const dupl = lastSetOf('Press');
+  check(dupl.w === 40 && dupl.r === 8, 'pré-preenchimento = última série de hoje');
+  ST.log = { Supino: getLog('Supino') };
+  addSetLog('Supino', 62.5, 6, false, 'D:2');
+  check(getLog('Supino')[0].sets.length === 3, 'registar a mesma série (slot) duas vezes não duplica');
+  removeSetLog('Supino', 'D:0');   /* desmarcar a 1.ª série não pode levar a carga de outra */
+  const s1 = getLog('Supino')[0];
+  check(s1.sets.length === 2 && s1.sets.every(x => x.k !== 'D:0') && s1.w === 62.5 && s1.r === 6, 'desmarcar remove SÓ a série ligada à marca');
+  check(!removeSetLog('Supino', 'D:9') && getLog('Supino')[0].sets.length === 2, 'marca sem série ligada não apaga nada');
+  logSet('Supino', 65, 5);   /* "Registar" no cartão corrige a última série e conserva as anteriores */
+  const s2 = getLog('Supino')[0];
+  check(s2.sets.length === 2 && s2.sets[0].k === 'D:1' && s2.sets[1].w === 65 && s2.w === 65, 'logSet manual não apaga as séries do guiado');
+  logSet('Supino', 65, 5);
+  check(getLog('Supino')[0].sets.length === 2, 'logSet manual repetido é idempotente');
+  removeSetLog('Supino', 'D:1'); removeSetLog('Supino', 'D:2');
+  check(getLog('Supino').length === 0, 'a série corrigida à mão herda o slot e desmarcar retira-a');
+  ST.log = { Supino: [] };
+  addSetLog('Supino', 50, 10, false, 'D:5');
+  removeSetLog('Supino', 'D:5');
+  check(getLog('Supino').length === 0, 'retirar a única série remove o registo do dia');
+  /* Greyskull: decide a última série (até à falha), não a mais fraca */
+  const PG = await import(new URL('progression.js', JS));
+  const gs = [{ w: 60, r: 5, k: 'a' }, { w: 60, r: 5, k: 'b' }, { w: 60, r: 12, k: 'c' }];
+  ST.log = { GS: [{ date: '2020-01-01', w: 60, r: 5, sets: gs }] };
+  const ev = PG.evaluate('GS', { name: 'GS', r: '5' }, { GS: { scheme: 'greyskull', inc: 2.5 } });
+  check(ev.kind === 'up' && ev.w === 65, `Greyskull com 12 reps na última devia dar salto duplo (veio ${ev.kind} ${ev.w})`);
+  const ev2 = PG.evaluate('GS', { name: 'GS', r: '5' }, { GS: { scheme: 'linear', inc: 2.5 } });
+  check(ev2.kind === 'up' && ev2.w === 62.5, 'noutros esquemas conta a série representativa (w/r)');
   ST.log = { Remo: [{ date: '2020-01-01', w: 40, r: 10 }] };    /* entrada antiga, sem sets */
   addSetLog('Remo', 42, 8);
   check(getLog('Remo').length === 2 && getLog('Remo')[0].w === 40, 'o histórico antigo não é tocado');
   logSet('Remo', 45, 5);
   check(getLog('Remo')[1].w === 45, 'logSet manual continua a funcionar');
+
+  /* recuperação: pausa no último sinal de vida, nunca conclui; é idempotente */
+  X.startSession('Segunda', 'Peito');
+  const t0 = ST.session.resumedAt;
+  X.touchSession(t0 + 10 * 60000);
+  check(!X.reconcileSession(t0 + 20 * 60000) && X.sessionState() === 'ACTIVE', 'dentro do intervalo não se mexe');
+  const longe = t0 + 10 * 60000 + X.IDLE_GAP_MS + 5 * 60000;
+  check(X.reconcileSession(longe) && X.sessionState() === 'PAUSED', 'sem sinal de vida há muito → PAUSED (nunca COMPLETED)');
+  check(X.activeMs(longe) === 10 * 60000 && ST.workouts.length === 2, 'só conta o tempo até ao último sinal de vida; nada concluído');
+  check(!X.reconcileSession(longe + 1e7) && X.activeMs(longe + 1e7) === 10 * 60000, 'reconcile é idempotente');
+  X.setSessionPos(3);
+  check(ST.session.pos === 3, 'posição do exercício persistida');
+  check(!X.staleSession(longe), 'sessão de hoje não é stale');
+  ST.session = { ...ST.session, date: '2020-01-01', seenAt: longe - 3 * 3600000 };
+  check(X.staleSession(longe), 'sessão viva de outro dia e parada há muito é stale');
+  ST.session = { ...ST.session, date: '2020-01-01', seenAt: longe - 60000 };
+  check(!X.staleSession(longe), 'treino a atravessar a meia-noite não é stale');
+  /* fechada durante um dia inteiro: reconciliar ANTES de descartar, o dia parado não conta */
+  ST.session = null; X.startSession('Segunda', 'x');
+  const r0 = ST.session.resumedAt;
+  X.touchSession(r0 + 5 * 60000);
+  X.reconcileSession(r0 + 24 * 3600000); X.abandonSession();
+  check(ST.workouts[ST.workouts.length - 1].activeMs === 5 * 60000, 'sessão descartada depois de 24 h fechada só conta o tempo até ao último sinal de vida');
+  X.abandonSession();
+  check(X.finishedToday(ST.session.day) === (ST.session.date === todayStr()), 'finishedToday segue a data');
+  ST.session = { state: 'LIXO' };
+  check(X.sessionState() === 'NOT_STARTED' && !X.isLive(), 'sessão malformada é ignorada');
   ST.session = null; ST.workouts = []; ST.log = {};
 }
 
 /* ── resultado ───────────────────────────────────────────────────────────── */
 if (fail.length) { console.error('FALHOU:\n  ' + fail.join('\n  ')); process.exit(1); }
 console.log(`OK — ${files.length} módulos, ${screens.length} ecrãs, ${handlers.size} handlers, catálogo com ${(await import(new URL('catalog.js', JS))).all().length} exercícios.`);
+process.exit(0);   /* os intervalos da navegação mantinham o processo vivo */

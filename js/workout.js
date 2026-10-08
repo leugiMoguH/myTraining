@@ -5,8 +5,9 @@ import { CUSTOM_DAY, DAYS } from './routine.js';
 import { openInfo } from './guide.js';
 import { DEMOS, demoUrl } from './media.js';
 import { configOf, progHint } from './progression.js';
-import { ACTIVE, PAUSED, activeMs, completeSession, fmtDur, isLive, pauseSession, resumeSession, sessionState, startSession } from './session.js';
-import { addSetLog, esc, getLog, getSets, logSet, todayStr, toggleSet, undoSetLog } from './state.js';
+import { ACTIVE, PAUSED, activeMs, completeSession, currentSession, fmtDur, isLive, notifySession, pauseSession, resumeSession, sessionState, setSessionPos, startSession } from './session.js';
+import { addSetLog, esc, getLog, getSets, lastSetOf, logSet, todayStr, toggleSet } from './state.js';
+import { cuFinish } from './custom.js';
 import { timerDismiss } from './timer.js';
 import { render } from './ui.js';
 import { acquireWake, releaseWake, wakeWanted } from './wake.js';
@@ -16,14 +17,28 @@ const WO={day:null,idx:0,clock:null};
 const clockTxt=()=>fmtDur(activeMs());
 function startWorkout(day){
   if(!DAYS[day] || !DAYS[day].ex.length) return;
-  WO.day=day; WO.idx=0;
-  if(!isLive()) startSession(day,DAYS[day].label);   /* só um toque do utilizador inicia a sessão */
+  const live=isLive()?currentSession():null;
+  /* nunca duas sessões: com outro treino em curso, oferece-se retomá-lo em vez de misturar registos */
+  if(live && live.day!==day){
+    if(confirm(`Já tens o treino de ${live.day} em curso. Retomá-lo?`)) openWorkout(live.day, live.pos);
+    return;
+  }
+  if(!live) startSession(day,DAYS[day].label);   /* só um toque do utilizador inicia a sessão */
+  openWorkout(day, isLive() && currentSession().day===day ? currentSession().pos : 0);
+}
+/* abre a vista guiada sem tocar na sessão (também usada para retomar após refresh) */
+function openWorkout(day, idx=0){
+  if(!DAYS[day] || !DAYS[day].ex.length) return false;
+  WO.day=day; WO.idx=Math.max(0,Math.min(DAYS[day].ex.length-1,idx|0));
+  setSessionPos(WO.idx);
   document.getElementById('woBg').classList.add('show'); acquireWake(); woRender();
   clearInterval(WO.clock); WO.clock=setInterval(()=>{ const c=document.getElementById('wo-clock'); if(c) c.textContent=clockTxt(); },1000);
+  notifySession();
+  return true;
 }
 /* fechar a vista não toca na sessão: continua ACTIVE/PAUSED */
-function closeWorkout(){ clearInterval(WO.clock); document.getElementById('woBg').classList.remove('show'); if(!wakeWanted) releaseWake(); render(WO.day); }
-function woGo(d){ const ex=DAYS[WO.day].ex; WO.idx=Math.max(0,Math.min(ex.length-1,WO.idx+d)); woRender(); }
+function closeWorkout(){ clearInterval(WO.clock); document.getElementById('woBg').classList.remove('show'); if(!wakeWanted) releaseWake(); render(WO.day); notifySession(); }
+function woGo(d){ const ex=DAYS[WO.day].ex; WO.idx=Math.max(0,Math.min(ex.length-1,WO.idx+d)); setSessionPos(WO.idx); woRender(); }
 function woToggle(si){ toggleSet(WO.day,WO.idx,si); woRender(); }
 function woSaveLoad(){
   const w=document.getElementById('wo-w').value, r=document.getElementById('wo-r').value;
@@ -37,26 +52,33 @@ function woStep(field,dir){
   el.value=Math.max(0,Math.round(((parseFloat(el.value)||0)+dir*step)*100)/100)||'';
 }
 /* um toque: marca a próxima série, regista kg×reps (pré-preenchidos) e arranca o descanso */
+let lastTap=0;
 function woDoSet(){
-  if(sessionState()!==ACTIVE) return;
+  if(sessionState()!==ACTIVE || Date.now()-lastTap<400) return;   /* duplo toque acidental */
+  lastTap=Date.now();
   const ex=DAYS[WO.day].ex[WO.idx], sets=getSets(WO.day,WO.idx), total=typeof ex.s==='number'?ex.s:0;
   const si=Array.from({length:total},(_,j)=>j).find(j=>!sets.includes(j));
   if(si===undefined) return;
   const w=document.getElementById('wo-w').value, r=document.getElementById('wo-r').value;
-  if(!addSetLog(ex.name,w,r,WO.day===CUSTOM_DAY)){ alert('Indica kg e reps válidos.'); return; }
+  if(!addSetLog(ex.name,w,r,WO.day===CUSTOM_DAY,`${WO.day}:${si}`)){ alert('Indica kg e reps válidos.'); return; }
   toggleSet(WO.day,WO.idx,si);
   woRender();
 }
+/* desfaz a última série EXECUTADA (a de registo mais recente), não a de maior índice */
 function woUndo(){
   const ex=DAYS[WO.day].ex[WO.idx], sets=getSets(WO.day,WO.idx); if(!sets.length) return;
-  const t=getLog(ex.name).find(e=>e.date===todayStr()), logged=t&&t.sets?t.sets.length:0;
-  toggleSet(WO.day,WO.idx,Math.max(...sets));
-  if(logged>=sets.length) undoSetLog(ex.name);   /* só desfaz o registo se corresponder a esta série */
+  const t=getLog(ex.name).find(e=>e.date===todayStr()), pre=`${WO.day}:`;
+  const L=t&&t.sets?[...t.sets].reverse().find(x=>x.k&&x.k.startsWith(pre)&&sets.includes(+x.k.slice(pre.length))):null;
+  let si=L?+L.k.slice(pre.length):NaN;
+  if(!sets.includes(si)) si=Math.max(...sets);
+  toggleSet(WO.day,WO.idx,si);
   timerDismiss(); woRender();
 }
 function woPause(){ if(sessionState()===ACTIVE) pauseSession(); else resumeSession(); woRender(); }
 function woFinish(){
   if(!confirm('Terminar o treino? Fica guardado no histórico.')) return;
+  /* o personalizado tem o seu próprio fecho (regista a sessão e substitui o treino do dia) */
+  if(WO.day===CUSTOM_DAY){ closeWorkout(); cuFinish(); return; }
   completeSession(); closeWorkout();
 }
 function woRender(){
@@ -69,7 +91,7 @@ function woRender(){
     : (dmo?`<img class="wo-img" src="${demoUrl(dmo,0)}" alt="" onerror="this.style.display='none'">`:(mm?bodySVG(mm.p,mm.s):''));
   const sets=getSets(day,i), totalSets=typeof ex.s==='number'?ex.s:0;
   const setBtns=totalSets?Array.from({length:totalSets},(_,si)=>`<button class="wo-set${sets.includes(si)?' on':''}" onclick="woToggle(${si})" aria-label="Série ${si+1}">${si+1}</button>`).join(''):'';
-  const last=getLog(ex.name).slice(-1)[0], hint=progHint(ex.name);
+  const last=lastSetOf(ex.name), hint=progHint(ex.name);
   const st=sessionState(), paused=st===PAUSED, allDone=totalSets>0&&sets.length>=totalSets;
   const nextEx=DAYS[day].ex[i+1];
   let main='';
@@ -104,4 +126,7 @@ function woRender(){
     </div>`;
 }
 
-export { WO, startWorkout, closeWorkout, woGo, woToggle, woSaveLoad, woRender, woStep, woDoSet, woUndo, woPause, woFinish };
+/* a sessão pode mudar por fora (ex.: pausada ao reabrir): repinta a vista se estiver aberta */
+function refreshWorkout(){ if(WO.day && document.getElementById('woBg').classList.contains('show')) woRender(); }
+
+export { WO, startWorkout, openWorkout, refreshWorkout, closeWorkout, woGo, woToggle, woSaveLoad, woRender, woStep, woDoSet, woUndo, woPause, woFinish };

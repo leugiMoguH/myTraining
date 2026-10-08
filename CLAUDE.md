@@ -40,8 +40,14 @@ No build, no bundler, no framework. HTML/CSS estáticos + **ES modules** nativos
 | `sliders.js` · `media.js` · `guide.js` | slider dos cartões, demos por URL, ficha técnica |
 | `nutrition.js` | nutrição, diário de ingestão, scanner + Open Food Facts |
 | `profile.js` | perfil, medidas, % gordura, macros |
-| `workout.js` | modo de treino guiado |
+| `workout.js` | treino guiado: série num toque, desfazer, pausa; `openWorkout` retoma uma sessão |
+| `session.js` | `ST.session`: máquina de estados do treino (NOT_STARTED/ACTIVE/PAUSED/COMPLETED/ABANDONED), tempo por timestamps, `reconcileSession` |
+| `nav.js` | barra inferior (Início · Evolução · **Treino** · Semana · Opções) e faixa "treino em curso" |
 | `backup.js` | ⚙ Definições, export/import JSON, exports CSV |
+
+**Sessão de treino (`js/session.js`):** só o utilizador muda o estado; fechar a app nunca conclui. Tempo = `activeMs` + troço em curso (`resumedAt`). `seenAt` é o último sinal de vida (batimento de 15 s e `visibilitychange`): ao reabrir, uma sessão ACTIVE sem sinal há >30 min é **pausada** em `seenAt` (nunca concluída). No arranque (`app.js`) uma sessão viva do dia reabre a vista guiada em `pos`; de semana anterior ou sem treino (`DAYS[dia]` inexistente) é ABANDONED. Terminadas ficam em `ST.workouts`. O botão central da barra só controla a sessão, nunca o descanso (`timer.js`, persistido em `localStorage.rest_timer` como fim absoluto). Sessão do treino personalizado fecha com o personalizado (`endSessionOf`).
+
+**`ST.log[nome]` — uma entrada por dia**: `{date, ts, w, r, sets?:[{w,r,ts,k?}]}`. `w/r` = série representativa, **sempre uma série realmente executada**: a de maior peso e, nesse peso, a de **menos** reps (leitura conservadora, igual à antiga "última série"). `sets[].k` (`dia:série`) liga a carga à marca em `ST.sets`; `toggleSet` ao desmarcar retira essa carga. `logSet` (botão Registar) corrige a última série do dia. Greyskull usa a última série de `sets` (até à falha).
 
 **Aviso crítico — `js/bridge.js`:** o HTML usa atributos `onclick="fn(...)"`. Em ES modules
 nada é global, por isso todo o handler inline tem de estar no `Object.assign(window, {...})`

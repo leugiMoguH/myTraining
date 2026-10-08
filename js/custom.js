@@ -22,6 +22,7 @@ import { MUSCLES } from './charts.js';
 import { CUSTOM_DAY, dayNames, exercisesOf, findExercise, removeExercise } from './routine.js';
 import { EQUIPMENT, GROUPS, keyOf, recency, suggest } from './suggest.js';
 import { replaceCurrent, slotToReplace } from './schedule.js';
+import { endSessionOf } from './session.js';
 import { ST, esc, getLog, getSets, save, todayStr } from './state.js';
 import { buildCard, refreshProgress, render } from './ui.js';
 
@@ -42,7 +43,7 @@ function clearCustomProgress() {
   ST.done = drop(ST.done);
 }
 
-function dropCustom() { clearCustomProgress(); ST.custom = null; save(); }
+function dropCustom() { clearCustomProgress(); ST.custom = null; save(); endSessionOf(CUSTOM_DAY, false); }
 
 /* De um dia para o outro (ou com dados estranhos) o treino personalizado caduca. */
 function expireCustom() {
@@ -163,6 +164,7 @@ function cuFinish() {
   clearCustomProgress();
   ST.custom = { ...c, stage: 'done', sets, replaced };
   save();
+  endSessionOf(CUSTOM_DAY, true);   /* a sessão guiada não fica a correr depois de concluir */
   render('__pers');
 }
 

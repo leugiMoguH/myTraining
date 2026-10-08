@@ -13,6 +13,7 @@ import { slInit, slNext, slPrev, slTo } from './sliders.js';
 import { agenda, completeDay, dayStatus, reopenDay, swapOriginal } from './schedule.js';
 import { ST, esc, getLog, getProgress, getSets, key, markDone, resetDay, save, toggleSet } from './state.js';
 import { REST_SEC, timerStart } from './timer.js';
+import { syncNav } from './nav.js';
 import { startWorkout } from './workout.js';
 
 /* ═══════════════════════ RENDER ═════════════════════ */
@@ -23,12 +24,6 @@ function refreshProgress() {
   const {total,done}=getProgress(day);
   document.getElementById('progFill').style.width=`${total?done/total*100:0}%`;
   document.getElementById('hdrSub').textContent=`${DAYS[day].label} · ${done}/${total}`;
-  document.querySelectorAll('.tab').forEach(t=>{
-    if(day!==CUSTOM_DAY && t.dataset.day===ST.day){
-      const b=t.querySelector('.tab-badge');
-      if(b){ const {done:d,total:tot}=getProgress(ST.day); b.textContent=d>0?`${d}/${tot}`:''; b.style.display=d>0?'':'none'; }
-    }
-  });
 }
 
 function refreshCard(day,i) {
@@ -329,9 +324,7 @@ function render(target) {
   if (ST.view === '__dia') ST.day = target;
   save();
 
-  /* o separador "Semana" fica ativo enquanto se vê um dia concreto */
-  const tab = ST.view === '__dia' ? '__semana' : ST.view === '__pers' ? '__hoje' : ST.view;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.day===tab));
+  syncNav();
 
   if (target === '__nutri') { renderNutri(content); return; }
   if (target === '__perfil'){ renderProfile(content); return; }
@@ -340,7 +333,5 @@ function render(target) {
   if (target === '__pers')  { renderCustom(content); return; }
   renderDay(content, target);
 }
-
-// build tabs
 
 export { refreshProgress, refreshCard, buildCard, gifSlide, render, renderDay, renderToday, renderWeek, goDay, toggleDayDone };

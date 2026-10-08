@@ -5,8 +5,8 @@ import { CUSTOM_DAY, DAYS } from './routine.js';
 import { openInfo } from './guide.js';
 import { DEMOS, demoUrl } from './media.js';
 import { configOf, progHint } from './progression.js';
-import { ACTIVE, PAUSED, activeMs, completeSession, currentSession, fmtDur, isLive, notifySession, pauseSession, resumeSession, sessionState, setSessionPos, startSession } from './session.js';
-import { addSetLog, esc, getLog, getSets, lastSetOf, logSet, todayStr, toggleSet } from './state.js';
+import { ACTIVE, PAUSED, completeSession, currentSession, fmtDur, isLive, notifySession, pauseSession, resumeSession, sessionState, setSessionPos, startSession, timeStats, touchSession } from './session.js';
+import { addSetLog, esc, getLog, getSets, lastSetOf, logDate, logSet, toggleSet } from './state.js';
 import { cuFinish } from './custom.js';
 import { timerDismiss } from './timer.js';
 import { render } from './ui.js';
@@ -14,7 +14,9 @@ import { acquireWake, releaseWake, wakeWanted } from './wake.js';
 
 /* ═══════════ TREINO DE HOJE (guiado) ═══════════ */
 const WO={day:null,idx:0,clock:null};
-const clockTxt=()=>fmtDur(activeMs());
+const clockTxt=()=>fmtDur(timeStats().duration);
+/* o relógio é a duração (medida); o resto vem discriminado, nunca somado às escondidas */
+function statsTxt(){ const t=timeStats(); return `pausa ${fmtDur(t.paused)} · confirmado ${fmtDur(t.confirmed)} · sem registo ${fmtDur(t.unknown)}`; }
 function startWorkout(day){
   if(!DAYS[day] || !DAYS[day].ex.length) return;
   const live=isLive()?currentSession():null;
@@ -31,8 +33,9 @@ function openWorkout(day, idx=0){
   if(!DAYS[day] || !DAYS[day].ex.length) return false;
   WO.day=day; WO.idx=Math.max(0,Math.min(DAYS[day].ex.length-1,idx|0));
   setSessionPos(WO.idx);
+  touchSession(Date.now(),false);   /* o utilizador está presente; o intervalo anterior não se confirma */
   document.getElementById('woBg').classList.add('show'); acquireWake(); woRender();
-  clearInterval(WO.clock); WO.clock=setInterval(()=>{ const c=document.getElementById('wo-clock'); if(c) c.textContent=clockTxt(); },1000);
+  clearInterval(WO.clock); WO.clock=setInterval(()=>{ const c=document.getElementById('wo-clock'); if(c){ c.textContent=clockTxt(); const x=document.getElementById('wo-stats'); if(x) x.textContent=statsTxt(); } },1000);
   notifySession();
   return true;
 }
@@ -42,7 +45,7 @@ function woGo(d){ const ex=DAYS[WO.day].ex; WO.idx=Math.max(0,Math.min(ex.length
 function woToggle(si){ toggleSet(WO.day,WO.idx,si); woRender(); }
 function woSaveLoad(){
   const w=document.getElementById('wo-w').value, r=document.getElementById('wo-r').value;
-  if(logSet(DAYS[WO.day].ex[WO.idx].name,w,r,WO.day===CUSTOM_DAY)){ const b=document.querySelector('#woBody .load-save'); if(b){ b.textContent='✓'; setTimeout(()=>{b.textContent='Registar';},900); } }
+  if(logSet(DAYS[WO.day].ex[WO.idx].name,w,r,WO.day===CUSTOM_DAY,WO.day)){ const b=document.querySelector('#woBody .load-save'); if(b){ b.textContent='✓'; setTimeout(()=>{b.textContent='Registar';},900); } }
   else alert('Indica kg e reps válidos.');
 }
 /* ajuste rápido: kg usa o salto do exercício, reps ±1 */
@@ -60,14 +63,15 @@ function woDoSet(){
   const si=Array.from({length:total},(_,j)=>j).find(j=>!sets.includes(j));
   if(si===undefined) return;
   const w=document.getElementById('wo-w').value, r=document.getElementById('wo-r').value;
-  if(!addSetLog(ex.name,w,r,WO.day===CUSTOM_DAY,`${WO.day}:${si}`)){ alert('Indica kg e reps válidos.'); return; }
+  if(!addSetLog(ex.name,w,r,WO.day===CUSTOM_DAY,`${WO.day}:${si}`,WO.day)){ alert('Indica kg e reps válidos.'); return; }
   toggleSet(WO.day,WO.idx,si);
+  touchSession();
   woRender();
 }
 /* desfaz a última série EXECUTADA (a de registo mais recente), não a de maior índice */
 function woUndo(){
   const ex=DAYS[WO.day].ex[WO.idx], sets=getSets(WO.day,WO.idx); if(!sets.length) return;
-  const t=getLog(ex.name).find(e=>e.date===todayStr()), pre=`${WO.day}:`;
+  const t=getLog(ex.name).find(e=>e.date===logDate(WO.day)), pre=`${WO.day}:`;
   const L=t&&t.sets?[...t.sets].reverse().find(x=>x.k&&x.k.startsWith(pre)&&sets.includes(+x.k.slice(pre.length))):null;
   let si=L?+L.k.slice(pre.length):NaN;
   if(!sets.includes(si)) si=Math.max(...sets);
@@ -91,7 +95,7 @@ function woRender(){
     : (dmo?`<img class="wo-img" src="${demoUrl(dmo,0)}" alt="" onerror="this.style.display='none'">`:(mm?bodySVG(mm.p,mm.s):''));
   const sets=getSets(day,i), totalSets=typeof ex.s==='number'?ex.s:0;
   const setBtns=totalSets?Array.from({length:totalSets},(_,si)=>`<button class="wo-set${sets.includes(si)?' on':''}" onclick="woToggle(${si})" aria-label="Série ${si+1}">${si+1}</button>`).join(''):'';
-  const last=lastSetOf(ex.name), hint=progHint(ex.name);
+  const last=lastSetOf(ex.name,day), hint=progHint(ex.name);
   const st=sessionState(), paused=st===PAUSED, allDone=totalSets>0&&sets.length>=totalSets;
   const nextEx=DAYS[day].ex[i+1];
   let main='';
@@ -103,6 +107,7 @@ function woRender(){
   document.getElementById('woBody').innerHTML=`
     <div class="wo-top"><span class="wo-count">${i+1}/${total}</span><span class="wo-day">${day} · ${DAYS[day].label}</span>
       <span class="wo-clock${paused?' paused':''}"><span id="wo-clock">${clockTxt()}</span>${paused?' ⏸':''}</span></div>
+    <div class="wo-stats" id="wo-stats">${statsTxt()}</div>
     <div class="wo-media">${media}</div>
     <div class="wo-name">${esc(ex.name)}</div>
     <div class="wo-meta">${ex.s} séries · ${ex.r} reps</div>

@@ -37,15 +37,29 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;'
 function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); return isNaN(d.getTime())?'':d.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}); }
 function fmtDateTime(ts){ if(!ts) return ''; const d=new Date(ts); return isNaN(d.getTime())?'':d.toLocaleDateString('pt-PT')+' '+d.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}); }
 function getLog(name){ return (ST.log && ST.log[name]) || []; }
-function logSet(name,w,r,custom){
+/* Data a que pertence uma carga: com um treino em curso DESSE dia é a data de início da sessão (um treino
+   que passa a meia-noite não se parte em dois dias); caso contrário, hoje. */
+function logDate(day){
+  const s=ST.session;
+  return s && (s.state==='ACTIVE'||s.state==='PAUSED') && s.day===day && s.date ? s.date : todayStr();
+}
+/* segunda-feira da semana civil atual ('YYYY-MM-DD'): cargas mais antigas já não têm marcas correspondentes */
+function weekStartStr(){ const d=new Date(); d.setDate(d.getDate()-((d.getDay()+6)%7)); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function liveSid(day){ const s=ST.session; return s && (s.state==='ACTIVE'||s.state==='PAUSED') && s.day===day ? s.id : undefined; }
+/* tira as marcas de um dia (o reset semanal só as guardou para a sessão que o atravessou) */
+function clearDayMarks(day){
+  const drop=o=>Object.fromEntries(Object.entries(o||{}).filter(([k])=>!k.startsWith(`${day}:`)));
+  ST.sets=drop(ST.sets); ST.done=drop(ST.done); save();
+}
+function logSet(name,w,r,custom,day){
   w=parseFloat(w); r=parseInt(r,10);
   if(!(w>0) || !(r>0)) return false;
-  const t=todayStr(), old=getLog(name).find(e=>e.date===t);
+  const t=logDate(day), old=getLog(name).find(e=>e.date===t);
   /* "Registar" à mão corrige a ÚLTIMA série do dia (idempotente: carregar duas vezes não duplica)
      e conserva as anteriores. Sem séries guardadas, é a única série do dia. */
   const had=old && old.sets ? old.sets : [];
-  const last=had[had.length-1];
-  const sets=[...had.slice(0,-1), {w,r,ts:nowISO(), ...(last && last.k ? {k:last.k} : {})}];
+  const last=had[had.length-1], sid=liveSid(day) || (last && last.sid);
+  const sets=[...had.slice(0,-1), {w,r,ts:nowISO(), ...(last && last.k ? {k:last.k} : {}), ...(sid ? {sid} : {})}];
   const bs=bestSet(sets);
   putEntry(name,{...(old||{}), date:t, ts:nowISO(), w:bs.w, r:bs.r, sets, ...(custom?{c:1}:{})});
   save();
@@ -57,8 +71,8 @@ function logSet(name,w,r,custom){
    máximas faria uma só série boa contar como "alvo atingido" mesmo com as outras abaixo. */
 function bestSet(sets){ return sets.reduce((b,x)=> (!b || x.w>b.w || (x.w===b.w && x.r<b.r)) ? x : b, null); }
 /* valores para pré-preencher a próxima série: a última de hoje, senão o registo mais recente */
-function lastSetOf(name){
-  const arr=getLog(name), t=arr.find(e=>e.date===todayStr());
+function lastSetOf(name,day){
+  const arr=getLog(name), t=arr.find(e=>e.date===logDate(day));
   if(t && t.sets && t.sets.length) return t.sets[t.sets.length-1];
   return arr.length ? arr[arr.length-1] : null;
 }
@@ -67,24 +81,27 @@ function putEntry(name,entry){
   arr.push(entry); arr.sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0));
   ST.log=Object.assign({}, ST.log, {[name]:arr});
 }
-function addSetLog(name,w,r,custom,slot){
+function addSetLog(name,w,r,custom,slot,day){
   w=parseFloat(w); r=parseInt(r,10);
   if(!(w>0) || !(r>0)) return false;
-  const t=todayStr(), old=getLog(name).find(e=>e.date===t);
+  const t=logDate(day), sid=liveSid(day), old=getLog(name).find(e=>e.date===t);
   const base=old && old.sets ? old.sets : (old ? [{w:old.w,r:old.r,ts:old.ts}] : []);
   /* a mesma série (slot) registada duas vezes substitui, nunca duplica */
-  const sets=[...(slot ? base.filter(x=>x.k!==slot) : base), {w,r,ts:nowISO(), ...(slot?{k:slot}:{})}];
+  const sets=[...(slot ? base.filter(x=>x.k!==slot) : base), {w,r,ts:nowISO(), ...(slot?{k:slot}:{}), ...(sid?{sid}:{})}];
   const b=bestSet(sets);
   putEntry(name,{...(old||{}), date:t, ts:nowISO(), w:b.w, r:b.r, sets, ...(custom?{c:1}:{})});
   save();
   return true;
 }
 /* retira a série ligada a esta marca (desmarcar em qualquer ecrã); sem série ligada não faz nada */
-function removeSetLog(name,slot){
-  const t=todayStr(), old=getLog(name).find(e=>e.date===t);
-  if(!old || !old.sets || !old.sets.some(x=>x.k===slot)) return false;
+function removeSetLog(name,slot,day){
+  /* As marcas só existem na semana corrente (ou na sessão viva que a atravessou): uma marca sem carga
+     nunca pode apagar a carga da mesma série de uma semana anterior. */
+  const wk=weekStartStr(), sid=liveSid(day);
+  const old=[...getLog(name)].reverse().find(e=>e.sets && e.sets.some(x=>x.k===slot && (e.date>=wk || (sid && x.sid===sid))));
+  if(!old) return false;
   const sets=old.sets.filter(x=>x.k!==slot);
-  if(!sets.length) ST.log=Object.assign({}, ST.log, {[name]:getLog(name).filter(e=>e.date!==t)});
+  if(!sets.length) ST.log=Object.assign({}, ST.log, {[name]:getLog(name).filter(e=>e.date!==old.date)});
   else { const b=bestSet(sets); putEntry(name,{...old, w:b.w, r:b.r, sets}); }
   save();
   return true;
@@ -107,7 +124,7 @@ function toggleSet(day,i,si) {
   if(idx>=0) arr.splice(idx,1); else arr.push(si);
   ST.sets[k]=arr;
   const ex=DAYS[day].ex[i];
-  if(idx>=0) removeSetLog(ex.name,`${day}:${si}`);   /* desmarcar retira a carga dessa série, venha de onde vier */
+  if(idx>=0) removeSetLog(ex.name,`${day}:${si}`,day);   /* desmarcar retira a carga dessa série, venha de onde vier */
   const total=typeof ex.s==='number'?ex.s:0;
   ST.done[k] = total>0 && arr.length>=total;
   save();
@@ -138,4 +155,4 @@ function getProgress(day) {
   return {total,done};
 }
 
-export { STORE_KEY, ST, setST, save, key, getSets, todayStr, nowISO, esc, fmtTime, fmtDateTime, getLog, logSet, addSetLog, removeSetLog, lastSetOf, est1RM, setProg, toggleSet, markDone, resetDay, getProgress };
+export { STORE_KEY, ST, setST, save, key, getSets, todayStr, nowISO, esc, fmtTime, fmtDateTime, getLog, logSet, addSetLog, removeSetLog, lastSetOf, logDate, clearDayMarks, est1RM, setProg, toggleSet, markDone, resetDay, getProgress };

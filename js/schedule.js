@@ -16,7 +16,8 @@
      replaced: { 'Terça': '2026-09-09' },   dias substituídos por um treino personalizado
    } */
 import { CUSTOM_DAY, dayNames, getDay, exercisesOf, routine } from './routine.js';
-import { ST, key, save, todayStr, getProgress } from './state.js';
+import { liveDay, onSessionEnd } from './session.js';
+import { ST, clearDayMarks, key, save, todayStr, getProgress } from './state.js';
 
 /* getDay() em PT: o índice bate certo com Date#getDay() (0 = Domingo). */
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -185,9 +186,9 @@ function forgetSwap(day, i) {
 
 /* Repõe todos os originais. Não mexe em ST.sets: quem chama (o reset semanal)
    limpa-os logo a seguir, e uma reposição manual quer manter o índice. */
-function restoreSwaps() {
+function restoreSwaps(onlyDay) {
   const swaps = sched().swaps;
-  const entries = Object.keys(swaps);
+  const entries = Object.keys(swaps).filter(k => !onlyDay || k.startsWith(`${onlyDay}:`));
   if (!entries.length) return 0;
   let next = routine();
   for (const k of entries) {
@@ -198,7 +199,7 @@ function restoreSwaps() {
     next = { ...next, [day]: { ...d, ex: d.ex.map((e, j) => (j === i ? swaps[k] : e)) } };
   }
   ST.routine = next;
-  sched().swaps = {};
+  sched().swaps = onlyDay ? Object.fromEntries(Object.entries(swaps).filter(([k]) => !entries.includes(k))) : {};
   save();
   return entries.length;
 }
@@ -215,13 +216,29 @@ function ensureWeek() {
   if (first || !s.week) { s.week = wk; save(); return false; }
   if (s.week === wk) return false;
 
+  /* Um treino em curso atravessou a semana: o dia dele guarda marcas e trocas (só para ele; saem quando
+     o utilizador o terminar, ver session.js). O resto repõe-se como sempre. */
+  const live = liveDay();
+  const carried = k => !!live && k.startsWith(`${live}:`);
+  const pick = o => Object.fromEntries(Object.entries(o || {}).filter(([k]) => carried(k)));
+  const keptSwaps = pick(s.swaps);
+  s.swaps = Object.fromEntries(Object.entries(s.swaps || {}).filter(([k]) => !carried(k)));
   restoreSwaps();
-  ST.sets = {};
-  ST.done = {};
-  ST.sched = { week: wk, done: {}, swaps: {}, replaced: {} };
+  ST.sets = pick(ST.sets);
+  ST.done = pick(ST.done);
+  ST.sched = { week: wk, done: {}, swaps: keptSwaps, replaced: {} };
   save();
   return true;
 }
+
+/* Uma sessão que atravessou o reset semanal guardou marcas e trocas do seu dia; ao terminar (concluída ou
+   descartada, por decisão do utilizador) já não pertencem a esta semana. A semana do treino vem da data de início. */
+onSessionEnd(s => {
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(s.date || '') ? new Date(`${s.date}T12:00:00`) : new Date(s.startedAt);
+  if (isNaN(d.getTime()) || weekKey(d) === weekKey()) return;   /* sem data fiável, não se limpa nada */
+  clearDayMarks(s.day);
+  restoreSwaps(s.day);
+});
 
 export {
   WEEKDAYS, SHORT, STATUS_ICON,

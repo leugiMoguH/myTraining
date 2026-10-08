@@ -49,7 +49,7 @@ try {
 
 /* ── 3. percorrer os ecrãs principais: apanha erros dentro dos render ────── */
 const { DAYS } = await import(new URL('routine.js', JS));
-const screens = ['__hoje', '__semana', ...Object.keys(DAYS), '__perfil', '__nutri'];
+const screens = ['__hoje', '__semana', '__hist', ...Object.keys(DAYS), '__perfil', '__nutri'];
 for (const s of screens) {
   try { globalThis.render(s); } catch (e) { fail.push(`render('${s}') rebentou: ${e.message}`); }
 }
@@ -274,7 +274,8 @@ try {
   check(S.currentDay() === 'Quarta', 'um dia de descanso devia ser ignorado pela fila');
   S.setRest('Terça', false);
 
-  /* reset semanal */
+  /* reset semanal (sem treino em curso: o percurso dos handlers pode ter deixado uma sessão viva) */
+  ST.session = null;
   ST.sched.week = '2000-W01';
   check(S.ensureWeek() === true, 'uma semana antiga devia disparar o reset');
   check(Object.keys(ST.done).length === 0, 'o reset semanal devia limpar as séries feitas');
@@ -422,6 +423,7 @@ try {
   S.reopenDay(fila);
   check(S.currentDay() === fila && S.dayStatus(fila) !== 'swapped', 'reabrir devia desfazer a substituição');
   const ant = JSON.stringify(ST.sched);
+  ST.session = null;
   ST.sched = JSON.parse(JSON.stringify({ ...JSON.parse(ant), week: '2000-W01', replaced: { [fila]: '2000-01-03' } }));
   check(S.ensureWeek() && Object.keys(ST.sched.replaced).length === 0, 'o reset semanal devia limpar as substituições');
   delete ST.sched.replaced;
@@ -487,11 +489,12 @@ for (const f of files)
   check(!X.pauseSession() && !X.completeSession(), 'não se pausa nem conclui o que não começou');
   check(X.startSession('Segunda', 'Peito') && X.sessionState() === 'ACTIVE', 'iniciar devia dar ACTIVE');
   check(!X.startSession('Terça', 'x') && ST.session.day === 'Segunda', 'não pode haver duas sessões vivas');
-  check(X.pauseSession() && X.sessionState() === 'PAUSED' && ST.session.resumedAt === 0, 'pausar devia dar PAUSED');
-  const parado = X.activeMs(Date.now() + 60000);
-  check(parado === X.activeMs(Date.now()) && !X.pauseSession(), 'em pausa o tempo efetivo não corre');
-  check(X.resumeSession() && X.sessionState() === 'ACTIVE', 'retomar devia dar ACTIVE');
-  check(X.activeMs(Date.now() + 60000) >= 59000, 'ACTIVE conta tempo por timestamp');
+  check(X.pauseSession() && X.sessionState() === 'PAUSED' && ST.session.pauseAt > 0, 'pausar devia dar PAUSED');
+  check(!X.pauseSession(), 'não se pausa o que já está em pausa');
+  const emPausa = X.timeStats(Date.now() + 60000).duration;
+  check(emPausa === X.timeStats(Date.now()).duration, 'em pausa a duração não corre');
+  check(X.resumeSession() && X.sessionState() === 'ACTIVE' && ST.session.pauseAt === 0, 'retomar devia dar ACTIVE');
+  check(X.timeStats(Date.now() + 60000).duration >= 59000, 'ACTIVE conta tempo por timestamp');
   /* sobrevive a refresh: só o localStorage conta, nada em memória */
   const gravado = JSON.parse(localStorage.getItem('treino_v2')).session;
   check(gravado && gravado.state === 'ACTIVE' && gravado.id === ST.session.id, 'sessão não ficou persistida');
@@ -541,30 +544,87 @@ for (const f of files)
   logSet('Remo', 45, 5);
   check(getLog('Remo')[1].w === 45, 'logSet manual continua a funcionar');
 
-  /* recuperação: pausa no último sinal de vida, nunca conclui; é idempotente */
-  X.startSession('Segunda', 'Peito');
-  const t0 = ST.session.resumedAt;
-  X.touchSession(t0 + 10 * 60000);
-  check(!X.reconcileSession(t0 + 20 * 60000) && X.sessionState() === 'ACTIVE', 'dentro do intervalo não se mexe');
-  const longe = t0 + 10 * 60000 + X.IDLE_GAP_MS + 5 * 60000;
-  check(X.reconcileSession(longe) && X.sessionState() === 'PAUSED', 'sem sinal de vida há muito → PAUSED (nunca COMPLETED)');
-  check(X.activeMs(longe) === 10 * 60000 && ST.workouts.length === 2, 'só conta o tempo até ao último sinal de vida; nada concluído');
-  check(!X.reconcileSession(longe + 1e7) && X.activeMs(longe + 1e7) === 10 * 60000, 'reconcile é idempotente');
-  X.setSessionPos(3);
-  check(ST.session.pos === 3, 'posição do exercício persistida');
-  check(!X.staleSession(longe), 'sessão de hoje não é stale');
-  ST.session = { ...ST.session, date: '2020-01-01', seenAt: longe - 3 * 3600000 };
-  check(X.staleSession(longe), 'sessão viva de outro dia e parada há muito é stale');
-  ST.session = { ...ST.session, date: '2020-01-01', seenAt: longe - 60000 };
-  check(!X.staleSession(longe), 'treino a atravessar a meia-noite não é stale');
-  /* fechada durante um dia inteiro: reconciliar ANTES de descartar, o dia parado não conta */
-  ST.session = null; X.startSession('Segunda', 'x');
-  const r0 = ST.session.resumedAt;
-  X.touchSession(r0 + 5 * 60000);
-  X.reconcileSession(r0 + 24 * 3600000); X.abandonSession();
-  check(ST.workouts[ST.workouts.length - 1].activeMs === 5 * 60000, 'sessão descartada depois de 24 h fechada só conta o tempo até ao último sinal de vida');
+  /* ── tempo: decorrido / pausado / duração / confirmado / sem registo ── */
+  const T0 = 1_000_000, MIN = 60000;
+  const base = { id: 'f', day: 'Segunda', label: '', state: 'ACTIVE', date: '2026-01-05', startedAt: T0, seenAt: T0, confirmedMs: 0, pausedMs: 0, pauseAt: 0, endedAt: 0, pos: 0 };
+  let t = X.statsOf({ ...base, confirmedMs: 10 * MIN }, T0 + 60 * MIN);
+  check(t.elapsed === 60 * MIN && t.paused === 0 && t.duration === 60 * MIN && t.confirmed === 10 * MIN && t.unknown === 50 * MIN, 'sem pausas: duração = decorrido; o que não foi confirmado fica "sem registo", nunca se junta');
+  t = X.statsOf({ ...base, state: 'PAUSED', pausedMs: 5 * MIN, pauseAt: T0 + 30 * MIN, confirmedMs: 20 * MIN }, T0 + 60 * MIN);
+  check(t.paused === 35 * MIN && t.duration === 25 * MIN && t.confirmed === 20 * MIN && t.unknown === 5 * MIN, 'pausa em curso conta como pausada; duração exclui-a');
+  check(X.statsOf({ ...base, confirmedMs: 999 * MIN }, T0 + MIN).confirmed === MIN, 'confirmado nunca excede a duração');
+  ST.session = { ...base, seenAt: T0 };
+  X.touchSession(T0 + 10000);
+  check(ST.session.confirmedMs === 10000 && ST.session.seenAt === T0 + 10000, 'sinal normal soma o intervalo');
+  X.touchSession(T0 + 10000 + 20 * MIN);
+  check(ST.session.confirmedMs === 10000 + X.CREDIT_CAP_MS, 'um sinal depois de longa ausência só soma o teto (30 s): o intervalo escondido não se confirma');
+  const antesC = ST.session.confirmedMs;
+  X.touchSession(T0 + 40 * MIN, false);
+  check(ST.session.confirmedMs === antesC && ST.session.seenAt === T0 + 40 * MIN, 'regresso à app (sem crédito) não confirma o intervalo');
+  ST.session = { ...base, state: 'PAUSED', pauseAt: T0 + MIN };
+  X.touchSession(T0 + 5 * MIN);
+  check(ST.session.confirmedMs === 0, 'em pausa nada se confirma');
+  check(X.isIdle(T0 + 5 * MIN + X.IDLE_HINT_MS + 1) && !X.isIdle(T0 + 6 * MIN), 'limiar de aviso: só informa, não altera dados');
+  /* encerrar na hora da última atividade (decisão explícita) e fechar uma pausa em curso */
+  ST.session = { ...base, seenAt: T0 + 20 * MIN, confirmedMs: 15 * MIN };
+  X.completeSession(T0 + 20 * MIN);
+  const w1 = ST.workouts[ST.workouts.length - 1];
+  check(w1.state === 'COMPLETED' && w1.endedAt === T0 + 20 * MIN && X.statsOf(w1).duration === 20 * MIN, 'encerrar à última atividade fixa o fim aí');
+  ST.session = { ...base, state: 'PAUSED', pauseAt: T0 + 10 * MIN, seenAt: T0 + 10 * MIN };
   X.abandonSession();
-  check(X.finishedToday(ST.session.day) === (ST.session.date === todayStr()), 'finishedToday segue a data');
+  const w2 = ST.workouts[ST.workouts.length - 1];
+  check(w2.pauseAt === 0 && X.statsOf(w2).paused === w2.endedAt - (T0 + 10 * MIN), 'terminar em pausa fecha a pausa');
+  /* sessão da versão anterior (activeMs/resumedAt) lê-se sem perder dados */
+  ST.session = { id: 'old', day: 'Segunda', state: 'PAUSED', date: '2026-01-05', startedAt: T0, resumedAt: 0, activeMs: 10 * MIN, endedAt: 0, seenAt: T0 + 10 * MIN };
+  check(X.sessionState() === 'PAUSED' && X.timeStats(T0 + 60 * MIN).duration === 10 * MIN, 'formato antigo em pausa: a pausa não se desconta duas vezes');
+  const antigoFim = { id: 'o2', day: 'Segunda', state: 'COMPLETED', startedAt: T0, endedAt: T0 + 60 * MIN, activeMs: 10 * MIN, resumedAt: 0 };
+  check(X.statsOf(antigoFim).duration === 10 * MIN && X.statsOf(antigoFim).paused === 50 * MIN, 'histórico antigo (activeMs) lê-se com a duração certa');
+  X.resumeSession();
+  check(X.sessionState() === 'ACTIVE', 'sessão antiga retoma-se');
+  /* a sessão fixa a data de INÍCIO: um treino que passa a meia-noite não se parte em dois dias */
+  ST.session = { ...base, date: '2026-01-05', day: 'Segunda' }; ST.log = {};
+  addSetLog('Remada', 40, 10, false, 'Segunda:0', 'Segunda');
+  addSetLog('Remada', 40, 9, false, 'Segunda:1', 'Segunda');
+  check(Object.keys(ST.log.Remada.reduce((o, e) => ({ ...o, [e.date]: 1 }), {})).join() === '2026-01-05' && ST.log.Remada[0].sets.length === 2, 'séries depois da meia-noite ficam na data de início, numa só entrada');
+  check(ST.log.Remada[0].sets.every(x => x.sid === 'f'), 'cada série fica associada à sessão');
+  addSetLog('Remada', 40, 8, false, 'Terça:0', 'Terça');
+  check(ST.log.Remada.some(e => e.date === todayStr()), 'treino de OUTRO dia continua a registar na data de hoje');
+  removeSetLog('Remada', 'Segunda:1', 'Segunda');
+  check(ST.log.Remada.find(e => e.date === '2026-01-05').sets.length === 1, 'desmarcar encontra a série na data da sessão');
+  /* uma marca sem carga nunca apaga a carga da mesma série noutra semana; o registo manual leva o sid da sessão */
+  ST.session = null;
+  ST.log = { Press: [{ date: '2025-12-01', w: 50, r: 8, sets: [{ w: 50, r: 8, k: 'Segunda:0' }] }] };
+  check(!removeSetLog('Press', 'Segunda:0', 'Segunda') && ST.log.Press.length === 1, 'desmarcar não apaga cargas de outra semana');
+  ST.session = { ...base, day: 'Segunda', date: todayStr() }; ST.log = {};
+  logSet('Press', 60, 5, false, 'Segunda');
+  check(ST.log.Press[0].sets[0].sid === 'f', 'registo manual numa sessão viva leva o sid dela');
+  ST.session = null; ST.log = {};
+  /* reset semanal com treino em curso: o dia da sessão guarda marcas e trocas até ela acabar */
+  const Sc = await import(new URL('schedule.js', JS));
+  ST.sched = { week: '2020-W01', done: { Segunda: 'x' }, swaps: {}, replaced: {} };
+  ST.sets = { 'Segunda:0': [0, 1], 'Terça:0': [0] }; ST.done = { 'Segunda:0': true, 'Terça:0': true };
+  ST.session = { ...base, date: '2020-01-01', day: 'Segunda' };
+  check(Sc.ensureWeek() === true && JSON.stringify(ST.sets) === JSON.stringify({ 'Segunda:0': [0, 1] }) && ST.done['Segunda:0'] === true && !ST.done['Terça:0'], 'reset semanal limpa tudo MENOS o dia da sessão viva');
+  X.completeSession();
+  check(!ST.sets['Segunda:0'] && !ST.done['Segunda:0'], 'ao terminar uma sessão que atravessou a semana, as marcas dela saem');
+  /* sessão antiga sem data fiável: nunca limpa marcas por engano */
+  ST.sets = { 'Segunda:0': [0] }; ST.done = {};
+  ST.session = { ...base, date: undefined, startedAt: Date.now() - 1000, day: 'Segunda' };
+  X.completeSession();
+  check(ST.sets['Segunda:0'], 'sessão sem data (iniciada agora) não limpa marcas da semana corrente');
+  /* trocas temporárias do dia da sessão também ficam até ela acabar, e voltam ao original quando acaba */
+  const orig = JSON.stringify(ST.routine.Segunda.ex[0]);
+  const trocado = { ...ST.routine.Segunda.ex[0], name: 'Exercício trocado' };
+  ST.routine = { ...ST.routine, Segunda: { ...ST.routine.Segunda, ex: [trocado, ...ST.routine.Segunda.ex.slice(1)] } };
+  ST.sched = { week: '2020-W01', done: {}, swaps: { 'Segunda:0': JSON.parse(orig) }, replaced: {} };
+  ST.session = { ...base, date: '2020-01-01', day: 'Segunda', state: 'ACTIVE' };
+  Sc.ensureWeek();
+  check(ST.routine.Segunda.ex[0].name === 'Exercício trocado' && ST.sched.swaps['Segunda:0'], 'a troca do dia da sessão viva atravessa a semana');
+  X.completeSession();
+  check(JSON.stringify(ST.routine.Segunda.ex[0]) === orig && !ST.sched.swaps['Segunda:0'], 'ao terminar, a troca antiga volta ao original');
+  ST.sched = { week: Sc.weekKey(), done: {}, swaps: {}, replaced: {} };
+  ST.sets = {}; ST.done = {};
+  ST.session = { ...base, state: 'COMPLETED', endedAt: Date.now(), date: '2020-01-01' };
+  check(X.finishedToday('Segunda'), 'treino que acabou hoje conta como terminado hoje, mesmo tendo começado ontem');
   ST.session = { state: 'LIXO' };
   check(X.sessionState() === 'NOT_STARTED' && !X.isLive(), 'sessão malformada é ignorada');
   ST.session = null; ST.workouts = []; ST.log = {};

@@ -1,26 +1,26 @@
 /* myTraining — navegação inferior + faixa "treino em curso".
-   Cinco destinos: Início · Evolução · [Treino] · Semana · Opções.
+   Cinco destinos: Início · Evolução · [Treino] · Histórico · Opções.
    O botão central só controla a SESSÃO (iniciar / pausar / retomar), nunca o descanso.
    Tudo o que mostra deriva de ST.session e ST.view: não guarda estado próprio. */
 import { CUSTOM_DAY, DAYS } from './routine.js';
 import { agenda, dayStatus } from './schedule.js';
-import { ACTIVE, PAUSED, abandonSession, activeMs, currentSession, finishedToday, fmtDur, isLive, onSessionChange, pauseSession, reconcileSession, resumeSession, sessionState, staleSession, touchSession } from './session.js';
+import { ACTIVE, PAUSED, abandonSession, completeSession, currentSession, durationMs, finishedToday, fmtDur, idleMs, isIdle, isLive, onSessionChange, pauseSession, resumeSession, sessionState, touchSession } from './session.js';
 import { ST } from './state.js';
 import { render } from './ui.js';
 import { openSheet } from './backup.js';
-import { openWorkout, refreshWorkout, startWorkout } from './workout.js';
+import { closeWorkout, openWorkout, refreshWorkout, startWorkout } from './workout.js';
 
 const SIDE = [
   { id: '__hoje',   icon: '🏠', label: 'Início' },
   { id: '__perfil', icon: '📈', label: 'Evolução' },
   { id: 'main' },
-  { id: '__semana', icon: '📅', label: 'Semana' },
+  { id: '__hist',   icon: '📅', label: 'Histórico' },
   { id: 'opts',     icon: '⚙️', label: 'Opções' },
 ];
-const HEARTBEAT_MS = 15000;
+const HEARTBEAT_S = 15;
 
 /* Treino "selecionado": o dia que o utilizador está a ver, ou o da agenda. Nunca um arbitrário:
-   sem nenhum (descanso, semana fechada) o botão encaminha para a Semana. */
+   sem nenhum (descanso, semana fechada) o botão encaminha para o Histórico (onde está a Semana). */
 function selectedDay() {
   if (ST.view === '__pers') { const c = DAYS[CUSTOM_DAY]; return c && c.ex && c.ex.length ? CUSTOM_DAY : null; }
   if (ST.view === '__dia' && DAYS[ST.day] && dayStatus(ST.day) !== 'rest') return ST.day;
@@ -28,9 +28,21 @@ function selectedDay() {
   return !a.allDone && a.current && !(a.restToday && !a.late) ? a.current : null;
 }
 
+const openable = s => !!(DAYS[s.day] && DAYS[s.day].ex && DAYS[s.day].ex.length);
+
+/* Sessão que o plano atual já não consegue mostrar (dia sem exercícios, personalizado desfeito): nada se
+   perde nem se fecha sozinho. As cargas já estão em ST.log; o utilizador escolhe, com confirmação. */
+function recoverBlocked(s) {
+  const quando = `${s.day} (${s.date})`;
+  if (confirm(`O treino de ${quando} já não existe no plano atual e não pode ser retomado.\n\nEncerrar guarda-o no histórico com as cargas já registadas. Encerrar agora?`)) { completeSession(); return; }
+  if (confirm(`Descartar o treino de ${quando}? Fica marcado como descartado; as cargas registadas ficam no histórico.`)) abandonSession();
+}
+
 function openLive() {
   const s = currentSession();
-  if (s) openWorkout(s.day, s.pos);
+  if (!s) return;
+  if (!openable(s)) { recoverBlocked(s); return; }
+  openWorkout(s.day, s.pos);
 }
 
 function navMain() {
@@ -38,15 +50,22 @@ function navMain() {
   if (st === ACTIVE) { pauseSession(); return; }
   if (st === PAUSED) { resumeSession(); openLive(); return; }
   const day = selectedDay();
-  if (!day) { render('__semana'); return; }
+  if (!day) { render('__hist'); return; }
   if (finishedToday(day)) { render('__hoje'); return; }   /* terminado hoje: nada de reiniciar sozinho */
   startWorkout(day);
 }
 
 function navOpts() { openSheet(); }
 
+const hhmm = ts => new Date(ts).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+
+/* encerrar à hora da última atividade: decisão explícita, o tempo seguinte não conta */
+function navEnd() {
+  const s = currentSession();
+  if (s && confirm(`Encerrar o treino às ${hhmm(s.seenAt)} (última atividade)? O tempo depois dessa hora não conta.`)) completeSession(s.seenAt);
+}
 function navAbandon() {
-  if (confirm('Descartar este treino por terminar? As séries já registadas ficam guardadas.')) abandonSession();
+  if (confirm('Descartar este treino? Fica marcado como descartado; as séries e cargas já registadas ficam guardadas.')) abandonSession();
 }
 
 function mainFace() {
@@ -73,8 +92,20 @@ function buildNav() {
     row.appendChild(b);
   });
   document.getElementById('navLive').onclick = openLive;
+  document.getElementById('navEnd').onclick = navEnd;
   document.getElementById('navDrop').onclick = navAbandon;
+  document.getElementById('navEnd').title = 'Encerrar à hora da última atividade';
+  document.getElementById('navDrop').title = 'Descartar treino';
   syncNav();
+}
+
+/* 'há 3 h 05' / 'há 12 min' — nunca '3:00', que parece um cronómetro */
+function fmtIdle(ms) { const m = Math.floor(ms / 60000); return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}` : `${m} min`; }
+
+function liveText(s) {
+  const d = fmtDur(durationMs());
+  if (isIdle()) return `⏳ Sem atividade há ${fmtIdle(idleMs())} · ${s.day} ${s.date.slice(5).split('-').reverse().join('/')}`;
+  return `${s.state === PAUSED ? '⏸ Em pausa' : '● Em curso'} · ${s.day} · ${d}`;
 }
 
 function syncNav() {
@@ -85,8 +116,8 @@ function syncNav() {
     main.setAttribute('aria-label', f.label === 'Treino' ? 'Escolher treino' : `${f.label} treino`);
     main.innerHTML = `<span class="nb-i" aria-hidden="true">${f.icon}</span><span class="nb-l">${f.label}</span>`;
   }
-  /* o ecrã atual: um dia concreto conta como "Semana"; a Nutrição vive nas Opções */
-  const at = ST.view === '__dia' ? '__semana' : ST.view === '__pers' ? '__hoje' : ST.view;
+  /* o ecrã atual: um dia concreto conta como Histórico (vem da Semana); a Nutrição vive nas Opções */
+  const at = ST.view === '__dia' || ST.view === '__semana' ? '__hist' : ST.view === '__pers' ? '__hoje' : ST.view;
   document.querySelectorAll('.nb[data-day]').forEach(b => {
     const on = b.dataset.day === at;
     b.classList.toggle('active', on);
@@ -101,15 +132,15 @@ function syncNav() {
   const viewOpen = document.getElementById('woBg').classList.contains('show');
   const show = isLive() && !viewOpen;
   live.hidden = !show;
-  document.getElementById('navDrop').hidden = !(show && staleSession());
-  if (show) {
-    const s = currentSession(), stale = staleSession();
-    const state = stale ? `⏳ Treino de ${s.date} por terminar` : s.state === PAUSED ? '⏸ Em pausa' : '● Em curso';
-    live.querySelector('.nl-t').textContent = `${state} · ${s.day} · ${fmtDur(activeMs())}`;
-  }
+  const idle = show && isIdle();
+  document.getElementById('navEnd').hidden = !idle;     /* encerrar na última atividade: só se esteve parado */
+  document.getElementById('navDrop').hidden = !show;    /* descartar: sempre explícito, sempre à mão */
+  if (show) live.querySelector('.nl-t').textContent = liveText(currentSession());
 }
 
-/* relógio da faixa + sinal de vida (usado para não contar como treino o tempo com a app morta) */
+/* relógio da faixa + sinal de vida. O sinal só conta com a app visível e SEM longa ausência: depois de
+   uma ausência longa é o utilizador (abrir/retomar/registar) que o reativa, nunca o temporizador. */
+let beat = 0;
 const isEditable = el => !!el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
 /* Teclado virtual aberto = campo em foco E área visível bem mais baixa que a maior já vista com esta
    largura (reset ao rodar o ecrã). No desktop, sem teclado virtual, a barra nunca se esconde. */
@@ -122,20 +153,27 @@ function keyboardOpen() {
 }
 function updateKb() { document.body.classList.toggle('kb', keyboardOpen()); }
 
-let beat = 0;
 function tick() {
   updateKb();
   if (isLive()) syncNav();
-  if (!document.hidden && ++beat % (HEARTBEAT_MS / 1000) === 0) touchSession();
+  if (!document.hidden && !isIdle() && ++beat % HEARTBEAT_S === 0) touchSession();
 }
 
 function initNav() {
   buildNav();
   onSessionChange(syncNav);
   setInterval(tick, 1000);
-  const stamp = () => touchSession();
-  document.addEventListener('visibilitychange', () => { if (document.hidden) stamp(); else { reconcileSession(); refreshWorkout(); syncNav(); } });
-  window.addEventListener('pagehide', stamp);
+  /* escondida: último sinal (com crédito). De volta: sem crédito pelo intervalo, e só se não esteve parado muito tempo */
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) touchSession();
+    else {
+      /* ausência longa: a vista guiada fecha-se para a faixa oferecer, de forma explícita, abrir/encerrar/descartar */
+      if (isIdle()) { if (document.getElementById('woBg').classList.contains('show')) closeWorkout(); }
+      else touchSession(Date.now(), false);
+      refreshWorkout(); syncNav();
+    }
+  });
+  window.addEventListener('pagehide', () => touchSession());
   /* teclado virtual aberto: esconde a barra em vez de a deixar a flutuar sobre os campos.
      Deriva de document.activeElement (não de eventos): se o campo for removido sem blur, a barra volta. */
   document.addEventListener('focusin', updateKb);

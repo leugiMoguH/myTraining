@@ -14,6 +14,7 @@ import { agenda, completeDay, dayStatus, reopenDay, swapOriginal } from './sched
 import { ST, esc, getLog, getProgress, getSets, key, markDone, resetDay, save, toggleSet } from './state.js';
 import { REST_SEC, timerStart } from './timer.js';
 import { syncNav } from './nav.js';
+import { fmtDur, statsOf } from './session.js';
 import { startWorkout } from './workout.js';
 
 /* ═══════════════════════ RENDER ═════════════════════ */
@@ -247,6 +248,23 @@ function renderWeek(content) {
   document.getElementById('progFill').style.width = `${a.days.length?(a.days.filter(d=>d.status==='done'||d.status==='swapped').length/a.days.filter(d=>d.status!=='rest').length)*100:0}%`;
 }
 
+/* Histórico: a Semana (agenda) e os treinos terminados. O histórico completo vem depois. */
+function renderHistory(content) {
+  renderWeek(content);
+  const rows = (ST.workouts || []).filter(w => w.state === 'COMPLETED' || w.state === 'ABANDONED').slice(-10).reverse().map(w => {
+    const t = statsOf(w);
+    const extra = [t.paused >= 1000 ? `pausa ${fmtDur(t.paused)}` : '', t.unknown >= 1000 ? `sem registo ${fmtDur(t.unknown)}` : ''].filter(Boolean).join(' · ');
+    return `<div class="wk-row"><div class="wk-row-main">
+      <div class="wk-row-day">${esc(String(w.date || '').split('-').reverse().join('/'))} · ${esc(w.day)}</div>
+      <div class="wk-row-sub">${esc(w.label || '')} · ${fmtDur(t.duration)}${extra ? ' · ' + extra : ''}</div></div>
+      <div class="wk-row-st">${w.state === 'COMPLETED' ? 'Concluído' : 'Descartado'}</div></div>`;
+  }).join('');
+  const box = document.createElement('div');
+  box.className = 'full';
+  box.innerHTML = `<div class="cu-title">Treinos recentes</div><div class="week-list">${rows || '<div class="sched-note">Ainda não há treinos terminados.</div>'}</div>`;
+  content.appendChild(box);
+}
+
 /* Um dia concreto. `standalone` a falso = está embutido no ecrã "Hoje". */
 function renderDay(content, day, standalone = true) {
   if (standalone) {
@@ -312,6 +330,7 @@ function goDay(day) { render(day); }
 
 /* `target` é um dia da rotina ou um dos ecrãs `__…`. */
 function render(target) {
+  if (target === '__semana') target = '__hist';   /* ecrã antigo, agora dentro do Histórico */
   const content = document.getElementById('content');
   const isView = String(target).startsWith('__');
 
@@ -328,10 +347,10 @@ function render(target) {
 
   if (target === '__nutri') { renderNutri(content); return; }
   if (target === '__perfil'){ renderProfile(content); return; }
-  if (target === '__semana'){ renderWeek(content); return; }
+  if (target === '__hist')  { renderHistory(content); return; }
   if (target === '__hoje')  { renderToday(content); return; }
   if (target === '__pers')  { renderCustom(content); return; }
   renderDay(content, target);
 }
 
-export { refreshProgress, refreshCard, buildCard, gifSlide, render, renderDay, renderToday, renderWeek, goDay, toggleDayDone };
+export { refreshProgress, refreshCard, buildCard, gifSlide, render, renderDay, renderToday, renderWeek, renderHistory, goDay, toggleDayDone };

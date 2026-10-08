@@ -144,6 +144,8 @@ body.kb #bnav { display: none; }
 .nb-main .nb-i { font-size: 24px; }
 .nav-livewrap { display: flex; align-items: stretch; max-width: 640px; margin: 0 auto; border-bottom: 1px solid var(--border); }
 .nav-livewrap[hidden], .nav-live[hidden], .nav-drop[hidden] { display: none; }
+.nav-live .nl-t { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-live > span:last-child { flex: none; margin-left: 10px; white-space: nowrap; }
 .nav-live { flex: 1; min-height: 44px; background: rgba(239,68,68,0.10); border: 0; color: var(--text); font-family: inherit; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; cursor: pointer; }
 .nav-drop { flex: none; width: 48px; border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; }
 #content { padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important; }
@@ -631,6 +633,7 @@ body.kb #bnav { display: none; }
 .wo-hint b { color: var(--text); }
 .wo-info { align-self: flex-start; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: var(--r-sm); cursor: pointer; }
 .wo-clock { font-variant-numeric: tabular-nums; color: var(--text); margin-right: 44px; }
+.wo-stats { font-size: 11px; color: var(--muted); margin-top: -6px; }
 .wo-clock.paused { color: var(--accent2); }
 .wo-step { width: 44px; height: 52px; flex: none; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 22px; font-weight: 700; cursor: pointer; }
 .wo-load .load-in { min-width: 0; flex: 1; text-align: center; }
@@ -759,7 +762,7 @@ body.kb #bnav { display: none; }
 
 <!-- NAVEGAÇÃO INFERIOR (js/nav.js) -->
 <nav id="bnav" aria-label="Navegação principal">
-  <div class="nav-livewrap"><button id="navLive" class="nav-live" type="button" hidden><span class="nl-t"></span><span>Abrir ›</span></button><button id="navDrop" class="nav-drop" type="button" hidden aria-label="Descartar treino por terminar">✕</button></div>
+  <div class="nav-livewrap"><button id="navLive" class="nav-live" type="button" hidden><span class="nl-t"></span><span>Abrir ›</span></button><button id="navEnd" class="nav-drop" type="button" hidden aria-label="Encerrar o treino à hora da última atividade">✓</button><button id="navDrop" class="nav-drop" type="button" hidden aria-label="Descartar treino por terminar">✕</button></div>
   <div class="nav-row" id="navRow"></div>
 </nav>
 

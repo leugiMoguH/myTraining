@@ -22,7 +22,7 @@ import { MUSCLES } from './charts.js';
 import { CUSTOM_DAY, dayNames, exercisesOf, findExercise, removeExercise } from './routine.js';
 import { EQUIPMENT, GROUPS, keyOf, recency, suggest } from './suggest.js';
 import { replaceCurrent, slotToReplace } from './schedule.js';
-import { endSessionOf } from './session.js';
+import { endSessionOf, liveDay } from './session.js';
 import { ST, esc, getLog, getSets, save, todayStr } from './state.js';
 import { buildCard, refreshProgress, render } from './ui.js';
 
@@ -34,7 +34,9 @@ const PICK = { sel: [], msg: '', busy: false, warmed: false };
 const valid = c => !!c && typeof c === 'object' && Array.isArray(c.ex) && typeof c.date === 'string';
 
 /* Há um treino personalizado de hoje por terminar. */
-function isLive() { return valid(ST.custom) && ST.custom.date === todayStr() && ST.custom.stage !== 'done'; }
+/* Um personalizado com o treino guiado em curso não caduca à meia-noite: só acaba quando o utilizador o conclui ou descarta. */
+function carried() { return valid(ST.custom) && ST.custom.stage !== 'done' && liveDay() === CUSTOM_DAY; }
+function isLive() { return valid(ST.custom) && ST.custom.stage !== 'done' && (ST.custom.date === todayStr() || carried()); }
 
 /* Tira só as séries do treino personalizado — as do plano ficam como estão. */
 function clearCustomProgress() {
@@ -47,7 +49,7 @@ function dropCustom() { clearCustomProgress(); ST.custom = null; save(); endSess
 
 /* De um dia para o outro (ou com dados estranhos) o treino personalizado caduca. */
 function expireCustom() {
-  if (ST.custom && !(valid(ST.custom) && ST.custom.date === todayStr())) dropCustom();
+  if (ST.custom && !(valid(ST.custom) && ST.custom.date === todayStr()) && !carried()) dropCustom();
 }
 
 /* ── dados para a sugestão ────────────────────────────────────────────────── */

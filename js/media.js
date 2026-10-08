@@ -33,7 +33,7 @@ const DEMO_BASE='https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exerc
 const DEMOS={
   "Supino reto":"Barbell_Bench_Press_-_Medium_Grip",
   "Supino inclinado":"Barbell_Incline_Bench_Press_-_Medium_Grip",
-  "Crucifixo":"Dumbbell_Flyes",
+  "Crucifixo":"Butterfly",
   "Paralelas":"Dips_-_Chest_Version",
   "Tríceps corda":"Triceps_Pushdown_-_Rope_Attachment",
   "Tríceps testa":"EZ-Bar_Skullcrusher",
@@ -60,7 +60,11 @@ const DEMOS={
   "Puxada alta":"Wide-Grip_Lat_Pulldown",
   "Agachamento goblet":"Goblet_Squat",
   "Braços":"Barbell_Curl",
-  "Core":"Plank"
+  "Core":"Plank",
+  "Arnold press":"Arnold_Dumbbell_Press",
+  "Tríceps francês":"Standing_Dumbbell_Triceps_Extension",
+  "Rosca martelo":"Hammer_Curls",
+  "Rosca polia":"Standing_Biceps_Cable_Curl"
 };
 function demoUrl(dir,n){ return DEMO_BASE+dir+'/'+n+'.jpg'; }
 function demoSlide(dir,name){

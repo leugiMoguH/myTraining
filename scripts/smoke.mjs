@@ -116,7 +116,7 @@ try {
   const D = 'Segunda';
   const nomes = () => R.exercisesOf(D).map(e => e.name);
 
-  if (R.exercisesOf(D).length !== 6) fail.push(`rotina semeada com ${R.exercisesOf(D).length} exercícios (esperado 6)`);
+  if (R.exercisesOf(D).length !== 7) fail.push(`rotina semeada com ${R.exercisesOf(D).length} exercícios (esperado 7)`);
 
   /* marcar séries no 1.º e no 3.º, depois mexer na lista à volta deles */
   ST.sets[key(D, 0)] = [0, 1];
@@ -132,7 +132,7 @@ try {
   R.removeExercise(D, 0);                        /* apagar o que ficou em 1.º */
   if (nomes()[0] !== a) fail.push('removeExercise apagou o exercício errado');
   if (!ST.done[key(D, 0)]) fail.push('removeExercise não reindexou o progresso');
-  if (R.exercisesOf(D).length !== 5) fail.push('removeExercise não encurtou a lista');
+  if (R.exercisesOf(D).length !== 6) fail.push('removeExercise não encurtou a lista');
 
   const antes = R.exercisesOf(D).length;
   R.addExercise(D, { name: 'Teste smoke', s: 3, r: '8-12', catalogId: '0001' });
@@ -146,7 +146,7 @@ try {
 
   R.removeExercise(D, R.exercisesOf(D).length - 1);
   R.resetRoutine();
-  if (R.exercisesOf(D).length !== 6) fail.push('resetRoutine não repôs o plano original');
+  if (R.exercisesOf(D).length !== 7) fail.push('resetRoutine não repôs o plano original');
   if (Object.keys(ST.done).length) fail.push('resetRoutine deixou progresso para trás');
   if (nomes()[2] !== c) fail.push('resetRoutine repôs uma ordem diferente da original');
 } catch (e) {

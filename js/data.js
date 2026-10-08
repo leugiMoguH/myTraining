@@ -17,6 +17,7 @@ const DEFAULT_DAYS = {
       { name:"Mesa flexora",      s:3, r:"12",    tip:"Contrai os isquiotibiais no topo. Desce de forma controlada.", alt:"Leg curl em pé" },
       { name:"Arnold press",      s:3, r:"10-12", tip:"Roda as palmas ao subir, de frente para ti até à frente. Sem arquear as costas.", alt:"Desenvolvimento com halteres" },
       { name:"Elevação lateral",  s:3, r:"10-12", tip:"Cotovelos ligeiramente fletidos. Sem usar balanço.", alt:"Elevação lateral no cabo" },
+      { name:"Panturrilha", s:2, r:"15", tip:"Amplitude completa. Aguenta 2s no ponto máximo.", alt:"Panturrilha sentado ou no leg press" },
       CARDIO
     ]
   },

@@ -636,6 +636,14 @@ body {
 .wo-hint { font-size: 14px; color: var(--accent2); font-weight: 600; }
 .wo-hint b { color: var(--text); }
 .wo-info { align-self: flex-start; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text); font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: var(--r-sm); cursor: pointer; }
+.wo-clock { font-variant-numeric: tabular-nums; color: var(--text); margin-right: 44px; }
+.wo-clock.paused { color: var(--accent2); }
+.wo-step { width: 44px; height: 52px; flex: none; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 22px; font-weight: 700; cursor: pointer; }
+.wo-load .load-in { min-width: 0; flex: 1; text-align: center; }
+.wo-main { width: 100%; min-height: 64px; border-radius: var(--r); border: 0; background: var(--green); color: #000; font-size: 19px; font-weight: 800; cursor: pointer; }
+.wo-main.next { background: var(--accent); color: #fff; }
+.wo-row2 { display: flex; gap: 8px; }
+.wo-row2 .wo-navbtn { padding: 12px 6px; font-size: 13px; }
 .wo-nav { display: flex; gap: 10px; margin-top: 6px; }
 .wo-navbtn { flex: 1; padding: 15px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 15px; font-weight: 700; cursor: pointer; }
 .wo-navbtn:disabled { opacity: 0.35; }

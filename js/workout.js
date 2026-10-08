@@ -4,21 +4,60 @@ import { MUSCLES, bodySVG } from './charts.js';
 import { CUSTOM_DAY, DAYS } from './routine.js';
 import { openInfo } from './guide.js';
 import { DEMOS, demoUrl } from './media.js';
-import { progHint } from './progression.js';
-import { esc, getLog, getSets, logSet, save, toggleSet } from './state.js';
+import { configOf, progHint } from './progression.js';
+import { ACTIVE, PAUSED, activeMs, completeSession, fmtDur, isLive, pauseSession, resumeSession, sessionState, startSession } from './session.js';
+import { addSetLog, esc, getLog, getSets, logSet, todayStr, toggleSet, undoSetLog } from './state.js';
+import { timerDismiss } from './timer.js';
 import { render } from './ui.js';
 import { acquireWake, releaseWake, wakeWanted } from './wake.js';
 
 /* ═══════════ TREINO DE HOJE (guiado) ═══════════ */
-const WO={day:null,idx:0};
-function startWorkout(day){ if(!DAYS[day] || !DAYS[day].ex.length) return; WO.day=day; WO.idx=0; document.getElementById('woBg').classList.add('show'); acquireWake(); woRender(); }
-function closeWorkout(){ document.getElementById('woBg').classList.remove('show'); if(!wakeWanted) releaseWake(); render(WO.day); }
+const WO={day:null,idx:0,clock:null};
+const clockTxt=()=>fmtDur(activeMs());
+function startWorkout(day){
+  if(!DAYS[day] || !DAYS[day].ex.length) return;
+  WO.day=day; WO.idx=0;
+  if(!isLive()) startSession(day,DAYS[day].label);   /* só um toque do utilizador inicia a sessão */
+  document.getElementById('woBg').classList.add('show'); acquireWake(); woRender();
+  clearInterval(WO.clock); WO.clock=setInterval(()=>{ const c=document.getElementById('wo-clock'); if(c) c.textContent=clockTxt(); },1000);
+}
+/* fechar a vista não toca na sessão: continua ACTIVE/PAUSED */
+function closeWorkout(){ clearInterval(WO.clock); document.getElementById('woBg').classList.remove('show'); if(!wakeWanted) releaseWake(); render(WO.day); }
 function woGo(d){ const ex=DAYS[WO.day].ex; WO.idx=Math.max(0,Math.min(ex.length-1,WO.idx+d)); woRender(); }
 function woToggle(si){ toggleSet(WO.day,WO.idx,si); woRender(); }
 function woSaveLoad(){
   const w=document.getElementById('wo-w').value, r=document.getElementById('wo-r').value;
   if(logSet(DAYS[WO.day].ex[WO.idx].name,w,r,WO.day===CUSTOM_DAY)){ const b=document.querySelector('#woBody .load-save'); if(b){ b.textContent='✓'; setTimeout(()=>{b.textContent='Registar';},900); } }
   else alert('Indica kg e reps válidos.');
+}
+/* ajuste rápido: kg usa o salto do exercício, reps ±1 */
+function woStep(field,dir){
+  const el=document.getElementById(field==='w'?'wo-w':'wo-r'); if(!el) return;
+  const step=field==='w'?(configOf(DAYS[WO.day].ex[WO.idx].name).inc||2.5):1;
+  el.value=Math.max(0,Math.round(((parseFloat(el.value)||0)+dir*step)*100)/100)||'';
+}
+/* um toque: marca a próxima série, regista kg×reps (pré-preenchidos) e arranca o descanso */
+function woDoSet(){
+  if(sessionState()!==ACTIVE) return;
+  const ex=DAYS[WO.day].ex[WO.idx], sets=getSets(WO.day,WO.idx), total=typeof ex.s==='number'?ex.s:0;
+  const si=Array.from({length:total},(_,j)=>j).find(j=>!sets.includes(j));
+  if(si===undefined) return;
+  const w=document.getElementById('wo-w').value, r=document.getElementById('wo-r').value;
+  if(!addSetLog(ex.name,w,r,WO.day===CUSTOM_DAY)){ alert('Indica kg e reps válidos.'); return; }
+  toggleSet(WO.day,WO.idx,si);
+  woRender();
+}
+function woUndo(){
+  const ex=DAYS[WO.day].ex[WO.idx], sets=getSets(WO.day,WO.idx); if(!sets.length) return;
+  const t=getLog(ex.name).find(e=>e.date===todayStr()), logged=t&&t.sets?t.sets.length:0;
+  toggleSet(WO.day,WO.idx,Math.max(...sets));
+  if(logged>=sets.length) undoSetLog(ex.name);   /* só desfaz o registo se corresponder a esta série */
+  timerDismiss(); woRender();
+}
+function woPause(){ if(sessionState()===ACTIVE) pauseSession(); else resumeSession(); woRender(); }
+function woFinish(){
+  if(!confirm('Terminar o treino? Fica guardado no histórico.')) return;
+  completeSession(); closeWorkout();
 }
 function woRender(){
   const day=WO.day, i=WO.idx, ex=DAYS[day].ex[i], total=DAYS[day].ex.length;
@@ -29,22 +68,40 @@ function woRender(){
     ? `<img class="wo-img cat-gif" src="${gifUrlFor(ex.catalogId,ex.m)}" alt="" onerror="this.style.display='none'">`
     : (dmo?`<img class="wo-img" src="${demoUrl(dmo,0)}" alt="" onerror="this.style.display='none'">`:(mm?bodySVG(mm.p,mm.s):''));
   const sets=getSets(day,i), totalSets=typeof ex.s==='number'?ex.s:0;
-  const setBtns=totalSets?Array.from({length:totalSets},(_,si)=>`<button class="wo-set${sets.includes(si)?' on':''}" onclick="woToggle(${si})">${si+1}</button>`).join(''):'';
+  const setBtns=totalSets?Array.from({length:totalSets},(_,si)=>`<button class="wo-set${sets.includes(si)?' on':''}" onclick="woToggle(${si})" aria-label="Série ${si+1}">${si+1}</button>`).join(''):'';
   const last=getLog(ex.name).slice(-1)[0], hint=progHint(ex.name);
+  const st=sessionState(), paused=st===PAUSED, allDone=totalSets>0&&sets.length>=totalSets;
+  const nextEx=DAYS[day].ex[i+1];
+  let main='';
+  if(totalSets){
+    if(paused) main=`<button class="wo-main" onclick="woPause()">▶ Retomar treino</button>`;
+    else if(allDone) main=`<button class="wo-main next" onclick="${i>=total-1?'woFinish()':'woGo(1)'}">${i>=total-1?'Terminar treino ✓':'Próximo: '+esc(nextEx.name)+' ›'}</button>`;
+    else main=`<button class="wo-main" onclick="woDoSet()">✓ Série ${sets.length+1} de ${totalSets}</button>`;
+  }
   document.getElementById('woBody').innerHTML=`
-    <div class="wo-top"><span class="wo-count">${i+1}/${total}</span><span class="wo-day">${day} · ${DAYS[day].label}</span></div>
+    <div class="wo-top"><span class="wo-count">${i+1}/${total}</span><span class="wo-day">${day} · ${DAYS[day].label}</span>
+      <span class="wo-clock${paused?' paused':''}"><span id="wo-clock">${clockTxt()}</span>${paused?' ⏸':''}</span></div>
     <div class="wo-media">${media}</div>
     <div class="wo-name">${esc(ex.name)}</div>
     <div class="wo-meta">${ex.s} séries · ${ex.r} reps</div>
     ${totalSets?`<div class="wo-sets">${setBtns}</div>`:''}
-    ${totalSets?`<div class="wo-load"><input id="wo-w" class="load-in" type="number" inputmode="decimal" placeholder="kg" value="${last?last.w:''}"><span class="load-x">×</span><input id="wo-r" class="load-in" type="number" inputmode="numeric" placeholder="reps" value="${last?last.r:''}"><button class="load-save" onclick="woSaveLoad()">Registar</button></div>`:''}
+    ${totalSets?`<div class="wo-load">
+      <button class="wo-step" onclick="woStep('w',-1)" aria-label="Menos peso">−</button><input id="wo-w" class="load-in" type="number" inputmode="decimal" placeholder="kg" value="${last?last.w:''}" aria-label="Peso (kg)"><button class="wo-step" onclick="woStep('w',1)" aria-label="Mais peso">+</button>
+      <span class="load-x">×</span>
+      <button class="wo-step" onclick="woStep('r',-1)" aria-label="Menos reps">−</button><input id="wo-r" class="load-in" type="number" inputmode="numeric" placeholder="reps" value="${last?last.r:''}" aria-label="Repetições"><button class="wo-step" onclick="woStep('r',1)" aria-label="Mais reps">+</button></div>`:''}
+    ${main}
+    <div class="wo-row2">
+      ${sets.length?`<button class="wo-navbtn" onclick="woUndo()">↶ Desfazer série</button>`:''}
+      ${st===ACTIVE?`<button class="wo-navbtn" onclick="woPause()">⏸ Pausa</button>`:''}
+      <button class="wo-navbtn" onclick="woFinish()">■ Terminar</button>
+    </div>
     ${hint?`<div class="wo-hint">${hint}</div>`:''}
     ${ex.tip?`<div class="tip">💡 ${esc(ex.tip)}</div>`:''}
     <button class="wo-info" onclick="openInfo('${ex.name.replace(/'/g,"\\'")}','${ex.catalogId||''}')">ℹ Ficha técnica</button>
     <div class="wo-nav">
       <button class="wo-navbtn" ${i===0?'disabled':''} onclick="woGo(-1)">‹ Anterior</button>
-      <button class="wo-navbtn next" onclick="${i>=total-1?'closeWorkout()':'woGo(1)'}">${i>=total-1?'Terminar ✓':'Próximo ›'}</button>
+      <button class="wo-navbtn" ${i>=total-1?'disabled':''} onclick="woGo(1)">Próximo ›</button>
     </div>`;
 }
 
-export { WO, startWorkout, closeWorkout, woGo, woToggle, woSaveLoad, woRender };
+export { WO, startWorkout, closeWorkout, woGo, woToggle, woSaveLoad, woRender, woStep, woDoSet, woUndo, woPause, woFinish };

@@ -3,7 +3,7 @@
 import './bridge.js';
 import { agenda, ensureWeek } from './schedule.js';
 import { ST } from './state.js';
-import { REST_SEC } from './timer.js';
+import { REST_SEC, restoreTimer } from './timer.js';
 import { render } from './ui.js';
 import { acquireWake, syncWakeUI } from './wake.js';
 
@@ -33,6 +33,7 @@ TABS.forEach(({id,html})=>{
 const start = ST.view && String(ST.view).startsWith('__') && ST.view!=='__dia' ? ST.view : '__hoje';
 render(start);
 document.getElementById('restLabel').textContent = REST_SEC + 's';
+restoreTimer();
 
 /* ═══════════════ PWA + WAKE INIT ════════════════════ */
 syncWakeUI();

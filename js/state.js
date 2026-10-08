@@ -12,6 +12,7 @@ if(!Array.isArray(ST.measures)) ST.measures=[];
 if(!Array.isArray(ST.intake)) ST.intake=[];
 if(!ST.media || typeof ST.media!=='object') ST.media={};
 if(!ST.prog || typeof ST.prog!=='object') ST.prog={};
+if(!Array.isArray(ST.workouts)) ST.workouts=[];   /* sessões de treino terminadas (session.js) */
 if(!Array.isArray(ST.sessions)) ST.sessions=[];   /* treinos personalizados concluídos */
 /* migração: dados do corpo da nutrição antiga → Perfil + 1ª medida */
 if(!ST.profile.height && ST.nutri && ST.nutri.profile && ST.nutri.profile.height){
@@ -47,6 +48,33 @@ function logSet(name,w,r,custom){
   if(idx>=0) arr[idx]=entry; else arr.push(entry);
   arr.sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0));
   ST.log=Object.assign({}, ST.log, {[name]:arr});
+  save();
+  return true;
+}
+/* Séries individuais do dia: entry.sets=[{w,r,ts}]; entry.w/r = melhor série (mais peso, depois reps).
+   Um só registo por exercício/dia, compatível com a progressão e com backups antigos. */
+function bestSet(sets){ return sets.reduce((b,x)=> (!b || x.w>b.w || (x.w===b.w && x.r>b.r)) ? x : b, null); }
+function putEntry(name,entry){
+  const arr=getLog(name).filter(e=>e.date!==entry.date);
+  arr.push(entry); arr.sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0));
+  ST.log=Object.assign({}, ST.log, {[name]:arr});
+}
+function addSetLog(name,w,r,custom){
+  w=parseFloat(w); r=parseInt(r,10);
+  if(!(w>0) || !(r>0)) return false;
+  const t=todayStr(), old=getLog(name).find(e=>e.date===t);
+  const sets=[...(old && old.sets ? old.sets : (old ? [{w:old.w,r:old.r,ts:old.ts}] : [])), {w,r,ts:nowISO()}];
+  const b=bestSet(sets);
+  putEntry(name,{...(old||{}), date:t, ts:nowISO(), w:b.w, r:b.r, sets, ...(custom?{c:1}:{})});
+  save();
+  return true;
+}
+function undoSetLog(name){
+  const t=todayStr(), old=getLog(name).find(e=>e.date===t);
+  if(!old || !old.sets || !old.sets.length) return false;
+  const sets=old.sets.slice(0,-1);
+  if(!sets.length) ST.log=Object.assign({}, ST.log, {[name]:getLog(name).filter(e=>e.date!==t)});
+  else { const b=bestSet(sets); putEntry(name,{...old, w:b.w, r:b.r, sets}); }
   save();
   return true;
 }
@@ -98,4 +126,4 @@ function getProgress(day) {
   return {total,done};
 }
 
-export { STORE_KEY, ST, setST, save, key, getSets, todayStr, nowISO, esc, fmtTime, fmtDateTime, getLog, logSet, est1RM, setProg, toggleSet, markDone, resetDay, getProgress };
+export { STORE_KEY, ST, setST, save, key, getSets, todayStr, nowISO, esc, fmtTime, fmtDateTime, getLog, logSet, addSetLog, undoSetLog, est1RM, setProg, toggleSet, markDone, resetDay, getProgress };

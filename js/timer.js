@@ -15,6 +15,19 @@ function adjustRest(d) {
 
 const TM = { on:false, total:60, left:60, iv:null, end:0 };
 const CIRC = 2*Math.PI*22; // stroke-dasharray
+/* O descanso sobrevive a refresh/fecho: guarda-se o fim absoluto e restaura-se no arranque. */
+const REST_KEY='rest_timer';
+function persistTimer(){ try{ if(TM.on) localStorage.setItem(REST_KEY,JSON.stringify({end:TM.end,total:TM.total})); else localStorage.removeItem(REST_KEY); }catch(_){} }
+function restoreTimer(){
+  try{
+    const t=JSON.parse(localStorage.getItem(REST_KEY)||'null');
+    if(t && t.end>Date.now() && t.total>0){
+      TM.total=t.total; TM.end=t.end; TM.left=Math.round((t.end-Date.now())/1000); TM.on=true;
+      document.getElementById('timerBanner').classList.add('show');
+      renderTimer(); TM.iv=setInterval(timerTick,250);
+    } else localStorage.removeItem(REST_KEY);
+  }catch(_){}
+}
 
 /* relógio de parede: left calculado de TM.end, não decrementado.
    Resiste a throttling/pausa do setInterval em 2º plano e auto-corrige ao voltar à app. */
@@ -22,6 +35,7 @@ function timerTick(){
   TM.left=Math.max(0, Math.round((TM.end-Date.now())/1000));
   if(TM.left<=0 && TM.on){
     TM.on=false; if(TM.iv) clearInterval(TM.iv); TM.iv=null;
+    persistTimer();
     if(navigator.vibrate) navigator.vibrate([200,80,200,80,400]);
     maybeNotify();
   }
@@ -33,6 +47,7 @@ function timerStart(sec) {
   document.getElementById('timerBanner').classList.add('show');
   renderTimer();
   TM.iv=setInterval(timerTick,250);
+  persistTimer();
 }
 
 function timerAdd(s) {
@@ -40,12 +55,14 @@ function timerAdd(s) {
   TM.end+=s*1000;
   TM.left=Math.round((TM.end-Date.now())/1000);
   TM.total=Math.max(TM.total,TM.left);
+  persistTimer();
   renderTimer();
 }
 
 function timerDismiss() {
   if(TM.iv) clearInterval(TM.iv); TM.iv=null;
   TM.on=false;
+  persistTimer();
   document.getElementById('timerBanner').classList.remove('show','warn');
 }
 
@@ -65,4 +82,4 @@ function renderTimer() {
   else banner.classList.remove('warn');
 }
 
-export { REST_SEC, setRest, adjustRest, TM, CIRC, timerTick, timerStart, timerAdd, timerDismiss, renderTimer };
+export { restoreTimer, REST_SEC, setRest, adjustRest, TM, CIRC, timerTick, timerStart, timerAdd, timerDismiss, renderTimer };

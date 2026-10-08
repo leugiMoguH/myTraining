@@ -476,6 +476,45 @@ for (const f of files)
     for (const name of m[1].split(',').map(s => s.trim()).filter(Boolean))
       if (!exportsOf[m[2]]?.has(name)) fail.push(`${f}: importa "${name}" que ${m[2]} não exporta`);
 
+/* ── sessão de treino + registo por série ───────────────────────────────── */
+{
+  const X = await import(new URL('session.js', JS));
+  const { ST, addSetLog, undoSetLog, getLog, logSet } = await import(new URL('state.js', JS));
+  const check = (cond, msg) => { if (!cond) fail.push(`sessão: ${msg}`); };
+  ST.session = null; ST.workouts = []; ST.log = {};
+  check(X.sessionState() === 'NOT_STARTED', 'sem sessão devia ser NOT_STARTED');
+  check(!X.pauseSession() && !X.completeSession(), 'não se pausa nem conclui o que não começou');
+  check(X.startSession('Segunda', 'Peito') && X.sessionState() === 'ACTIVE', 'iniciar devia dar ACTIVE');
+  check(!X.startSession('Terça', 'x') && ST.session.day === 'Segunda', 'não pode haver duas sessões vivas');
+  check(X.pauseSession() && X.sessionState() === 'PAUSED' && ST.session.resumedAt === 0, 'pausar devia dar PAUSED');
+  const parado = X.activeMs(Date.now() + 60000);
+  check(parado === X.activeMs(Date.now()) && !X.pauseSession(), 'em pausa o tempo efetivo não corre');
+  check(X.resumeSession() && X.sessionState() === 'ACTIVE', 'retomar devia dar ACTIVE');
+  check(X.activeMs(Date.now() + 60000) >= 59000, 'ACTIVE conta tempo por timestamp');
+  /* sobrevive a refresh: só o localStorage conta, nada em memória */
+  const gravado = JSON.parse(localStorage.getItem('treino_v2')).session;
+  check(gravado && gravado.state === 'ACTIVE' && gravado.id === ST.session.id, 'sessão não ficou persistida');
+  check(X.completeSession() && X.sessionState() === 'COMPLETED' && ST.workouts.length === 1, 'concluir devia gravar no histórico');
+  check(!X.completeSession() && ST.workouts.length === 1, 'concluir duas vezes não duplica');
+  check(X.startSession('Terça', 'Pernas') && X.abandonSession() && ST.workouts.length === 2 && ST.workouts[1].state === 'ABANDONED', 'abandonar é explícito e fica registado');
+
+  check(!addSetLog('Supino', 0, 10) && !addSetLog('Supino', 60, 0), 'séries inválidas rejeitadas');
+  addSetLog('Supino', 60, 10); addSetLog('Supino', 60, 8); addSetLog('Supino', 62.5, 6);
+  const e = getLog('Supino')[0];
+  check(getLog('Supino').length === 1 && e.sets.length === 3, 'um registo por dia com 3 séries');
+  check(e.w === 62.5 && e.r === 6, 'w/r = melhor série (mais peso)');
+  undoSetLog('Supino');
+  check(getLog('Supino')[0].sets.length === 2 && getLog('Supino')[0].w === 60 && getLog('Supino')[0].r === 10, 'desfazer recalcula a melhor série');
+  undoSetLog('Supino'); undoSetLog('Supino');
+  check(getLog('Supino').length === 0 && !undoSetLog('Supino'), 'desfazer tudo remove o registo do dia');
+  ST.log = { Remo: [{ date: '2020-01-01', w: 40, r: 10 }] };    /* entrada antiga, sem sets */
+  addSetLog('Remo', 42, 8);
+  check(getLog('Remo').length === 2 && getLog('Remo')[0].w === 40, 'o histórico antigo não é tocado');
+  logSet('Remo', 45, 5);
+  check(getLog('Remo')[1].w === 45, 'logSet manual continua a funcionar');
+  ST.session = null; ST.workouts = []; ST.log = {};
+}
+
 /* ── resultado ───────────────────────────────────────────────────────────── */
 if (fail.length) { console.error('FALHOU:\n  ' + fail.join('\n  ')); process.exit(1); }
 console.log(`OK — ${files.length} módulos, ${screens.length} ecrãs, ${handlers.size} handlers, catálogo com ${(await import(new URL('catalog.js', JS))).all().length} exercícios.`);

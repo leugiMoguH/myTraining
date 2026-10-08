@@ -42,6 +42,7 @@ function importBackup(e){
       if(!Array.isArray(ST.intake)) ST.intake=[];
       if(!ST.media || typeof ST.media!=='object') ST.media={};
       if(!Array.isArray(ST.sessions)) ST.sessions=[];
+      if(!Array.isArray(ST.workouts)) ST.workouts=[];
       /* backup antigo (sem rotina) → repõe o plano original */
       if(!ST.routine || typeof ST.routine!=='object' || !Object.keys(ST.routine).length) ST.routine=JSON.parse(JSON.stringify(DEFAULT_DAYS));
       if(ST.day!=='__nutri' && ST.day!=='__perfil' && !DAYS[ST.day]) ST.day='Segunda';

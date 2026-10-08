@@ -125,7 +125,32 @@ await step('iniciar treino', async () => {
   await click('.start-wo');
   if (!(await page.locator('#woBg.show').count())) throw new Error('modo guiado nao abriu');
 });
-await step('treino: proximo', () => click('.wo-navbtn.next'));
+const stSession = () => page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')).session);
+await step('treino: sessao ativa', async () => {
+  const s = await stSession();
+  if (!s || s.state !== 'ACTIVE') throw new Error('iniciar devia criar sessao ACTIVE');
+});
+await step('treino: exercicio ja feito oferece o proximo', () => click('.wo-main.next'));
+await step('treino: uma serie num toque', async () => {
+  await page.fill('#wo-w', '50'); await page.fill('#wo-r', '10');
+  await click('.wo-main');
+  if ((await page.locator('.wo-set.on').count()) !== 1) throw new Error('serie nao ficou marcada');
+  if (!(await page.locator('#timerBanner.show').count())) throw new Error('descanso nao arrancou');
+});
+await step('treino: desfazer serie', async () => {
+  await click('text=Desfazer série');
+  if ((await page.locator('.wo-set.on').count()) !== 0) throw new Error('desfazer nao desmarcou');
+});
+await step('treino: pausa e retoma', async () => {
+  await click('text=⏸ Pausa');
+  if ((await stSession()).state !== 'PAUSED') throw new Error('devia estar PAUSED');
+  await page.reload({ waitUntil: 'networkidle' });
+  if ((await stSession()).state !== 'PAUSED') throw new Error('PAUSED nao sobreviveu ao reload');
+  await page.evaluate(() => window.startWorkout(JSON.parse(localStorage.getItem('treino_v2')).session.day));
+  await click('text=Retomar treino');
+  if ((await stSession()).state !== 'ACTIVE') throw new Error('devia voltar a ACTIVE');
+});
+await step('treino: proximo', () => click('.wo-navbtn:has-text("Próximo")'));
 await step('treino: serie', () => click('.wo-set'));
 await page.screenshot({ path: join(SHOTS, 'treino-guiado.png') });
 await step('fechar treino', () => click('.wo-close'));

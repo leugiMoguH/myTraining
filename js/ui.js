@@ -1,8 +1,9 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { gifUrlFor } from './catalog.js';
 import { MUSCLES, bodySVG, muscleSlide, noImgSlide } from './charts.js';
+import { customEntryHTML, renderCustom } from './custom.js';
 import { editorHTML, isEditing, toggleEdit } from './editor.js';
-import { DAYS } from './routine.js';
+import { CUSTOM_DAY, DAYS } from './routine.js';
 import { openInfo } from './guide.js';
 import { saveLoad, toggleChart } from './loads.js';
 import { DEMOS, demoSlide, mediaSlide } from './media.js';
@@ -16,11 +17,14 @@ import { startWorkout } from './workout.js';
 
 /* ═══════════════════════ RENDER ═════════════════════ */
 function refreshProgress() {
-  const {total,done}=getProgress(ST.day);
+  /* no treino personalizado o dia ativo não é ST.day (que continua a ser um dia real) */
+  const day=ST.view==='__pers' ? CUSTOM_DAY : ST.day;
+  if(!DAYS[day]) return;
+  const {total,done}=getProgress(day);
   document.getElementById('progFill').style.width=`${total?done/total*100:0}%`;
-  document.getElementById('hdrSub').textContent=`${DAYS[ST.day].label} · ${done}/${total}`;
+  document.getElementById('hdrSub').textContent=`${DAYS[day].label} · ${done}/${total}`;
   document.querySelectorAll('.tab').forEach(t=>{
-    if(t.dataset.day===ST.day){
+    if(day!==CUSTOM_DAY && t.dataset.day===ST.day){
       const b=t.querySelector('.tab-badge');
       if(b){ const {done:d,total:tot}=getProgress(ST.day); b.textContent=d>0?`${d}/${tot}`:''; b.style.display=d>0?'':'none'; }
     }
@@ -210,7 +214,7 @@ function renderToday(content) {
   if (a.allDone || (a.restToday && !a.late)) {
     const box = document.createElement('div');
     box.className = 'full';
-    box.innerHTML = restCardHTML(a);
+    box.innerHTML = restCardHTML(a) + customEntryHTML();
     content.appendChild(box);
     document.getElementById('hdrSub').textContent = a.allDone ? 'Semana concluída' : 'Descanso';
     document.getElementById('progFill').style.width = a.allDone ? '100%' : '0';
@@ -222,7 +226,7 @@ function renderToday(content) {
 
   const note = document.createElement('div');
   note.className = 'full';
-  note.innerHTML = bannerHTML(a);
+  note.innerHTML = bannerHTML(a) + customEntryHTML();
   content.appendChild(note);
   renderDay(content, a.current, false);
 }
@@ -230,7 +234,7 @@ function renderToday(content) {
 /* Vista da semana: uma linha por dia, para editar ou saltar para qualquer um. */
 function renderWeek(content) {
   const a = agenda();
-  const LBL = { done:'Feito', partial:'A meio', todo:'Por fazer', rest:'Descanso' };
+  const LBL = { done:'Feito', swapped:'Substituído', partial:'A meio', todo:'Por fazer', rest:'Descanso' };
   content.innerHTML = `<div class="full">
     ${weekStripHTML(a)}
     <div class="week-list">${a.days.map(d=>{
@@ -245,7 +249,7 @@ function renderWeek(content) {
     }).join('')}</div>
   </div>`;
   document.getElementById('hdrSub').textContent = `Semana · ${a.pending} treino${a.pending===1?'':'s'} por fazer`;
-  document.getElementById('progFill').style.width = `${a.days.length?(a.days.filter(d=>d.status==='done').length/a.days.filter(d=>d.status!=='rest').length)*100:0}%`;
+  document.getElementById('progFill').style.width = `${a.days.length?(a.days.filter(d=>d.status==='done'||d.status==='swapped').length/a.days.filter(d=>d.status!=='rest').length)*100:0}%`;
 }
 
 /* Um dia concreto. `standalone` a falso = está embutido no ecrã "Hoje". */
@@ -294,8 +298,9 @@ function renderDay(content, day, standalone = true) {
   if (st !== 'rest') {
     const foot = document.createElement('div');
     foot.className = 'day-foot';
-    foot.innerHTML = st === 'done'
-      ? `<button class="reset-btn" onclick="toggleDayDone('${day}')">↩ Reabrir treino</button>`
+    foot.innerHTML = st === 'done' || st === 'swapped'
+      ? `${st === 'swapped' ? '<div class="sched-note">🎯 Substituído por um treino personalizado.</div>' : ''}
+         <button class="reset-btn" onclick="toggleDayDone('${day}')">↩ Reabrir treino</button>`
       : `<button class="start-wo wide" onclick="toggleDayDone('${day}')">✓ Concluir treino</button>`;
     content.appendChild(foot);
   }
@@ -304,7 +309,7 @@ function renderDay(content, day, standalone = true) {
 
 /* Marca/desmarca o treino do dia e volta ao ecrã onde estavas. */
 function toggleDayDone(day) {
-  dayStatus(day) === 'done' ? reopenDay(day) : completeDay(day);
+  ['done', 'swapped'].includes(dayStatus(day)) ? reopenDay(day) : completeDay(day);
   render(ST.view === '__hoje' ? '__hoje' : day);
 }
 
@@ -318,18 +323,21 @@ function render(target) {
   /* Quem chama render(dia) depois de mexer no progresso (reset, treino guiado,
      media) não devia arrancar o utilizador do ecrã "Hoje" quando é o mesmo dia. */
   if (!isView && ST.view === '__hoje' && target === ST.day) target = '__hoje';
+  /* o treino personalizado tem ecrã próprio: ST.day nunca pode ser ele */
+  if (target === CUSTOM_DAY || (!isView && ST.view === '__pers' && target === ST.day)) target = '__pers';
   ST.view = String(target).startsWith('__') ? target : '__dia';
   if (ST.view === '__dia') ST.day = target;
   save();
 
   /* o separador "Semana" fica ativo enquanto se vê um dia concreto */
-  const tab = ST.view === '__dia' ? '__semana' : ST.view;
+  const tab = ST.view === '__dia' ? '__semana' : ST.view === '__pers' ? '__hoje' : ST.view;
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.day===tab));
 
   if (target === '__nutri') { renderNutri(content); return; }
   if (target === '__perfil'){ renderProfile(content); return; }
   if (target === '__semana'){ renderWeek(content); return; }
   if (target === '__hoje')  { renderToday(content); return; }
+  if (target === '__pers')  { renderCustom(content); return; }
   renderDay(content, target);
 }
 

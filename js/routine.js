@@ -20,9 +20,19 @@ if (!ST.routine || typeof ST.routine !== 'object' || !Object.keys(ST.routine).le
   save();
 }
 
+/* Treino personalizado de hoje: um "dia" à parte, guardado em ST.custom. Responde ao
+   mesmo contrato de um dia da rotina ({ label, ex }) para os cartões, o treino
+   guiado e as séries funcionarem sem mudanças — mas não está em ST.routine nem em
+   dayNames(), por isso a agenda e o plano normal nunca o veem. */
+const CUSTOM_DAY = 'Personalizado';
+function customDay() {
+  const c = ST.custom;
+  return c && Array.isArray(c.ex) ? { label: c.label || 'Personalizado', ex: c.ex, custom: true } : undefined;
+}
+
 function routine() { return ST.routine; }
 function dayNames() { return Object.keys(routine()); }
-function getDay(day) { return routine()[day] || null; }
+function getDay(day) { return (day === CUSTOM_DAY ? customDay() : routine()[day]) || null; }
 function exercisesOf(day) { const d = getDay(day); return d ? d.ex : []; }
 function isCustom(day, i) { return !!(exercisesOf(day)[i] || {}).catalogId; }
 
@@ -33,13 +43,13 @@ function findExercise(name) {
     const hit = exercisesOf(day).find(e => e.name === name);
     if (hit) return hit;
   }
-  return null;
+  return ((customDay() || {}).ex || []).find(e => e.name === name) || null;
 }
 
 /* Proxy para os módulos que ainda importam `DAYS`. Reencaminha leituras e
    Object.keys() para ST.routine, para continuarem a ver a rotina atual. */
 const DAYS = new Proxy({}, {
-  get: (_, k) => routine()[k],
+  get: (_, k) => (k === CUSTOM_DAY ? customDay() : routine()[k]),
   has: (_, k) => k in routine(),
   ownKeys: () => Reflect.ownKeys(routine()),
   getOwnPropertyDescriptor: (_, k) => ({ value: routine()[k], enumerable: true, configurable: true }),
@@ -61,7 +71,8 @@ function setDayExercises(day, exercises, indexMap) {
     if (ST.done[from] !== undefined) done[to] = ST.done[from];
   });
 
-  ST.routine = { ...routine(), [day]: { ...d, ex: exercises } };
+  if (day === CUSTOM_DAY) ST.custom = { ...ST.custom, ex: exercises };
+  else ST.routine = { ...routine(), [day]: { ...d, ex: exercises } };
   ST.sets = sets;
   ST.done = done;
   save();
@@ -130,7 +141,7 @@ function resetRoutine() {
 }
 
 export {
-  DAYS, routine, dayNames, getDay, exercisesOf, isCustom, findExercise,
+  CUSTOM_DAY, DAYS, routine, dayNames, getDay, exercisesOf, isCustom, findExercise,
   addExercise, removeExercise, moveExercise, updateExercise, replaceExercise,
   setDayExercises, setDayLabel, resetRoutine,
 };

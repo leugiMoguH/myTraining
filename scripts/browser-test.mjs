@@ -306,6 +306,93 @@ await step('repor exercicio trocado', async () => {
   if (st.sched.swaps['Segunda:0']) throw new Error('o original ficou guardado depois de reposto');
 });
 
+/* ── treino personalizado: só hoje, o plano normal não muda ─────────────── */
+const lerST = () => page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')));
+const plano0 = JSON.stringify((await lerST()).routine);
+const diaAntes = (await lerST()).day;
+
+await page.locator('.tab[data-day="__hoje"]').click();
+await page.waitForTimeout(200);
+await stepClean('personalizado: abrir', async () => {
+  await click('button.cu-entry');
+  await page.waitForSelector('.cu-chip', { timeout: 3000 });
+});
+await step('personalizado: sem musculos avisa', async () => {
+  await click('text=Sugerir treino');
+  await page.waitForSelector('.sched-note.warn', { timeout: 3000 });
+  if ((await lerST()).custom) throw new Error('criou treino sem musculos escolhidos');
+});
+await step('personalizado: peito + triceps', async () => {
+  await page.locator('.cu-chip', { hasText: 'Peito' }).click();
+  await page.locator('.cu-chip', { hasText: 'Tríceps' }).click();
+  await click('text=Sugerir treino');
+  await page.waitForSelector('.cu-row', { timeout: 8000 });
+  const n = await page.locator('.cu-row').count();
+  if (n !== 6) throw new Error(`esperava 6 exercicios, vieram ${n}`);
+  await page.screenshot({ path: join(SHOTS, 'personalizado-revisao.png'), fullPage: true });
+});
+await step('personalizado: remover exercicio', async () => {
+  await click('.cu-row button[aria-label="Remover"]');
+  await page.waitForTimeout(150);
+  if ((await page.locator('.cu-row').count()) !== 5) throw new Error('remover nao tirou o exercicio');
+});
+await step('personalizado: trocar abre o catalogo', async () => {
+  await click('.cu-row button[aria-label="Trocar"]');
+  await page.waitForSelector('#catBg.show .cat-row', { timeout: 8000 });
+  if (await page.locator('#catFilters .cat-swap .cat-chip').count()) throw new Error('trocar sempre / so esta semana nao se aplica ao personalizado');
+  await page.evaluate(() => window.closeCatalog());
+});
+await step('personalizado: comecar treino', async () => {
+  await click('text=Começar treino');
+  await page.waitForSelector('.card', { timeout: 3000 });
+  if ((await page.locator('.card').count()) !== 5) throw new Error('cartoes != 5');
+  await click('.card .set-btn');
+  await page.waitForTimeout(150);
+  const st = await lerST();
+  if (!st.sets['Personalizado:0'] || !st.sets['Personalizado:0'].length) throw new Error('serie do personalizado nao ficou registada');
+  if (st.day !== diaAntes) throw new Error('ST.day mudou durante o personalizado');
+  await page.screenshot({ path: join(SHOTS, 'personalizado-treino.png'), fullPage: true });
+});
+await step('personalizado: treino guiado', async () => {
+  await click('text=▶ Guiado');
+  await page.waitForSelector('#woBg.show', { timeout: 3000 });
+  await click('.wo-close');
+  await page.waitForSelector('.card', { timeout: 3000 });
+});
+await step('personalizado: reload mantem o treino', async () => {
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForSelector('.card', { timeout: 3000 });
+  const st = await lerST();
+  if (!st.custom || st.custom.stage !== 'active') throw new Error('o treino personalizado perdeu-se no reload');
+});
+await step('personalizado: Hoje mostra o treino em curso', async () => {
+  await page.locator('.tab[data-day="__hoje"]').click();
+  await page.waitForSelector('.sched-note.cu-entry', { timeout: 3000 });
+  await click('.sched-note.cu-entry .cat-chip');
+  await page.waitForSelector('.card', { timeout: 3000 });
+});
+await step('personalizado: concluir', async () => {
+  await click('text=Concluir treino');
+  await page.waitForSelector('.rest-title', { timeout: 3000 });
+  const st = await lerST();
+  if (st.sessions.length !== 1 || st.sessions[0].kind !== 'custom') throw new Error('sessao nao ficou no historico');
+  if (JSON.stringify(st.routine) !== plano0) throw new Error('o plano normal foi alterado');
+  if (Object.keys(st.sets).some(k => k.startsWith('Personalizado:'))) throw new Error('sobraram series do personalizado');
+  const subs = Object.keys(st.sched.replaced || {});
+  if (subs.length !== 1 || (st.sched.done || {})[subs[0]]) throw new Error('o personalizado devia substituir 1 dia sem o marcar feito');
+  if (st.sessions[0].replaced !== subs[0]) throw new Error('a sessao nao regista o dia substituido');
+  await page.screenshot({ path: join(SHOTS, 'personalizado-concluido.png'), fullPage: true });
+});
+await step('personalizado: Hoje volta ao plano normal', async () => {
+  await click('text=Voltar a Hoje');
+  await page.waitForSelector('.day-hdr', { timeout: 3000 });
+  if (!(await page.locator('button.cu-entry').count())) throw new Error('o botao do personalizado nao voltou');
+  if (!(await page.locator('.wk-chip.s-swapped').count())) throw new Error('a tira da semana nao mostra o dia substituido');
+  const st = await lerST();
+  /* o dia substituído saiu da fila: o treino atual passa ao seguinte */
+  if (st.day === Object.keys(st.sched.replaced)[0] || !st.routine[st.day]) throw new Error('ST.day devia passar ao treino seguinte, e ser um dia real');
+});
+
 await page.locator('.tab[data-day="__hoje"]').click();
 await page.waitForTimeout(200);
 await page.screenshot({ path: join(SHOTS, 'hoje.png'), fullPage: true });

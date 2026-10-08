@@ -1,7 +1,7 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { gifUrlFor } from './catalog.js';
 import { MUSCLES, bodySVG } from './charts.js';
-import { DAYS } from './routine.js';
+import { CUSTOM_DAY, DAYS } from './routine.js';
 import { openInfo } from './guide.js';
 import { DEMOS, demoUrl } from './media.js';
 import { progHint } from './progression.js';
@@ -11,13 +11,13 @@ import { acquireWake, releaseWake, wakeWanted } from './wake.js';
 
 /* ═══════════ TREINO DE HOJE (guiado) ═══════════ */
 const WO={day:null,idx:0};
-function startWorkout(day){ WO.day=day; WO.idx=0; document.getElementById('woBg').classList.add('show'); acquireWake(); woRender(); }
+function startWorkout(day){ if(!DAYS[day] || !DAYS[day].ex.length) return; WO.day=day; WO.idx=0; document.getElementById('woBg').classList.add('show'); acquireWake(); woRender(); }
 function closeWorkout(){ document.getElementById('woBg').classList.remove('show'); if(!wakeWanted) releaseWake(); render(WO.day); }
 function woGo(d){ const ex=DAYS[WO.day].ex; WO.idx=Math.max(0,Math.min(ex.length-1,WO.idx+d)); woRender(); }
 function woToggle(si){ toggleSet(WO.day,WO.idx,si); woRender(); }
 function woSaveLoad(){
   const w=document.getElementById('wo-w').value, r=document.getElementById('wo-r').value;
-  if(logSet(DAYS[WO.day].ex[WO.idx].name,w,r)){ const b=document.querySelector('#woBody .load-save'); if(b){ b.textContent='✓'; setTimeout(()=>{b.textContent='Registar';},900); } }
+  if(logSet(DAYS[WO.day].ex[WO.idx].name,w,r,WO.day===CUSTOM_DAY)){ const b=document.querySelector('#woBody .load-save'); if(b){ b.textContent='✓'; setTimeout(()=>{b.textContent='Registar';},900); } }
   else alert('Indica kg e reps válidos.');
 }
 function woRender(){

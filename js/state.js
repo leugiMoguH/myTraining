@@ -12,6 +12,7 @@ if(!Array.isArray(ST.measures)) ST.measures=[];
 if(!Array.isArray(ST.intake)) ST.intake=[];
 if(!ST.media || typeof ST.media!=='object') ST.media={};
 if(!ST.prog || typeof ST.prog!=='object') ST.prog={};
+if(!Array.isArray(ST.sessions)) ST.sessions=[];   /* treinos personalizados concluídos */
 /* migração: dados do corpo da nutrição antiga → Perfil + 1ª medida */
 if(!ST.profile.height && ST.nutri && ST.nutri.profile && ST.nutri.profile.height){
   const o=ST.nutri.profile;
@@ -35,13 +36,14 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;'
 function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); return isNaN(d.getTime())?'':d.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}); }
 function fmtDateTime(ts){ if(!ts) return ''; const d=new Date(ts); return isNaN(d.getTime())?'':d.toLocaleDateString('pt-PT')+' '+d.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}); }
 function getLog(name){ return (ST.log && ST.log[name]) || []; }
-function logSet(name,w,r){
+function logSet(name,w,r,custom){
   w=parseFloat(w); r=parseInt(r,10);
   if(!(w>0) || !(r>0)) return false;
   const arr=getLog(name).slice();
   const t=todayStr();
   const idx=arr.findIndex(e=>e.date===t);
   const entry={date:t,ts:nowISO(),w,r};
+  if(custom) entry.c=1;      /* feito num treino personalizado (distingue do programado no histórico) */
   if(idx>=0) arr[idx]=entry; else arr.push(entry);
   arr.sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0));
   ST.log=Object.assign({}, ST.log, {[name]:arr});

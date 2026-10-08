@@ -179,6 +179,7 @@ body {
 .wk-chip .wk-i { font-size: 13px; line-height: 1; }
 .wk-chip.s-done  { color: var(--green); border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.08); }
 .wk-chip.s-partial { color: #fbbf24; border-color: rgba(251,191,36,0.4); }
+.wk-chip.s-swapped { opacity: 0.75; }
 .wk-chip.s-rest  { opacity: 0.5; }
 .wk-chip.current { border-color: var(--accent); color: var(--accent); }
 .wk-chip.today   { box-shadow: inset 0 -2px 0 var(--accent); }
@@ -215,6 +216,24 @@ body {
   background: var(--accent); color: #fff; padding: 2px 5px; border-radius: 4px;
   vertical-align: middle;
 }
+/* ── TREINO PERSONALIZADO ─────────────────────────── */
+.cu-entry { width: 100%; margin-top: 8px; }
+.sched-note.cu-entry { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cu-title { font-size: 13px; font-weight: 700; margin: 14px 0 8px; }
+.cu-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.cu-chip small { display: block; font-size: 10px; font-weight: 600; opacity: 0.75; }
+.cu-chip.recent:not(.on) { border-color: rgba(251,191,36,0.5); }
+.cu-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0 6px; }
+.cu-actions .start-wo:disabled { opacity: 0.4; }
+.cu-note, .cu-past { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.cu-row {
+  display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--card);
+}
+.cu-n { font-size: 12px; font-weight: 800; color: var(--muted); width: 16px; text-align: center; }
+.cu-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cu-info b { font-size: 14px; overflow-wrap: anywhere; }
+.cu-info small { font-size: 12px; color: var(--muted); }
 .day-foot { grid-column: 1/-1; display: flex; justify-content: center; padding: 4px 0 8px; }
 .start-wo.wide { padding: 12px 28px; font-size: 14px; }
 .ed-check {

@@ -4,7 +4,7 @@
 import { loadCatalog, search, facets, thumbUrl, toRoutineEntry, byId, muscleIdsOf } from './catalog.js';
 import { MUSCLES } from './charts.js';
 import { bodyPartPT, equipmentPT } from './labels.js';
-import { addExercise, exercisesOf, replaceExercise } from './routine.js';
+import { CUSTOM_DAY, addExercise, exercisesOf, replaceExercise } from './routine.js';
 import { forgetSwap, rememberSwap, swapOriginal } from './schedule.js';
 import { esc } from './state.js';
 import { render } from './ui.js';
@@ -79,10 +79,10 @@ function swapHeadHTML() {
     <div class="cat-swap">
       <div class="cat-swap-t">Trocar <b>${esc(ex.name)}</b> por um equivalente</div>
       ${ex.alt ? `<div class="cat-swap-alt">💡 Sugestão do plano: ${esc(ex.alt)}</div>` : ''}
-      <div class="cat-chips">
+      ${CAT.day === CUSTOM_DAY ? '' : `<div class="cat-chips">
         <button class="cat-chip${CAT.perm ? '' : ' on'}" onclick="catScope(false)">Só esta semana</button>
         <button class="cat-chip${CAT.perm ? ' on' : ''}" onclick="catScope(true)">Trocar sempre</button>
-      </div>
+      </div>`}
     </div>`;
 }
 

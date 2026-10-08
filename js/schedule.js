@@ -13,15 +13,16 @@
      week:  '2026-W37',              semana a que o progresso pertence
      done:  { 'Segunda': '2026-09-08' },   treinos dados por concluídos
      swaps: { 'Segunda:2': {…} },    exercício original de uma troca "só esta semana"
+     replaced: { 'Terça': '2026-09-09' },   dias substituídos por um treino personalizado
    } */
-import { dayNames, getDay, exercisesOf, routine } from './routine.js';
+import { CUSTOM_DAY, dayNames, getDay, exercisesOf, routine } from './routine.js';
 import { ST, key, save, todayStr, getProgress } from './state.js';
 
 /* getDay() em PT: o índice bate certo com Date#getDay() (0 = Domingo). */
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const SHORT = { Segunda: 'Seg', Terça: 'Ter', Quarta: 'Qua', Quinta: 'Qui', Sexta: 'Sex', Sábado: 'Sáb', Domingo: 'Dom' };
 
-const STATUS_ICON = { done: '✓', partial: '◐', todo: '·', rest: '😴' };
+const STATUS_ICON = { done: '✓', partial: '◐', todo: '·', rest: '😴', swapped: '🎯' };
 
 /* Semana ISO (começa à Segunda): '2026-W37'. Duas datas da mesma semana dão a
    mesma chave, e a chave muda sozinha na passagem de Domingo para Segunda. */
@@ -36,8 +37,9 @@ function weekKey(date) {
 }
 
 function sched() {
-  if (!ST.sched || typeof ST.sched !== 'object') ST.sched = { week: weekKey(), done: {}, swaps: {} };
+  if (!ST.sched || typeof ST.sched !== 'object') ST.sched = { week: weekKey(), done: {}, swaps: {}, replaced: {} };
   if (!ST.sched.done || typeof ST.sched.done !== 'object') ST.sched.done = {};
+  if (!ST.sched.replaced || typeof ST.sched.replaced !== 'object') ST.sched.replaced = {};
   if (!ST.sched.swaps || typeof ST.sched.swaps !== 'object') ST.sched.swaps = {};
   return ST.sched;
 }
@@ -73,14 +75,38 @@ function setRest(day, rest) {
 
 /* ── estado de cada dia ───────────────────────────────────────────────────── */
 
-/* rest | done | partial | todo. Um treino conta como feito quando todas as
-   séries estão marcadas, ou quando o utilizador carrega em "Concluir". */
+/* rest | done | swapped | partial | todo. Um treino conta como feito quando todas
+   as séries estão marcadas, ou quando o utilizador carrega em "Concluir".
+   `swapped` = substituído por um treino personalizado: sai da fila, mas não é "feito". */
 function dayStatus(day) {
   if (isRest(day)) return 'rest';
   if (sched().done[day]) return 'done';
   const { total, done } = getProgress(day);
   if (total > 0 && done >= total) return 'done';
+  if (sched().replaced[day]) return 'swapped';
   return done > 0 ? 'partial' : 'todo';
+}
+
+/* Um treino personalizado concluído hoje ocupa o lugar do treino que farias hoje:
+   o 1.º dia pendente que já devia ter acontecido (ele ou um atrasado). Dias futuros
+   nunca são consumidos, e só um treino por dia ocupa um lugar. Devolve o dia
+   substituído, ou null (descanso, semana fechada, já treinaste hoje).
+   Limite conhecido: um dia fechado só por ter todas as séries marcadas não guarda
+   data, por isso não conta como "já treinaste hoje" (só "Concluir" e substituições). */
+function slotToReplace() {
+  const s = sched();
+  if ([...Object.values(s.done), ...Object.values(s.replaced)].includes(todayStr())) return null;
+  const cur = currentDay();
+  const order = dayNames();
+  return cur && order.indexOf(cur) <= order.indexOf(todayName()) ? cur : null;
+}
+
+function replaceCurrent() {
+  const day = slotToReplace();
+  if (!day) return null;
+  sched().replaced = { ...sched().replaced, [day]: todayStr() };
+  save();
+  return day;
 }
 
 function completeDay(day) {
@@ -90,10 +116,13 @@ function completeDay(day) {
   return true;
 }
 
+/* Reabrir também desfaz uma substituição por personalizado. */
 function reopenDay(day) {
-  const done = { ...sched().done };
+  const done = { ...sched().done }, replaced = { ...sched().replaced };
   delete done[day];
+  delete replaced[day];
   sched().done = done;
+  sched().replaced = replaced;
   save();
   return true;
 }
@@ -102,7 +131,7 @@ function reopenDay(day) {
 function currentDay() {
   return dayNames().find(d => {
     const s = dayStatus(d);
-    return s !== 'rest' && s !== 'done';
+    return s !== 'rest' && s !== 'done' && s !== 'swapped';
   }) || null;
 }
 
@@ -128,7 +157,7 @@ function agenda() {
     allDone: cur === null,
     /* o treino pendente é de um dia que já passou */
     late: !!cur && order.indexOf(cur) < order.indexOf(hoje),
-    pending: days.filter(d => d.status !== 'rest' && d.status !== 'done').length,
+    pending: days.filter(d => !['rest', 'done', 'swapped'].includes(d.status)).length,
   };
 }
 
@@ -137,6 +166,7 @@ function agenda() {
 /* Guarda o exercício original antes de uma troca temporária. Guarda-se o
    primeiro: trocar duas vezes seguidas continua a repor o que lá estava. */
 function rememberSwap(day, i, original) {
+  if (day === CUSTOM_DAY) return;    /* o treino personalizado acaba hoje: nada para repor */
   const k = key(day, i);
   if (sched().swaps[k]) return;
   sched().swaps = { ...sched().swaps, [k]: original };
@@ -188,7 +218,7 @@ function ensureWeek() {
   restoreSwaps();
   ST.sets = {};
   ST.done = {};
-  ST.sched = { week: wk, done: {}, swaps: {} };
+  ST.sched = { week: wk, done: {}, swaps: {}, replaced: {} };
   save();
   return true;
 }
@@ -196,7 +226,7 @@ function ensureWeek() {
 export {
   WEEKDAYS, SHORT, STATUS_ICON,
   weekKey, todayName, shortName,
-  isRest, setRest, dayStatus, currentDay, agenda,
+  isRest, setRest, dayStatus, currentDay, agenda, slotToReplace, replaceCurrent,
   completeDay, reopenDay,
   rememberSwap, swapOriginal, forgetSwap, restoreSwaps,
   ensureWeek,

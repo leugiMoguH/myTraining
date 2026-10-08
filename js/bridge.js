@@ -3,6 +3,7 @@
    Regra: um handler novo usado num atributo inline tem de ser acrescentado aqui. */
 import { closeSheet, exportBackup, exportIntakeCSV, exportLoadCSV, exportMeasuresCSV, importBackup, openSheet } from './backup.js';
 import { catAdd, catFilter, catInput, catPick, catScope, closeCatalog, openSwap, undoSwap } from './catalog-ui.js';
+import { cuAdd, cuBegin, cuDiscard, cuFinish, cuHome, cuRemove, cuSuggest, cuToggle, openCustom } from './custom.js';
 import { edAdd, edField, edLabel, edMove, edRemove, edReset, edRest, toggleEdit } from './editor.js';
 import { closeInfo, openInfo } from './guide.js';
 import { progInc, progScheme, saveLoad, toggleChart } from './loads.js';
@@ -32,6 +33,14 @@ Object.assign(window, {
   closeInfo,
   closeSheet,
   closeWorkout,
+  cuAdd,
+  cuBegin,
+  cuDiscard,
+  cuFinish,
+  cuHome,
+  cuRemove,
+  cuSuggest,
+  cuToggle,
   delIntake,
   delMeasure,
   delMedia,
@@ -54,6 +63,7 @@ Object.assign(window, {
   goDay,
   importBackup,
   markDone,
+  openCustom,
   openInfo,
   openSheet,
   openSwap,

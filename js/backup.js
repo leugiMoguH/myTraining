@@ -30,7 +30,8 @@ function importBackup(e){
     try{
       const p=JSON.parse(reader.result);
       const incoming=(p && typeof p==='object' && p.state) ? p.state : p;
-      if(!incoming || typeof incoming!=='object' || typeof incoming.sets!=='object' || typeof incoming.done!=='object')
+      const isObj=o=>!!o && typeof o==='object' && !Array.isArray(o);
+      if(!isObj(incoming) || !isObj(incoming.sets) || !isObj(incoming.done))
         throw new Error('estrutura inválida');
       if(!confirm('Importar substitui o progresso atual. Continuar?')){ e.target.value=''; return; }
       setST({ day:'Segunda', sets:{}, done:{}, log:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], media:{}, routine:null, ...incoming });
@@ -40,6 +41,7 @@ function importBackup(e){
       if(!Array.isArray(ST.measures)) ST.measures=[];
       if(!Array.isArray(ST.intake)) ST.intake=[];
       if(!ST.media || typeof ST.media!=='object') ST.media={};
+      if(!Array.isArray(ST.sessions)) ST.sessions=[];
       /* backup antigo (sem rotina) → repõe o plano original */
       if(!ST.routine || typeof ST.routine!=='object' || !Object.keys(ST.routine).length) ST.routine=JSON.parse(JSON.stringify(DEFAULT_DAYS));
       if(ST.day!=='__nutri' && ST.day!=='__perfil' && !DAYS[ST.day]) ST.day='Segunda';
@@ -82,8 +84,8 @@ function exportIntakeCSV(){
   csvDownload(`diario-${todayStr()}.csv`, rows); closeSheet();
 }
 function exportLoadCSV(){
-  const rows=[['exercicio','data','hora','peso_kg','reps','rm_estimado']];
-  Object.keys(ST.log||{}).forEach(name=>{ (ST.log[name]||[]).forEach(e=>rows.push([name, e.date, e.ts?fmtTime(e.ts):'', e.w, e.r, est1RM(e.w,e.r)])); });
+  const rows=[['exercicio','data','hora','peso_kg','reps','rm_estimado','tipo']];
+  Object.keys(ST.log||{}).forEach(name=>{ (ST.log[name]||[]).forEach(e=>rows.push([name, e.date, e.ts?fmtTime(e.ts):'', e.w, e.r, est1RM(e.w,e.r), e.c?'personalizado':'programado'])); });
   if(rows.length<2){ alert('Sem cargas para exportar.'); return; }
   csvDownload(`cargas-${todayStr()}.csv`, rows); closeSheet();
 }

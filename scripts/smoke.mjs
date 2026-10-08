@@ -310,6 +310,149 @@ try {
   fail.push(`agenda rebentou: ${e.message}`);
 }
 
+/* ── 7b. treino personalizado: só hoje, plano intacto, histórico à parte ─── */
+try {
+  const R = await import(new URL('routine.js', JS));
+  const S = await import(new URL('schedule.js', JS));
+  const C = await import(new URL('custom.js', JS));
+  const G = await import(new URL('suggest.js', JS));
+  const { ST, todayStr, logSet, getProgress } = await import(new URL('state.js', JS));
+  const check = (cond, msg) => { if (!cond) fail.push(`personalizado: ${msg}`); };
+  const CD = R.CUSTOM_DAY;
+  const keysCustom = () => [...Object.keys(ST.sets), ...Object.keys(ST.done)].filter(k => k.startsWith(`${CD}:`));
+
+  R.resetRoutine();
+  ST.sched = { week: S.weekKey(), done: {}, swaps: {}, replaced: {} };
+  ST.custom = null; ST.sessions = []; ST.log = {}; ST.view = '__hoje';
+  const plano = JSON.stringify(ST.routine);
+  const fila = S.currentDay();
+  const prox = R.dayNames().find(d => d !== fila && S.dayStatus(d) !== 'rest');
+  const diaReal = ST.day;
+  ST.sets['Segunda:0'] = [0]; ST.done['Segunda:0'] = false;
+
+  /* sugestão (função pura sobre o pool real: plano + catálogo) */
+  const pool = C.buildPool();
+  const nomes = l => l.map(e => e.name);
+  const peito = G.suggest(['peito'], pool);
+  check(peito.length === 5, `1 grupo devia dar 5 exercícios, deu ${peito.length}`);
+  check(peito.every(e => C.idsOf(e.name).includes('peito')), 'um exercício sugerido não treina peito');
+  check(peito.every(e => R.findExercise(e.name)), 'o plano tem exercícios de peito de sobra: devia vir tudo do plano');
+  check(G.suggest(['gemeos'], pool).some(e => !R.findExercise(e.name)), 'gémeos tem 1 no plano: o resto devia vir do catálogo');
+  const duo = G.suggest(['peito', 'triceps'], pool);
+  check(duo.length === 6 && new Set(nomes(duo)).size === 6, 'peito+tríceps devia dar 6 exercícios sem repetições');
+  const pernas = G.suggest(['quadriceps', 'gluteos'], pool);
+  check(new Set(nomes(pernas)).size === pernas.length, 'exercício de vários grupos repetido');
+  check(nomes(pernas).filter(n => n === 'Agachamento').length === 1, 'o Agachamento (quadríceps+glúteos) devia entrar uma só vez');
+  check(G.suggest(['peito', 'triceps', 'biceps', 'costas', 'core'], pool).length === 5, '5 grupos devia dar 1 exercício por grupo');
+  check(G.suggest([], pool).length === 0 && G.suggest(['xx'], pool).length === 0, 'sem grupos válidos devia dar lista vazia');
+  check(JSON.stringify(G.suggest(['costas', 'ombros'], pool)) === JSON.stringify(G.suggest(['ombros', 'costas'], pool)),
+    'a sugestão devia ser determinística e independente da ordem da escolha');
+  check(G.suggest(['peito'], pool.filter(c => c.known === 2)).length > 0, 'sem catálogo ainda devia sair algo do plano');
+  check(G.suggest(['peito'], pool.filter(c => c.ids.includes('peito')).slice(0, 2)).length === 2, 'com poucos exercícios devia devolver só os que existem');
+  const ontem = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+  check(G.recency({ 'Supino reto': [{ date: ontem }] }, C.idsOf, todayStr()).peito === 1, 'recência: peito treinado ontem devia dar 1 dia');
+
+  /* fluxo: escolher → sugerir → rever */
+  globalThis.openCustom();
+  check(ST.view === '__pers' && R.getDay(ST.day), 'o ecrã personalizado não pode mexer em ST.day');
+  await globalThis.cuSuggest();
+  check(!ST.custom && C.PICK.msg, 'sem músculos escolhidos não devia criar treino');
+  globalThis.cuToggle('peito'); globalThis.cuToggle('triceps');
+  await globalThis.cuSuggest();
+  check(ST.custom && ST.custom.stage === 'plan' && ST.custom.ex.length === 6, 'a sugestão devia ficar em ST.custom (6 exercícios)');
+  check(JSON.stringify(ST.routine) === plano, 'o plano normal foi alterado pela sugestão');
+  check(!R.dayNames().includes(CD) && S.currentDay() === fila, 'o treino personalizado não pode entrar na agenda');
+
+  /* reabertura da app: o estado sobrevive a JSON e continua válido */
+  const volta = JSON.parse(JSON.stringify(ST.custom));
+  check(C.valid(volta) && volta.date === todayStr(), 'ST.custom não sobrevive a uma ida e volta por JSON');
+  globalThis.render('__pers');
+  check(ST.custom.stage === 'plan', 'reabrir o ecrã não devia perder a revisão');
+
+  /* rever: remover, adicionar, trocar */
+  globalThis.cuRemove(0);
+  check(ST.custom.ex.length === 5, 'cuRemove devia tirar um exercício');
+  R.addExercise(CD, { name: 'Extra', s: 3, r: '8-12' });
+  check(ST.custom.ex.length === 6 && ST.custom.ex[5].name === 'Extra', 'addExercise no dia personalizado não chegou a ST.custom');
+  check(JSON.stringify(ST.routine) === plano, 'editar o personalizado alterou o plano normal');
+  R.replaceExercise(CD, 5, { name: 'Outro', s: 9, r: '1' });
+  check(ST.custom.ex[5].name === 'Outro' && ST.custom.ex[5].s === 3, 'replaceExercise no personalizado falhou');
+  S.rememberSwap(CD, 5, { name: 'x' });
+  check(Object.keys(ST.sched.swaps).length === 0, 'trocas do personalizado não podem entrar nas trocas semanais');
+
+  /* treinar */
+  globalThis.cuBegin();
+  check(ST.custom.stage === 'active', 'cuBegin devia passar a ativo');
+  globalThis.toggleSet(CD, 0, 0);
+  check(getProgress(CD).total === 6 && ST.sets[`${CD}:0`].length === 1, 'as séries do personalizado não foram registadas');
+  logSet('Supino reto', 60, 8, true);
+  check(ST.log['Supino reto'].slice(-1)[0].c === 1, 'a carga do personalizado devia ficar marcada c:1');
+  logSet('Remada', 40, 10);
+  check(ST.log['Remada'].slice(-1)[0].c === undefined, 'a carga do programado não devia levar c:1');
+  globalThis.render('Personalizado');
+  check(ST.view === '__pers' && ST.day === diaReal, 'render("Personalizado") devia ir para o ecrã próprio sem mexer em ST.day');
+
+  /* concluir */
+  globalThis.cuFinish();
+  check(ST.custom.stage === 'done' && ST.sessions.length === 1, 'concluir devia gravar uma sessão');
+  check(ST.sessions[0].kind === 'custom' && ST.sessions[0].sets === 1 && ST.sessions[0].ex.length === 1, 'sessão gravada com dados errados (só os exercícios com séries marcadas)');
+  check(ST.sessions[0].replaced === fila, 'a sessão devia registar o dia que substituiu');
+  check(keysCustom().length === 0, 'concluir devia limpar as séries do personalizado');
+  globalThis.cuFinish();
+  check(ST.sessions.length === 1, 'concluir duas vezes não devia duplicar a sessão');
+  check(JSON.stringify(ST.routine) === plano, 'o plano normal mudou depois do treino personalizado');
+  /* o personalizado ocupou o lugar do dia: não o marca feito, não o desloca */
+  check(S.dayStatus(fila) === 'swapped' && ST.sched.replaced[fila] === todayStr(), `${fila} devia ficar substituído`);
+  check(!ST.sched.done[fila], 'o programado não pode ficar marcado como feito');
+  check(S.currentDay() === prox, `a seguir devia vir ${prox}, veio ${S.currentDay()}`);
+  check(S.agenda().pending === R.dayNames().filter(d => S.dayStatus(d) !== 'rest').length - 1, 'a semana devia ter menos um treino pendente');
+  check(JSON.stringify(ST.sets['Segunda:0']) === '[0]', 'o progresso do plano normal foi tocado');
+  ST.custom = { date: todayStr(), muscles: ['peito'], label: 'Peito', ex: [{ name: 'A', s: 3, r: '8' }], stage: 'active' };
+  ST.sets[`${CD}:0`] = [0];
+  globalThis.cuFinish();
+  check(ST.sessions.length === 2 && S.currentDay() === prox && ST.sched.replaced[prox] === undefined, 'um 2.º personalizado no mesmo dia não pode ocupar outro lugar');
+  ST.sessions = ST.sessions.slice(0, 1);
+  ST.custom = { date: '2000-01-01', muscles: ['peito'], label: 'Peito', ex: [{ name: 'A', s: 3, r: '8' }], stage: 'active' };
+  ST.sets[`${CD}:0`] = [0];
+  const antes = JSON.stringify(ST.sched.replaced);
+  globalThis.cuFinish();
+  check(JSON.stringify(ST.sched.replaced) === antes && ST.sessions[1].replaced === null, 'um treino de outro dia não pode ocupar o lugar de hoje');
+  ST.sessions = ST.sessions.slice(0, 1);
+  S.reopenDay(fila);
+  check(S.currentDay() === fila && S.dayStatus(fila) !== 'swapped', 'reabrir devia desfazer a substituição');
+  const ant = JSON.stringify(ST.sched);
+  ST.sched = JSON.parse(JSON.stringify({ ...JSON.parse(ant), week: '2000-W01', replaced: { [fila]: '2000-01-03' } }));
+  check(S.ensureWeek() && Object.keys(ST.sched.replaced).length === 0, 'o reset semanal devia limpar as substituições');
+  delete ST.sched.replaced;
+  check(S.dayStatus(fila) === 'todo' && ST.sched.replaced && Object.keys(ST.sched.replaced).length === 0, 'backup antigo (sem replaced) devia normalizar-se');
+  S.replaceCurrent();   /* repõe o estado do resto do teste (o reset semanal limpou as séries) */
+  ST.sets['Segunda:0'] = [0]; ST.done['Segunda:0'] = false;
+
+  /* abandonar antes de começar, e caducar no dia seguinte */
+  globalThis.openCustom();
+  check(!ST.custom, 'depois de concluído, abrir de novo devia dar um ecrã de escolha limpo');
+  globalThis.cuToggle('costas');
+  await globalThis.cuSuggest();
+  check(ST.custom && ST.custom.ex.length === 5, 'costas devia dar 5 exercícios');
+  globalThis.cuDiscard();
+  check(ST.custom === null && keysCustom().length === 0 && ST.sessions.length === 1, 'cancelar devia largar tudo sem registar sessão');
+
+  ST.custom = { date: '2000-01-01', muscles: ['peito'], label: 'Peito', ex: [{ name: 'A', s: 3, r: '8' }], stage: 'active' };
+  ST.sets[`${CD}:0`] = [0];
+  check(!C.isLive(), 'um treino de outro dia não devia estar ativo');
+  globalThis.render('__pers');
+  check(ST.custom === null && keysCustom().length === 0, 'o treino de ontem devia caducar e levar as séries');
+  ST.custom = 'lixo';
+  globalThis.render('__pers');
+  check(ST.custom === null, 'estado inválido devia ser descartado sem rebentar');
+  check(ST.sets['Segunda:0'] && JSON.stringify(ST.routine) === plano, 'caducar tocou no plano normal');
+
+  ST.custom = null; ST.sets = {}; ST.done = {}; ST.log = {}; ST.sessions = []; ST.view = '__hoje';
+  globalThis.render('__hoje');
+} catch (e) {
+  fail.push(`personalizado rebentou: ${e.stack || e.message}`);
+}
+
 /* ── 8. todos os handlers inline têm de existir no window (bridge.js) ────── */
 const NOISE = new Set(['add', 'click', 'closest', 'getElementById', 'remove', 'replace',
   'setTimeout', 'stopPropagation', 'preventDefault', 'focus', 'blur', 'submit', 'load', 'forEach', 'play']);

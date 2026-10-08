@@ -1,14 +1,14 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { chartSVG } from './charts.js';
 import { SCHEMES, configOf, evaluate, progHint } from './progression.js';
-import { esc, est1RM, fmtDateTime, getLog, logSet, setProg } from './state.js';
+import { ST, esc, est1RM, fmtDateTime, getLog, logSet, setProg } from './state.js';
 
 /* ═══════════════ CARGA / PROGRESSÃO (UI) ════════════ */
 function saveLoad(i,name){
   const wEl=document.getElementById(`w-${i}`), rEl=document.getElementById(`r-${i}`);
   if(!wEl||!rEl) return;
   const btn=document.querySelector(`#load-${i} .load-save`);
-  if(logSet(name, wEl.value, rEl.value)){
+  if(logSet(name, wEl.value, rEl.value, ST.view==='__pers')){
     if(btn){ btn.textContent='✓'; btn.classList.add('ok'); setTimeout(()=>{ btn.textContent='Registar'; btn.classList.remove('ok'); },900); }
     const lc=document.getElementById(`lc-${i}`);
     if(lc && !lc.hidden) lc.innerHTML=loadChart(name,i);

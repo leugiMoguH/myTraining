@@ -28,6 +28,7 @@ No build, no bundler, no framework. HTML/CSS estáticos + **ES modules** nativos
 | `schedule.js` | `ST.sched`: treino atual, dias de descanso, reset semanal, trocas |
 | `editor.js` | modo de edição de um dia: reordenar, apagar, séries/reps, descanso |
 | `catalog-ui.js` | ecrã de pesquisa do catálogo (modo `add` e modo `swap`) |
+| `custom.js` · `suggest.js` | treino personalizado de um dia (`ST.custom`, dia `Personalizado`): ecrãs + estado · sugestão pura por grupo muscular |
 | `catalog.js` | catálogo de 1324 exercícios: load lazy, pesquisa, filtros, URLs de media |
 | `labels.js` | traduções PT da taxonomia EN + mapa músculo → id do `bodySVG` |
 | `ui.js` | `render(alvo)`, ecrãs Hoje/Semana/dia, `buildCard`, `refreshCard` |
@@ -78,6 +79,8 @@ a seguir. A configuração por exercício (esquema, salto de peso) está em `ST.
 também indexada pelo nome. O 3.º argumento `prog` só existe para os testes poderem
 injetar configurações sem tocar no estado. As sessões estagnadas são **contadas a partir
 do log**, nunca guardadas: não há contador para ficar dessincronizado.
+
+**Treino personalizado (`js/custom.js`):** vale só para hoje e vive em `ST.custom`, servido como o dia `CUSTOM_DAY` por `routine.js` (`getDay`/`DAYS`/`setDayExercises`) — **nunca** em `ST.routine` nem em `dayNames()`, por isso a agenda não o vê. Ecrã próprio `ST.view = '__pers'` (`render('Personalizado')` redireciona); `ST.day` continua a ser um dia real. Séries em `ST.sets['Personalizado:i']`; caduca no dia seguinte. Concluir grava `ST.sessions` e marca as cargas `c:1` em `ST.log`. O dia programado fica pendente na fila.
 
 **Agenda (`js/schedule.js`):** o treino atual não é o dia da semana — é o **primeiro dia
 ainda por fazer** (`currentDay()`). Um dia falhado fica pendente em vez de ser saltado.

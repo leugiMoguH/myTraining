@@ -80,7 +80,7 @@ também indexada pelo nome. O 3.º argumento `prog` só existe para os testes po
 injetar configurações sem tocar no estado. As sessões estagnadas são **contadas a partir
 do log**, nunca guardadas: não há contador para ficar dessincronizado.
 
-**Treino personalizado (`js/custom.js`):** vale só para hoje e vive em `ST.custom`, servido como o dia `CUSTOM_DAY` por `routine.js` (`getDay`/`DAYS`/`setDayExercises`) — **nunca** em `ST.routine` nem em `dayNames()`, por isso a agenda não o vê. Ecrã próprio `ST.view = '__pers'` (`render('Personalizado')` redireciona); `ST.day` continua a ser um dia real. Séries em `ST.sets['Personalizado:i']`; caduca no dia seguinte. Concluir grava `ST.sessions` e marca as cargas `c:1` em `ST.log`. O dia programado fica pendente na fila.
+**Treino personalizado (`js/custom.js`):** vale só para hoje e vive em `ST.custom`, servido como o dia `CUSTOM_DAY` por `routine.js` (`getDay`/`DAYS`/`setDayExercises`) — **nunca** em `ST.routine` nem em `dayNames()`, por isso a agenda não o vê. Ecrã próprio `ST.view = '__pers'` (`render('Personalizado')` redireciona); `ST.day` continua a ser um dia real. Séries em `ST.sets['Personalizado:i']`; caduca no dia seguinte. Concluir grava `ST.sessions` e marca as cargas `c:1` em `ST.log`. Ao concluir, `replaceCurrent()` (`schedule.js`) marca o 1.º dia pendente `<=` hoje em `ST.sched.replaced` (estado `swapped`: sai da fila, **não** conta como feito; Reabrir desfaz); um por dia, nunca dias futuros; o reset semanal limpa-o.
 
 **Agenda (`js/schedule.js`):** o treino atual não é o dia da semana — é o **primeiro dia
 ainda por fazer** (`currentDay()`). Um dia falhado fica pendente em vez de ser saltado.

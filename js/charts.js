@@ -44,7 +44,11 @@ const MUSCLES={
   "Puxada alta":{p:["dorsais"],s:["biceps","posterior"]},
   "Agachamento goblet":{p:["quadriceps","gluteos"],s:["isquios"]},
   "Braços":{p:["biceps","triceps"],s:["antebraco"]},
-  "Core":{p:["abdominal"],s:["oblique"]}
+  "Core":{p:["abdominal"],s:["oblique"]},
+  "Arnold press":{p:["ombro"],s:["triceps"]},
+  "Tríceps francês":{p:["triceps"],s:[]},
+  "Rosca martelo":{p:["biceps"],s:["antebraco"]},
+  "Rosca polia":{p:["biceps"],s:[]}
 };
 function fillOf(id,P,S){ return P.indexOf(id)>=0?'#ef4444':(S.indexOf(id)>=0?'#f97316':'#2b2b3a'); }
 function bodySVG(P,S){

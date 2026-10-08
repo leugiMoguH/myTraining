@@ -336,7 +336,7 @@ try {
   const peito = G.suggest(['peito'], pool);
   check(peito.length === 5, `1 grupo devia dar 5 exercícios, deu ${peito.length}`);
   check(peito.every(e => C.idsOf(e.name).includes('peito')), 'um exercício sugerido não treina peito');
-  check(peito.every(e => R.findExercise(e.name)), 'o plano tem exercícios de peito de sobra: devia vir tudo do plano');
+  check(peito.filter(e => R.findExercise(e.name)).length >= 4, 'o plano tem 4 exercícios de peito: deviam vir primeiro');
   check(G.suggest(['gemeos'], pool).some(e => !R.findExercise(e.name)), 'gémeos tem 1 no plano: o resto devia vir do catálogo');
   const duo = G.suggest(['peito', 'triceps'], pool);
   check(duo.length === 6 && new Set(nomes(duo)).size === 6, 'peito+tríceps devia dar 6 exercícios sem repetições');

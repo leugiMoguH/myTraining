@@ -1,6 +1,7 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { DAYS } from './routine.js';
-import { REST_SEC, timerStart } from './timer.js';
+import { dropSessionOf, liveDay } from './session.js';
+import { REST_SEC, timerDismiss, timerStart } from './timer.js';
 import { refreshCard, refreshProgress, render } from './ui.js';
 
 /* ═══════════════════════ STATE ══════════════════════ */
@@ -143,9 +144,31 @@ function markDone(day,i) {
   refreshProgress();
 }
 
+/* retira as séries desta sessão (sid) de TODO o log — um exercício trocado a meio já não está no dia — e só com sid
+   válido: séries antigas sem sid não pertencem a nenhuma sessão. As de outras sessões ficam. */
+function dropSessionLoads(sid){
+  if(!sid) return;
+  const log={};
+  for(const [name,arr] of Object.entries(ST.log||{})){
+    const next=arr.flatMap(e=>{
+      if(!e.sets||!e.sets.some(x=>x.sid===sid)) return [e];
+      const sets=e.sets.filter(x=>x.sid!==sid);
+      if(!sets.length) return [];
+      const b=bestSet(sets);
+      return [{...e,w:b.w,r:b.r,sets}];
+    });
+    if(next.length) log[name]=next;
+  }
+  ST.log=log;
+}
+/* Reset do dia: tira as marcas e, se o treino em curso é DESTE dia, desfaz-o por inteiro (sessão, cargas dessa
+   sessão e descanso) — senão ficava uma sessão PAUSED sem séries e o Play só a "retomava". Cargas de outros
+   treinos e dias ficam. */
 function resetDay(day) {
-  if(!confirm(`Resetar progresso de ${day}?`)) return;
+  const live=liveDay()===day;
+  if(!confirm(live?`Resetar progresso de ${day}?\n\nO treino em curso deste dia é desfeito, com as cargas desta sessão. O histórico anterior fica.`:`Resetar progresso de ${day}?`)) return;
   DAYS[day].ex.forEach((_,i)=>{ delete ST.sets[key(day,i)]; delete ST.done[key(day,i)]; });
+  if(live){ dropSessionLoads(ST.session.id); dropSessionOf(day); timerDismiss(); }
   save(); render(day);
 }
 

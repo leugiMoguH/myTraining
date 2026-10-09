@@ -51,7 +51,9 @@ function navMain() {
   if (st === PAUSED) { resumeSession(); return; }   /* uma ação = uma transição; abrir o guiado é a faixa "Abrir" */
   const day = selectedDay();
   if (!day) { render('__hist'); return; }
-  if (finishedToday(day)) { render('__hoje'); return; }   /* terminado hoje: nada de reiniciar sozinho */
+  /* terminado hoje: nada de reiniciar sozinho. Um personalizado é um treino novo de cada vez: só o concluído bloqueia
+     (o descartado deixou uma sessão ABANDONED do dia, mas o treino novo é outro). */
+  if (day === CUSTOM_DAY ? ST.custom && ST.custom.stage === 'done' : finishedToday(day)) { render('__hoje'); return; }
   startWorkout(day);
 }
 

@@ -130,6 +130,18 @@ const abandonSession = () => finish(ABANDONED);
 /* fecha a sessão viva SE for deste dia (ex.: o treino personalizado acabou por decisão do utilizador) */
 function endSessionOf(day, completed) { const s = cur(); if (s && isLive() && s.day === day) finish(completed ? COMPLETED : ABANDONED); }
 
+/* O utilizador reiniciou o progresso deste dia: a sessão viva DELE deixa de existir (não vai para o histórico
+   nem fica ABANDONED — `finishedToday` bloquearia o Play). Devolve a sessão retirada (ou null). */
+function dropSessionOf(day) {
+  const s = cur();
+  if (!s || !isLive() || s.day !== day) return null;
+  ST.session = null;
+  save();
+  for (const fn of ENDERS) { try { fn(s); } catch (e) { console.error('session end', e); } }
+  emit();
+  return s;
+}
+
 /* exercício do treino guiado onde o utilizador está (para retomar no sítio certo) */
 function setSessionPos(idx) {
   const s = cur();
@@ -150,4 +162,4 @@ function fmtDur(ms) {
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export { NOT_STARTED, ACTIVE, PAUSED, COMPLETED, ABANDONED, IDLE_HINT_MS, CREDIT_CAP_MS, onSessionChange, onSessionEnd, notifySession, statsOf, currentSession, liveDay, sessionState, isLive, timeStats, durationMs, touchSession, idleMs, isIdle, startSession, pauseSession, resumeSession, completeSession, abandonSession, endSessionOf, setSessionPos, finishedToday, fmtDur };
+export { NOT_STARTED, ACTIVE, PAUSED, COMPLETED, ABANDONED, IDLE_HINT_MS, CREDIT_CAP_MS, onSessionChange, onSessionEnd, notifySession, statsOf, currentSession, liveDay, sessionState, isLive, timeStats, durationMs, touchSession, idleMs, isIdle, startSession, pauseSession, resumeSession, completeSession, abandonSession, endSessionOf, dropSessionOf, setSessionPos, finishedToday, fmtDur };

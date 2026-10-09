@@ -240,6 +240,87 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
   await ctx.close();
 }
 
+/* ═══ Reset depois de pausar: Iniciar → série → Pausar → Reset → Início → Play, repetido ═════════════ */
+{
+  const state = page => page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')));
+  const loads = S => Object.values(S.log || {}).flat().reduce((n, e) => n + (e.sets ? e.sets.length : 0), 0);
+  const toDay = async page => { await tap(page, '.nb[data-day="__hist"]'); await tap(page, '.wk-row[data-day="Segunda"], .wk-chip[data-day="Segunda"]'); };
+  const doSet = async (page, kg = '20') => { await page.fill('#wo-w', kg); await page.fill('#wo-r', '10'); await tap(page, '.wo-main'); };
+  /* um ciclo completo com toques; devolve o id da sessão criada */
+  async function cycle(page, tag, { rest = false, refresh = false, otherTab = false } = {}) {
+    const pre = await state(page);
+    await toDay(page);
+    if (pre.session) await tap(page, '#navLive'); else await tap(page, '#navMain');   /* 2.º ciclo: a sessão nova do Play anterior ainda vive */
+    const a = await state(page);
+    check(a.session && a.session.state === 'ACTIVE' && a.session.day === 'Segunda' && await page.locator('#woBg.show').count() === 1, `${tag}: Play devia criar sessão ACTIVE e abrir o guiado (${a.session && a.session.state})`);
+    const id = a.session && a.session.id;
+    await doSet(page);
+    if (!rest) await page.evaluate(() => window.timerDismiss());
+    const b = await state(page);
+    check((b.sets['Segunda:0'] || []).length === 1 && loads(b) >= 1, `${tag}: a série devia ficar marcada e com carga`);
+    await tap(page, '.wo-bar button:has-text("Pausar")');
+    check(await sess(page) === 'PAUSED', `${tag}: devia estar PAUSED`);
+    await tap(page, '.wo-bar button:has-text("Sair")');
+    await tap(page, 'button:has-text("Reset")');
+    const c = await state(page);
+    check(c.session === null && !(c.sets['Segunda:0'] || []).length && !c.done['Segunda:0'], `${tag}: Reset devia desfazer a sessão e as marcas (sessão=${c.session && c.session.state})`);
+    check(!JSON.stringify(c.log).includes(id), `${tag}: as cargas desta sessão não podem sobrar no log`);
+    check(await page.evaluate(() => !document.querySelector('#restBanner.show, .rest-banner.show') && !localStorage.getItem('rest_timer')), `${tag}: o descanso devia ter sido limpo`);
+    if (otherTab) { await tap(page, '.nb[data-day="__perfil"]'); await tap(page, '.nb[data-day="__hist"]'); }
+    if (refresh) { await page.reload({ waitUntil: 'networkidle' }); }
+    await tap(page, '.nb[data-day="__hoje"]');
+    check(await page.evaluate(() => document.getElementById('navMain').dataset.face) === '|▶|Iniciar', `${tag}: o botão devia voltar a "Iniciar"`);
+    check(await hit(page, '#navMain'), `${tag}: botão central tapado depois do Reset`);
+    await tap(page, '#navMain');
+    const d = await state(page);
+    check(d.session && d.session.state === 'ACTIVE' && d.session.id !== id && await page.locator('#woBg.show').count() === 1, `${tag}: Play depois do Reset devia iniciar uma sessão NOVA e abrir o guiado`);
+    check(!JSON.stringify(d.log).includes(id) && (d.workouts || []).length === 0, `${tag}: sem sessões duplicadas nem presas`);
+    await tap(page, '.wo-bar button:has-text("Sair")');
+    return d.session.id;
+  }
+  for (const [tag, opt] of [['reset', {}], ['reset+refresh', { refresh: true }], ['reset+descanso', { rest: true }], ['reset+separador', { otherTab: true }]]) {
+    const { ctx, page } = await open(412, 915);
+    await page.evaluate(() => window.goDay('Segunda'));
+    /* outra carga (outro dia, treino anterior) tem de sobreviver a todos os resets */
+    await page.evaluate(() => { const S = JSON.parse(localStorage.getItem('treino_v2')); S.log = { ...S.log, 'Exercício antigo': [{ date: '2026-01-05', ts: 'x', w: 50, r: 8, sets: [{ w: 50, r: 8, ts: 'x', k: 'Terça:0', sid: 'velha' }] }] }; localStorage.setItem('treino_v2', JSON.stringify(S)); });
+    await page.reload({ waitUntil: 'networkidle' });
+    const first = await cycle(page, tag, opt);
+    const second = await cycle(page, tag + ' (2.º ciclo)', opt);   /* repetição: sem duplicar nem perder */
+    check(first !== second, `${tag}: o 2.º ciclo devia ter outra sessão`);
+    const f = await state(page);
+    check(f.log['Exercício antigo'] && f.log['Exercício antigo'][0].sets.length === 1, `${tag}: o Reset apagou cargas de outro treino`);
+    check(f.sched && !Object.values(f.sched.done || {}).some(Boolean), `${tag}: nenhum dia devia ficar concluído`);
+    await page.reload({ waitUntil: 'networkidle' });
+    check(await sess(page) === 'ACTIVE', `${tag}: a sessão iniciada depois do Reset devia sobreviver ao refresh`);
+    await ctx.close();
+  }
+}
+
+/* ═══ Personalizado: iniciar → série → pausar → descartar → novo personalizado → Play ═════════════ */
+{
+  const { ctx, page } = await open(412, 915);
+  const st = () => page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')));
+  const seed = () => page.evaluate(() => { const S = JSON.parse(localStorage.getItem('treino_v2')); const d = new Date(); const t = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    S.custom = { date: t, muscles: ['peito'], label: 'Peito', stage: 'active', ex: [{ name: 'Flexões', s: 3, r: '10', tip: '', alt: '' }, { name: 'Fundos', s: 3, r: '10', tip: '', alt: '' }] }; localStorage.setItem('treino_v2', JSON.stringify(S)); });
+  const ids = [];
+  for (let i = 1; i <= 2; i++) {
+    await seed(); await page.reload({ waitUntil: 'networkidle' });
+    await page.evaluate(() => window.render('__pers'));
+    await tap(page, '#navMain');
+    const a = await st();
+    check(a.session && a.session.state === 'ACTIVE' && a.session.day === 'Personalizado' && await page.locator('#woBg.show').count() === 1, `personalizado ${i}: Play devia iniciar a sessão e abrir o guiado`);
+    ids.push(a.session && a.session.id);
+    await page.fill('#wo-w', '10'); await page.fill('#wo-r', '10'); await tap(page, '.wo-main'); await page.evaluate(() => window.timerDismiss());
+    await tap(page, '.wo-bar button:has-text("Pausar")');
+    await tap(page, '.wo-bar button:has-text("Sair")');
+    await tap(page, 'button:has-text("Descartar")');
+    const b = await st();
+    check(b.custom === null && !(b.sets['Personalizado:0'] || []).length, `personalizado ${i}: descartar devia limpar o treino e as marcas`);
+  }
+  check(ids[0] && ids[1] && ids[0] !== ids[1], 'personalizado: o 2.º Play devia criar outra sessão');
+  await ctx.close();
+}
+
 /* ═══ larguras: 320, 360, 412 e desktop ═══════════════════════════════════ */
 for (const [w, h, mobile] of [[320, 640, true], [360, 740, true], [412, 915, true], [1280, 800, false]]) {
   const { ctx, page } = await open(w, h, mobile);

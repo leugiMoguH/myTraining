@@ -188,12 +188,12 @@ await step('treino: exercicio ja feito oferece o proximo', () => click('.wo-main
 await step('treino: uma serie num toque', async () => {
   await page.fill('#wo-w', '50'); await page.fill('#wo-r', '10');
   await click('.wo-main');
-  if ((await page.locator('.wo-set.on').count()) !== 1) throw new Error('serie nao ficou marcada');
+  if ((await page.locator('.wo-dots i.on').count()) !== 1) throw new Error('serie nao ficou marcada');
   if (!(await page.locator('#timerBanner.show').count())) throw new Error('descanso nao arrancou');
 });
 await step('treino: desfazer serie', async () => {
-  await click('text=Desfazer série');
-  if ((await page.locator('.wo-set.on').count()) !== 0) throw new Error('desfazer nao desmarcou');
+  await click('text=↶ Desfazer');
+  if ((await page.locator('.wo-dots i.on').count()) !== 0) throw new Error('desfazer nao desmarcou');
 });
 const url = `http://localhost:${PORT}/index.html`;
 const visible = sel => page.locator(sel).count().then(n => n > 0);
@@ -209,24 +209,24 @@ await step('treino: refresh durante o descanso mantem tudo', async () => {
   if (!(await visible('#timerBanner.show'))) throw new Error('descanso perdido no refresh');
   const c = await page.locator('.wo-count').innerText();
   if (!c.startsWith('2/')) throw new Error(`exercicio errado apos refresh: ${c}`);
-  if ((await page.locator('.wo-set.on').count()) !== 1) throw new Error('serie feita perdida');
+  if ((await page.locator('.wo-dots i.on').count()) !== 1) throw new Error('serie feita perdida');
   if ((await page.inputValue('#wo-w')) !== '50' || (await page.inputValue('#wo-r')) !== '10') throw new Error('kg x reps nao pre-preenchidos');
   if ((await stSession()).state !== 'ACTIVE') throw new Error('devia continuar ACTIVE');
 });
 await step('treino: pausar, fechar a app e reabrir (PAUSED)', async () => {
-  await click('text=⏸ Pausa');
+  await click('.wo-pause');
   await page.goto('about:blank');
   await page.goto(url, { waitUntil: 'networkidle' });
   if ((await stSession()).state !== 'PAUSED') throw new Error('PAUSED nao sobreviveu');
   if (!(await visible('#woBg.show'))) throw new Error('vista nao reabriu pausada');
-  if ((await page.locator('.wo-set.on').count()) !== 1) throw new Error('pausar alterou as series');
+  if ((await page.locator('.wo-dots i.on').count()) !== 1) throw new Error('pausar alterou as series');
   const t1 = await page.locator('#wo-clock').innerText(); await page.waitForTimeout(1500);
   if (t1 !== (await page.locator('#wo-clock').innerText())) throw new Error('relogio a correr em pausa');
-  await click('text=Retomar treino');
+  await click('.wo-main.resume');
   if ((await stSession()).state !== 'ACTIVE') throw new Error('devia voltar a ACTIVE');
 });
 await step('nav: navegar com a sessao viva e botao central', async () => {
-  await click('.wo-close');
+  await click('.wo-bar button:has-text("Sair")');
   if (!(await visible('#navLive:not([hidden])'))) throw new Error('faixa de treino em curso em falta');
   for (const d of ['__perfil', '__hist', '__hoje']) {
     await click(`.nb[data-day="${d}"]`);
@@ -239,28 +239,30 @@ await step('nav: navegar com a sessao viva e botao central', async () => {
   if (!(await page.locator('#navMain').innerText()).includes('Retomar')) throw new Error('central devia dizer Retomar');
   if (rest !== (await page.evaluate(() => localStorage.getItem('rest_timer')))) throw new Error('o botao central mexeu no descanso');
   await click('#navMain');
-  if ((await stSession()).state !== 'ACTIVE' || !(await visible('#woBg.show'))) throw new Error('central devia retomar e reabrir a vista');
+  if ((await stSession()).state !== 'ACTIVE' || (await visible('#woBg.show'))) throw new Error('central so retoma (uma acao = uma transicao); o guiado abre-se pela faixa');
+  await click('#navLive');
+  if (!(await visible('#woBg.show'))) throw new Error('a faixa Abrir devia abrir o guiado');
 });
 await step('offline: navegar e registar serie', async () => {
   await page.context().setOffline(true);
-  await click('.wo-close');
+  await click('.wo-bar button:has-text("Sair")');
   await click('.nb[data-day="__hist"]');
   await click('.nb[data-day="__perfil"]');
   await click('#navLive');
   await page.fill('#wo-w', '52.5'); await page.fill('#wo-r', '8');
   await click('.wo-main');
-  if ((await page.locator('.wo-set.on').count()) !== 2) throw new Error('2.a serie offline nao ficou marcada');
+  if ((await page.locator('.wo-dots i.on').count()) !== 2) throw new Error('2.a serie offline nao ficou marcada');
   await page.reload({ waitUntil: 'networkidle' });
-  if ((await page.locator('.wo-set.on').count()) !== 2) throw new Error('refresh offline perdeu series');
+  if ((await page.locator('.wo-dots i.on').count()) !== 2) throw new Error('refresh offline perdeu series');
   await page.context().setOffline(false);
 });
 await page.screenshot({ path: join(SHOTS, 'treino-guiado.png') });
 await step('treino: terminar pede confirmacao e nao conclui o dia', async () => {
   dialogQueue.push(false);
-  await click('text=■ Terminar');
+  await click('.wo-end');
   if ((await stSession()).state !== 'ACTIVE') throw new Error('terminar sem confirmar');
   dialogQueue.push(true);
-  await click('text=■ Terminar');
+  await click('.wo-end');
   if ((await stSession()).state !== 'COMPLETED') throw new Error('devia ficar COMPLETED');
   if (await visible('#woBg.show')) throw new Error('vista devia fechar');
   const d = await tdn();
@@ -328,9 +330,9 @@ await step('sessao de semana anterior: marcas guardadas ate o utilizador termina
   const a = await page.evaluate(() => { const st = JSON.parse(localStorage.getItem('treino_v2')); return { sets: Object.keys(st.sets), week: st.sched.week }; });
   if (!a.sets.includes('Segunda:0') || a.sets.includes('Terça:0')) throw new Error(`reset semanal devia guardar so o dia da sessao: ${a.sets}`);
   if (!(await visible('#woBg.show')) || (await stSession()).state !== 'ACTIVE') throw new Error('a sessao devia continuar e reabrir');
-  if ((await page.locator('.wo-set.on').count()) !== 2) throw new Error('as 2 series marcadas deviam estar la');
+  if ((await page.locator('.wo-dots i.on').count()) !== 2) throw new Error('as 2 series marcadas deviam estar la');
   dialogQueue.push(true);
-  await click('text=■ Terminar');
+  await click('.wo-end');
   const z = await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('treino_v2')).sets));
   if (z.includes('Segunda:0')) throw new Error('as marcas da sessao antiga deviam sair ao terminar');
 });
@@ -344,7 +346,7 @@ await step('meia-noite: series ficam na data de inicio, numa so entrada', async 
   const r = await page.evaluate(sid => { const st = JSON.parse(localStorage.getItem('treino_v2')); const out = []; for (const [n, arr] of Object.entries(st.log)) for (const e of arr) if ((e.sets || []).some(x => x.sid === sid)) out.push({ n, date: e.date, k: e.sets.length, sid: e.sets.every(x => x.sid === sid) }); return { out, ontem: st.session.date }; }, sid);
   if (r.out.length !== 1 || r.out[0].date !== r.ontem || r.out[0].k !== 2 || !r.out[0].sid) throw new Error(`series partidas ou sem sessao: ${JSON.stringify(r)}`);
   dialogQueue.push(true);
-  await click('text=■ Terminar');
+  await click('.wo-end');
   if ((await stSession()).state !== 'COMPLETED') throw new Error('devia concluir');
 });
 await step('plano alterado com sessao pendente: nada se perde, decide o utilizador', async () => {
@@ -613,7 +615,7 @@ await step('personalizado: comecar treino', async () => {
 await step('personalizado: treino guiado', async () => {
   await click('text=▶ Guiado');
   await page.waitForSelector('#woBg.show', { timeout: T });
-  await click('.wo-close');
+  await click('.wo-bar button:has-text("Sair")');
   await page.waitForSelector('.card', { timeout: T });
 });
 await step('personalizado: reload mantem o treino', async () => {
@@ -623,7 +625,7 @@ await step('personalizado: reload mantem o treino', async () => {
   if (!st.custom || st.custom.stage !== 'active') throw new Error('o treino personalizado perdeu-se no reload');
   /* a sessao guiada do personalizado foi retomada sozinha: fecha-se a vista, a sessao continua */
   if (!(await visible('#woBg.show'))) throw new Error('sessao do personalizado nao foi retomada');
-  await click('.wo-close');
+  await click('.wo-bar button:has-text("Sair")');
   if ((await stSession()).state !== 'ACTIVE') throw new Error('fechar a vista nao pode terminar a sessao');
 });
 await step('personalizado: Hoje mostra o treino em curso', async () => {

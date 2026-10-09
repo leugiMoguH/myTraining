@@ -48,7 +48,7 @@ function openLive() {
 function navMain() {
   const st = sessionState();
   if (st === ACTIVE) { pauseSession(); return; }
-  if (st === PAUSED) { resumeSession(); openLive(); return; }
+  if (st === PAUSED) { resumeSession(); return; }   /* uma ação = uma transição; abrir o guiado é a faixa "Abrir" */
   const day = selectedDay();
   if (!day) { render('__hist'); return; }
   if (finishedToday(day)) { render('__hoje'); return; }   /* terminado hoje: nada de reiniciar sozinho */
@@ -111,7 +111,11 @@ function liveText(s) {
 function syncNav() {
   const f = mainFace();
   const main = document.getElementById('navMain');
-  if (main) {
+  /* Só se toca no botão quando o seu aspeto muda. Reescrevê-lo todos os segundos (o relógio da faixa chama
+     syncNav) trocava o nó debaixo do dedo a meio de um toque. */
+  const face = `${f.cls}|${f.icon}|${f.label}`;
+  if (main && main.dataset.face !== face) {
+    main.dataset.face = face;
     main.className = `nb nb-main ${f.cls}`;
     main.setAttribute('aria-label', f.label === 'Treino' ? 'Escolher treino' : `${f.label} treino`);
     main.innerHTML = `<span class="nb-i" aria-hidden="true">${f.icon}</span><span class="nb-l">${f.label}</span>`;
@@ -135,7 +139,7 @@ function syncNav() {
   const idle = show && isIdle();
   document.getElementById('navEnd').hidden = !idle;     /* encerrar na última atividade: só se esteve parado */
   document.getElementById('navDrop').hidden = !show;    /* descartar: sempre explícito, sempre à mão */
-  if (show) live.querySelector('.nl-t').textContent = liveText(currentSession());
+  if (show) { const t = live.querySelector('.nl-t'), txt = liveText(currentSession()); if (t.textContent !== txt) t.textContent = txt; }
 }
 
 /* relógio da faixa + sinal de vida. O sinal só conta com a app visível e SEM longa ausência: depois de

@@ -9,7 +9,8 @@
     "android:add": "npm run build:www && npx cap add android",
     "android:sync": "npm run build:www && npx cap sync android",
     "android:open": "npx cap open android",
-    "test:browser": "node scripts/browser-test.mjs"
+    "test:browser": "node scripts/browser-test.mjs",
+    "test:ux": "node scripts/ux-test.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.1.0",

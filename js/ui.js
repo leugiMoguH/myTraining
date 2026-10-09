@@ -14,7 +14,7 @@ import { agenda, completeDay, dayStatus, reopenDay, swapOriginal } from './sched
 import { ST, esc, getLog, getProgress, getSets, key, markDone, resetDay, save, toggleSet } from './state.js';
 import { REST_SEC, timerStart } from './timer.js';
 import { syncNav } from './nav.js';
-import { fmtDur, statsOf } from './session.js';
+import { fmtDur, liveDay, statsOf } from './session.js';
 import { startWorkout } from './workout.js';
 
 /* ═══════════════════════ RENDER ═════════════════════ */
@@ -134,7 +134,6 @@ function buildCard(day,ex,i) {
       ${setsHTML}
       ${loadHTML}
       ${ex.tip?`<div class="tip">💡 ${ex.tip}</div>`:''}
-      ${ex.alt?`<div class="card-alt"><strong>Alternativa:</strong> ${ex.alt}</div>`:''}
       ${trocado?`<div class="card-swap">🔄 Trocado só esta semana ·
         <button class="linklike" onclick="undoSwap('${day}',${i})">repor ${esc(trocado.name)}</button></div>`:''}
       <div class="card-actions">
@@ -180,7 +179,7 @@ function weekStripHTML(a) {
 function bannerHTML(a) {
   if (a.restToday && a.late) return `<div class="sched-note warn">😴 Hoje é descanso, mas <b>${a.current}</b> ficou pendente.</div>`;
   if (a.late) return `<div class="sched-note warn">⏳ Em atraso: <b>${a.current}</b> ficou por fazer. Faz este antes de avançar.</div>`;
-  return `<div class="sched-note">✅ Estás em dia. Faltam ${a.pending} treino${a.pending===1?'':'s'} esta semana.</div>`;
+  return '';   /* em dia: nada a avisar */
 }
 
 /* Nada para treinar hoje: ou é dia de descanso, ou a semana já está fechada. */
@@ -291,7 +290,7 @@ function renderDay(content, day, standalone = true) {
     <div class="day-hdr-btns">
       ${editing
         ? `<button class="start-wo" onclick="toggleEdit('${day}')">✓ Pronto</button>`
-        : `<button class="start-wo" onclick="startWorkout('${day}')">▶ Iniciar</button>
+        : `<button class="start-wo" onclick="startWorkout('${day}')">${liveDay()===day?'▶ Continuar':'▶ Iniciar'}</button>
            <button class="reset-btn" onclick="toggleEdit('${day}')">✎ Editar</button>
            <button class="reset-btn" onclick="resetDay('${day}')">↺ Reset</button>`}
     </div>

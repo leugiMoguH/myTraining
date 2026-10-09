@@ -16,7 +16,7 @@ import { esc, markDone, resetDay, toggleSet } from './state.js';
 import { adjustRest, timerAdd, timerDismiss, timerStart } from './timer.js';
 import { goDay, render, toggleDayDone } from './ui.js';
 import { toggleWake } from './wake.js';
-import { closeWorkout, startWorkout, woDoSet, woFinish, woGo, woPause, woSaveLoad, woStep, woToggle, woUndo } from './workout.js';
+import { closeWorkout, startWorkout, woDoSet, woFinish, woGo, woInfo, woPause, woStep, woUndo } from './workout.js';
 
 Object.assign(window, {
   addIntakeUI,
@@ -33,7 +33,7 @@ Object.assign(window, {
   closeInfo,
   closeSheet,
   closeWorkout,
-  woDoSet, woFinish, woPause, woStep, woUndo,
+  woDoSet, woFinish, woInfo, woPause, woStep, woUndo,
   cuAdd,
   cuBegin,
   cuDiscard,
@@ -93,6 +93,4 @@ Object.assign(window, {
   toggleWake,
   undoSwap,
   woGo,
-  woSaveLoad,
-  woToggle,
 });

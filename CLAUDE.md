@@ -40,10 +40,12 @@ No build, no bundler, no framework. HTML/CSS estáticos + **ES modules** nativos
 | `sliders.js` · `media.js` · `guide.js` | slider dos cartões, demos por URL, ficha técnica |
 | `nutrition.js` | nutrição, diário de ingestão, scanner + Open Food Facts |
 | `profile.js` | perfil, medidas, % gordura, macros |
-| `workout.js` | treino guiado: série num toque, desfazer, pausa; `openWorkout` retoma uma sessão |
+| `workout.js` | **ecrã** de treino guiado (barra Sair·tempo·Pausar / corpo / dock com kg×reps e a ação principal); descanso em `#woRest` |
 | `session.js` | `ST.session`: máquina de estados do treino (NOT_STARTED/ACTIVE/PAUSED/COMPLETED/ABANDONED), tempo por timestamps, `reconcileSession` |
 | `nav.js` | barra inferior (Início · Evolução · **Treino** · Histórico · Opções; a Semana vive dentro do Histórico, ecrã `__hist`) e faixa "treino em curso" |
 | `backup.js` | ⚙ Definições, export/import JSON, exports CSV |
+
+**Camadas (z-index) e guiado:** conteúdo < barra geral 250 < banner de descanso 300 < guiado 500 < ficha/folhas 700. Com o guiado aberto, `body.guided` esconde a barra geral e o banner: **uma barra de cada vez**, e o descanso mostra-se dentro do guiado (`#woRest`, lê o relógio de `timer.js` via `onTimerChange`; só essa zona repinta, os campos kg×reps nunca). O botão central da barra faz **uma transição por toque** (iniciar/pausar/retomar) e não abre o guiado; a faixa "Abrir" abre-o. Nunca reescrever o `innerHTML` de um botão a cada tick (`syncNav` só toca quando o aspeto muda). Testes: `npm run test:ux` toca com ecrã tátil e verifica ponto de toque, sobreposição, scroll horizontal e contraste AA.
 
 **Sessão de treino (`js/session.js`):** só o utilizador muda o estado — nada fecha, pausa ou descarta uma sessão sozinho (fechar a app, mudar de dia/semana/plano só a **preserva**). Terminadas ficam em `ST.workouts`. O botão central só controla a sessão, nunca o descanso (`timer.js`, persistido em `localStorage.rest_timer` como fim absoluto). A sessão do personalizado só acaba quando o utilizador conclui/descarta o personalizado (`endSessionOf`; o personalizado não caduca enquanto ela viver).
 
@@ -62,7 +64,7 @@ Se acrescentares um handler inline novo, acrescenta-o ao `bridge.js` e corre `np
 substituídos através de `setST()` (`state.js`) e `setRest()` (`timer.js`) — é o que o
 `importBackup` faz.
 
-**Testes** (correr os dois antes de commit):
+**Testes** (correr os três antes de commit; `test:ux` = comportamento real com toque):
 - `npm run smoke` — DOM mínimo, avalia o grafo de módulos, percorre os ecrãs, valida
   imports↔exports e a ponte dos handlers. ~1 segundo, sem browser.
 - `npm run test:browser` — Chromium headless a 412px: serve o site, clica em separadores,

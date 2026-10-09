@@ -13,6 +13,11 @@ function adjustRest(d) {
   document.querySelectorAll('.rest-lbl').forEach(s => s.textContent = REST_SEC + 's');
 }
 
+/* quem mostra o descanso (o treino guiado) reage a começar/acabar/saltar, sem outro motor de tempo */
+const HOOKS=[];
+function onTimerChange(fn){ HOOKS.push(fn); }
+function fire(){ for(const f of HOOKS){ try{ f(); }catch(e){ console.error('timer hook',e); } } }
+
 const TM = { on:false, total:60, left:60, iv:null, end:0 };
 const CIRC = 2*Math.PI*22; // stroke-dasharray
 /* O descanso sobrevive a refresh/fecho: guarda-se o fim absoluto e restaura-se no arranque. */
@@ -36,6 +41,7 @@ function timerTick(){
   if(TM.left<=0 && TM.on){
     TM.on=false; if(TM.iv) clearInterval(TM.iv); TM.iv=null;
     persistTimer();
+    fire();
     if(navigator.vibrate) navigator.vibrate([200,80,200,80,400]);
     maybeNotify();
   }
@@ -48,6 +54,7 @@ function timerStart(sec) {
   renderTimer();
   TM.iv=setInterval(timerTick,250);
   persistTimer();
+  fire();
 }
 
 function timerAdd(s) {
@@ -57,6 +64,7 @@ function timerAdd(s) {
   TM.total=Math.max(TM.total,TM.left);
   persistTimer();
   renderTimer();
+  fire();
 }
 
 function timerDismiss() {
@@ -64,6 +72,7 @@ function timerDismiss() {
   TM.on=false;
   persistTimer();
   document.getElementById('timerBanner').classList.remove('show','warn');
+  fire();
 }
 
 function renderTimer() {
@@ -76,10 +85,14 @@ function renderTimer() {
   document.getElementById('tNum').textContent=label;
   document.getElementById('tBig').textContent=label;
   document.getElementById('tRingFill').style.strokeDashoffset=offset;
+  /* o mesmo relógio, também dentro do treino guiado */
+  document.querySelectorAll('.t-live').forEach(e=>{ e.textContent=label; });
+  document.querySelectorAll('.t-bar').forEach(e=>{ e.style.width=`${Math.round(pct*100)}%`; });
+  document.querySelectorAll('.wo-rest').forEach(e=>e.classList.toggle('warn',left<=10 && TM.on));
 
   const banner=document.getElementById('timerBanner');
   if(left<=10 && TM.on) banner.classList.add('warn');
   else banner.classList.remove('warn');
 }
 
-export { restoreTimer, REST_SEC, setRest, adjustRest, TM, CIRC, timerTick, timerStart, timerAdd, timerDismiss, renderTimer };
+export { onTimerChange, restoreTimer, REST_SEC, setRest, adjustRest, TM, CIRC, timerTick, timerStart, timerAdd, timerDismiss, renderTimer };

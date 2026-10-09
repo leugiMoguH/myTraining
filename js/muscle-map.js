@@ -22,7 +22,7 @@ function detailHTML(st, id) {
   const last = m.lastDirect ? `último direto ${fmtD(m.lastDirect)} (${ago(m.lastDirect, today)})`
     : m.lastIndirect ? `sem estímulo direto registado; último indireto ${fmtD(m.lastIndirect)}` : 'sem estímulo registado';
   const rows = m.exercises.map(x => `<div class="mm-ex"><span>${esc(x.name)} <small>${x.role === 'direct' ? 'direto' : 'indireto'}</small></span>
-    <span>${x.aggregated ? 'registo antigo' : `${plural(x.sets, 'série', 'séries')}${x.volume ? ` · ${num(x.volume)} kg` : ''}`}</span></div>`).join('');
+    <span>${[x.sets ? `${plural(x.sets, 'série', 'séries')}${x.volume ? ` · ${num(x.volume)} kg` : ''}` : '', x.legacy ? plural(x.legacy, 'registo antigo', 'registos antigos') : ''].filter(Boolean).join(' + ')}</span></div>`).join('');
   return `<div class="hx-card mm-detail"><b>${esc(MUSCLE_NAMES[id])}</b>
     <div class="mm-sum">${plural(m.direct, 'série direta', 'séries diretas')} · ${plural(m.indirect, 'indireta', 'indiretas')} · ${plural(m.directDays, 'dia', 'dias')} com trabalho direto</div>
     <div class="mm-sum">${last}</div>

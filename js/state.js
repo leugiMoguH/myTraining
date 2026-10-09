@@ -93,7 +93,7 @@ function addSetLog(name,w,r,custom,slot,day){
   w=parseFloat(w); r=parseInt(r,10);
   if(!(w>0) || !(r>0)) return false;
   const t=logDate(day), sid=liveSid(day), old=getLog(name).find(e=>e.date===t);
-  const base=old && old.sets ? old.sets : (old ? [{w:old.w,r:old.r,ts:old.ts}] : []);
+  const base=old && old.sets ? old.sets : (old ? [{w:old.w,r:old.r,ts:old.ts,old:1}] : []);
   /* a mesma série (slot) registada duas vezes substitui, nunca duplica */
   const sets=[...(slot ? base.filter(x=>x.k!==slot) : base), {w,r,ts:nowISO(), ...(slot?{k:slot}:{}), ...(sid?{sid}:{})}];
   const b=bestSet(sets), pr=newPR(name,w,r,t);

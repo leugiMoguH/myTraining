@@ -74,9 +74,9 @@ function muscleStats(days, today = todayStr(), log = ST.log, mapOf = musclesOf) 
         if (!granular) r.aggregated++;
         (role === 'direct' ? dDates : iDates)[id] = ((role === 'direct' ? dDates : iDates)[id] || new Set()).add(e.date);
         let x = r.exercises.find(q => q.name === name && q.role === role);
-        if (!x) r.exercises.push(x = { name, role, sets: 0, volume: 0, aggregated: false, dates: [] });
+        if (!x) r.exercises.push(x = { name, role, sets: 0, volume: 0, legacy: 0, dates: [] });
         x.sets += n; x.dates.push(e.date);
-        if (granular) x.volume += vol; else x.aggregated = true;
+        if (granular) x.volume += vol; else x.legacy++;
       };
       (m.p || []).forEach(id => touch(id, 'direct'));
       (m.s || []).forEach(id => { if (!(m.p || []).includes(id)) touch(id, 'indirect'); });
@@ -91,11 +91,13 @@ function muscleStats(days, today = todayStr(), log = ST.log, mapOf = musclesOf) 
   return { days, from, to: today, any, unmapped: [...unmapped].sort(), muscles: out };
 }
 
-/* Resumo para os grupos do treino personalizado (suggest.js GROUPS): séries diretas na janela e último estímulo direto. */
+/* Resumo para os grupos do treino personalizado (suggest.js GROUPS): séries diretas na janela e último estímulo direto.
+   Uma série que toca dois músculos do grupo (ex.: remada = dorsais + trapézio) conta UMA vez no grupo. */
 function groupSummary(stats, groups) {
   return Object.fromEntries(groups.map(g => {
-    const ms = g.ids.map(id => stats.muscles[id]).filter(Boolean);
-    return [g.id, { sets: ms.reduce((n, m) => n + m.direct, 0), last: ms.reduce((l, m) => (m.lastDirect > l ? m.lastDirect : l), '') }];
+    const ms = g.ids.map(id => stats.muscles[id]).filter(Boolean), byEx = {};
+    ms.forEach(m => m.exercises.forEach(x => { if (x.role === 'direct') byEx[x.name] = Math.max(byEx[x.name] || 0, x.sets); }));
+    return [g.id, { sets: Object.values(byEx).reduce((n, v) => n + v, 0), last: ms.reduce((l, m) => (m.lastDirect > l ? m.lastDirect : l), '') }];
   }));
 }
 

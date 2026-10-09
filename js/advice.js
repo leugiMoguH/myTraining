@@ -5,7 +5,7 @@
 
    Regras (todas sobre séries realmente executadas, em sessões COMPARÁVEIS):
    - Greyskull LP e exercícios por tempo: não há sugestão genérica (o protocolo tem as suas regras, ver progression.js).
-   - Sessão comparável = séries individuais, com pelo menos as séries previstas no plano, todas ao mesmo peso.
+   - Sessão comparável = séries individuais (sem a série promovida de um registo antigo, `old`), com pelo menos as séries previstas no plano, todas ao mesmo peso.
      Sessões incompletas ou antigas (só w/r) NÃO contam nem a favor nem contra: ausência de dados ≠ falha.
    - Precisa de 2 sessões comparáveis; menos = dados insuficientes.
    - Última sessão há mais de GAP_DAYS dias: não se infere perda de força — manter a carga registada e reavaliar.
@@ -35,9 +35,9 @@ function adviceFor(name, { today = todayStr(), exercise, prog } = {}) {
   if (cfg.scheme === 'greyskull' || !cfg.range) return null;
   const planned = ex && typeof ex.s === 'number' ? ex.s : 0;
   if (!planned) return out('insufficient', 'Este exercício já não está no plano (ou não tem séries previstas): sem referência para sugerir.');
-  const gran = sessionsOf(name).filter(s => s.granular);
+  const gran = sessionsOf(name).filter(s => s.granular && s.date <= today);   /* nada do futuro */
   if (!gran.length) return out('insufficient', 'Só há registos antigos com a melhor série: não permitem avaliar todas as séries.');
-  const comp = gran.filter(s => s.sets.length >= planned && s.sets.every(x => x.w === s.sets[0].w));
+  const comp = gran.filter(s => s.sets.length >= planned && s.sets.every(x => x.w === s.sets[0].w && !x.old));
   if (comp.length < SESSIONS_NEEDED) {
     return out('insufficient', `Preciso de ${SESSIONS_NEEDED} sessões completas (${planned} séries ao mesmo peso) para sugerir; tens ${comp.length}.`);
   }

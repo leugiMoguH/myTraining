@@ -21,7 +21,7 @@ const fail = msg => ({ ok: false, msg });
 const OK = { ok: true };
 const entryOf = (name, date) => getLog(name).find(e => e.date === date);
 /* séries da entrada; um registo antigo ilegível (w/r inválidos) não tem série nenhuma para conservar */
-const baseSets = e => e.sets && e.sets.length ? e.sets : (validSet(e) ? [{ w: e.w, r: e.r, ts: e.ts }] : []);
+const baseSets = e => e.sets && e.sets.length ? e.sets : (validSet(e) ? [{ w: e.w, r: e.r, ts: e.ts, old: 1 }] : []);
 const liveId = () => (isLive() ? currentSession().id : null);
 const isLiveSet = s => !!s.sid && s.sid === liveId();
 const isoNoon = date => (date === todayStr() ? nowISO() : new Date(`${date}T12:00:00`).toISOString());

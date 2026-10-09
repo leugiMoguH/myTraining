@@ -47,7 +47,7 @@ ok(M(7, 'quadriceps').direct === 4 && M(7, 'gluteos').direct === 4 && M(7, 'isqu
 /* 7. dados antigos agregados: sem séries nem volume, mas há data e frequência */
 reset(); ST.log[BENCH] = [{ date: day(3), ts: 'x', w: 50, r: 8 }];
 pe = M(7, 'peito');
-ok(pe.status === 'agregado' && pe.direct === 0 && pe.directDays === 1 && pe.lastDirect === day(3) && pe.exercises[0].aggregated && pe.exercises[0].volume === 0, `7: agregado ${JSON.stringify(pe)}`);
+ok(pe.status === 'agregado' && pe.direct === 0 && pe.directDays === 1 && pe.lastDirect === day(3) && pe.exercises[0].legacy === 1 && pe.exercises[0].volume === 0, `7: agregado ${JSON.stringify(pe)}`);
 ok(ST.log[BENCH][0].sets === undefined, '7: ler não inventa sets');
 /* 8. série eliminada / 9. editada: recalcula */
 reset(); ST.log[BENCH] = [entry(day(2), rep(3, 60, 10))];
@@ -134,6 +134,15 @@ ok(E.editSet(BENCH, day(3), 1, 60, 8, '0').ok && S.getLog(BENCH)[0].sets[1].rir 
 reset(); ST.log = { [BENCH]: [{ date: day(2), ts: 'x', w: 60, r: 8 }, entry(day(1), rep(2, 60, 8))] };
 ok(M(7, 'peito').direct === 2 && M(7, 'peito').aggregated === 1 && adv().kind === 'insufficient', '20: backup antigo');
 
+/* Codex: futuro não conta; registo antigo promovido não vale sessão completa; grupo não duplica; misto mostra ambos */
+reset(); seed(BENCH, [8, rep(3, 60, 12)], [-2, rep(3, 60, 12)]); ok(adv().kind === 'insufficient', 'futuro não conta na sugestão');
+reset(); ST.log[BENCH] = [{ date: day(8), ts: 'x', w: 60, r: 12 }, { date: day(2), ts: 'x', w: 60, r: 12 }];
+E.addSet(BENCH, day(8), 60, 12); E.addSet(BENCH, day(8), 60, 12); E.addSet(BENCH, day(2), 60, 12); E.addSet(BENCH, day(2), 60, 12);
+ok(adv().kind === 'insufficient' && M(28, 'peito').direct === 6, 'registo antigo promovido: conta séries, não autoriza subida');
+reset(); ST.log['Remada'] = [entry(day(1), rep(3, 40, 10))]; const gr = MU.groupSummary(M(7), SG.GROUPS);
+ok(M(7, 'dorsais').direct === 3 && M(7, 'trapezio').direct === 3 && gr.costas.sets === 3, `grupo sem duplicar: ${gr.costas.sets}`);
+reset(); ST.log[BENCH] = [{ date: day(3), ts: 'x', w: 50, r: 8 }, entry(day(1), rep(3, 60, 10))];
+const mx = M(7, 'peito').exercises[0]; ok(mx.sets === 3 && mx.volume === 1800 && mx.legacy === 1, 'misto: séries e antigo coexistem');
 if (fail.length) { console.error(`FALHOU (${fail.length}):\n  ` + fail.join('\n  ')); process.exit(1); }
 console.log('OK - músculos (janelas, diretos/indiretos, agregados, editar/eliminar/retroativo, meia-noite), sugestão de carga, RIR, backups.');
 process.exit(0);

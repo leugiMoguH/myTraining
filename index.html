@@ -735,6 +735,31 @@ body.guided #bnav, body.guided #timerBanner { display: none !important; }
 .ed-add, .ed-reset { padding: 13px; border-radius: var(--r-sm); border: 1px dashed var(--border); background: transparent; color: var(--text); font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 4px; }
 .ed-add { border-style: solid; background: linear-gradient(90deg, var(--accent), var(--accent2)); border: none; color: #fff; }
 .ed-reset { color: var(--muted); font-size: 13px; }
+/* histórico por exercício, aviso de recorde, referência no guiado */
+.hx { display: flex; flex-direction: column; gap: 10px; }
+.hx-back { align-self: flex-start; min-height: 44px; }
+.hx-name { font-size: 18px; margin: 4px 0 0; }
+.hx-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.hx-rec { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.hx-k { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.hx-rec b { font-size: 16px; }
+.hx-s { font-size: 12px; color: var(--muted); flex-basis: 100%; }
+.hx-per { margin-top: 2px; }
+.hx-day { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.hx-day-h, .hx-set { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; }
+.hx-day-h small { color: var(--muted); font-size: 11px; margin-left: 6px; }
+.hx-foot { font-size: 12px; color: var(--muted); }
+.hx-b { min-width: 44px; min-height: 44px; border-radius: var(--r-sm); border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 16px; cursor: pointer; margin-left: 4px; }
+.hx-b.ok { background: var(--accent); border-color: var(--accent); color: #fff; }
+.hx input[type=number], .hx input[type=date] { padding: 10px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--bg, #0a0a0f); color: var(--text); font: inherit; min-height: 44px; width: 96px; }
+.hx input[type=date] { width: auto; flex: 1; }
+.hx-form { gap: 10px; }
+.hx-act { display: flex; gap: 8px; }
+.hx-add, .hx-link { align-self: flex-start; margin-top: 8px; min-height: 44px; }
+.hx-row { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+#toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 12px); transform: translate(-50%, -140%); max-width: calc(100vw - 32px); z-index: 800; padding: 10px 16px; border-radius: 999px; background: #1f2937; color: #fff; border: 1px solid var(--accent2, #f97316); font-size: 14px; font-weight: 600; pointer-events: none; opacity: 0; transition: transform .25s, opacity .25s; text-align: center; }
+#toast.show { transform: translate(-50%, 0); opacity: 1; }
+.wo-prev { font-size: 13px; color: var(--muted); }
 </style>
 </head>
 <body>

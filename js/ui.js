@@ -11,6 +11,7 @@ import { renderNutri } from './nutrition.js';
 import { renderProfile } from './profile.js';
 import { slInit, slNext, slPrev, slTo } from './sliders.js';
 import { agenda, completeDay, dayStatus, reopenDay, swapOriginal } from './schedule.js';
+import { exerciseListHTML, renderExercise } from './history.js';
 import { ST, esc, getLog, getProgress, getSets, key, markDone, resetDay, save, toggleSet } from './state.js';
 import { REST_SEC, timerStart } from './timer.js';
 import { syncNav } from './nav.js';
@@ -262,6 +263,10 @@ function renderHistory(content) {
   box.className = 'full';
   box.innerHTML = `<div class="cu-title">Treinos recentes</div><div class="week-list">${rows || '<div class="sched-note">Ainda não há treinos terminados.</div>'}</div>`;
   content.appendChild(box);
+  const ex = document.createElement('div');
+  ex.className = 'full';
+  ex.innerHTML = exerciseListHTML();
+  if (ex.innerHTML) content.appendChild(ex);
 }
 
 /* Um dia concreto. `standalone` a falso = está embutido no ecrã "Hoje". */
@@ -347,6 +352,7 @@ function render(target) {
   if (target === '__nutri') { renderNutri(content); return; }
   if (target === '__perfil'){ renderProfile(content); return; }
   if (target === '__hist')  { renderHistory(content); return; }
+  if (target === '__ex')    { renderExercise(content); return; }
   if (target === '__hoje')  { renderToday(content); return; }
   if (target === '__pers')  { renderCustom(content); return; }
   renderDay(content, target);

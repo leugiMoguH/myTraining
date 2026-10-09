@@ -8,6 +8,7 @@ import { cuFinish } from './custom.js';
 import { openInfo } from './guide.js';
 import { DEMOS, demoUrl } from './media.js';
 import { configOf, progHint } from './progression.js';
+import { lastBefore } from './records.js';
 import { ACTIVE, PAUSED, completeSession, currentSession, fmtDur, isLive, notifySession, pauseSession, resumeSession, sessionState, setSessionPos, startSession, timeStats, touchSession } from './session.js';
 import { addSetLog, esc, getLog, getSets, lastSetOf, logDate, toggleSet } from './state.js';
 import { TM, onTimerChange, timerDismiss } from './timer.js';
@@ -139,7 +140,7 @@ function woRender(keep){
   const day=WO.day, i=WO.idx, ex=DAYS[day].ex[i], total=DAYS[day].ex.length;
   const sets=getSets(day,i), totalSets=typeof ex.s==='number'?ex.s:0;
   const st=sessionState(), paused=st===PAUSED, allDone=totalSets>0&&sets.length>=totalSets;
-  const last=lastSetOf(ex.name,day), hint=progHint(ex.name), nextEx=DAYS[day].ex[i+1], lastEx=i>=total-1;
+  const last=lastSetOf(ex.name,day), hint=progHint(ex.name), prev=totalSets?lastBefore(ex.name,logDate(day)):null, nextEx=DAYS[day].ex[i+1], lastEx=i>=total-1;
   const dots=totalSets?`<div class="wo-dots" role="img" aria-label="${sets.length} de ${totalSets} séries feitas">${Array.from({length:totalSets},(_,si)=>`<i class="${sets.includes(si)?'on':''}"></i>`).join('')}</div>`:'';
   const advance=lastEx?'woFinish()':'woGo(1)', advanceTxt=lastEx?'Terminar treino ✓':`Próximo: ${esc(nextEx.name)} ›`;
   let main;
@@ -166,6 +167,7 @@ function woRender(keep){
     <div class="wo-scroll">
       <div class="wo-title">${thumbOf(ex)}<div><div class="wo-name">${esc(ex.name)}</div><div class="wo-sub">${totalSets?`${ex.s} séries`:''}${totalSets&&ex.r?' · ':''}${ex.r?`${esc(String(ex.r))}${totalSets?' reps':''}`:''}</div></div></div>
       ${dots}
+      ${prev?`<div class="wo-prev">Última vez: ${prev.w} kg × ${prev.r}</div>`:''}
       <section id="woRest" class="wo-rest" aria-label="Descanso" hidden></section>
       ${hint?`<div class="wo-hint">${hint}</div>`:''}
       <button class="wo-end" onclick="woFinish()">Terminar treino</button>

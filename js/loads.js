@@ -69,6 +69,7 @@ function loadChart(name,i){
       <span class="lc-range">${n} ${n===1?'registo':'registos'} · ${min}–${max}kg</span>
       ${last.ts?`<span class="lc-when">últ. ${fmtDateTime(last.ts)}</span>`:''}
     </div>
+    <button class="reset-btn hx-link" data-n="${esc(name)}" onclick="hxOpen(this.dataset.n)">Histórico detalhado ›</button>
     ${progHint(name)?`<div class="lc-next">${progHint(name)} <span class="lc-next-s">— progressão sugerida</span></div>`:''}
     ${progPanel(name,i)}`;
 }

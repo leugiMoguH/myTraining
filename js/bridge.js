@@ -14,6 +14,7 @@ import { cancelMeasureEdit, delMeasure, editMeasure, saveMeasure, saveProfile, s
 import { slNext, slPrev, slTo } from './sliders.js';
 import { esc, markDone, resetDay, toggleSet } from './state.js';
 import { adjustRest, timerAdd, timerDismiss, timerStart } from './timer.js';
+import { hxAddOpen, hxAddSave, hxBack, hxCancel, hxDelDay, hxDelSet, hxEditDate, hxEditSet, hxMetric, hxOpen, hxPeriod, hxSaveDate, hxSaveSet } from './history.js';
 import { goDay, render, toggleDayDone } from './ui.js';
 import { toggleWake } from './wake.js';
 import { closeWorkout, startWorkout, woDoSet, woFinish, woGo, woInfo, woPause, woStep, woUndo } from './workout.js';
@@ -71,6 +72,7 @@ Object.assign(window, {
   progInc,
   progScheme,
   render,
+  hxAddOpen, hxAddSave, hxBack, hxCancel, hxDelDay, hxDelSet, hxEditDate, hxEditSet, hxMetric, hxOpen, hxPeriod, hxSaveDate, hxSaveSet,
   resetDay,
   saveLoad,
   saveMeasure,

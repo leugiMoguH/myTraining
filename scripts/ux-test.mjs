@@ -349,6 +349,89 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
   await ctx.close();
 }
 
+/* ═══ Bloco 2: histórico por exercício, recordes, correções, referência no guiado ═══════════════════ */
+{
+  const { ctx, page } = await open(412, 915);
+  const state = () => page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')));
+  const ago = n => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const fmt = d => d.split('-').reverse().join('/');
+  const NAME = 'Leg press';
+  await page.evaluate(([n, a60, a20]) => { const S = JSON.parse(localStorage.getItem('treino_v2')); S.log = { ...S.log, [n]: [
+    { date: a60, ts: 'x', w: 100, r: 10 },
+    { date: a20, ts: a20 + 'T10:00:00.000Z', w: 120, r: 7, sets: [{ w: 120, r: 8, k: 'x:0' }, { w: 120, r: 7, k: 'x:1' }] }] }; localStorage.setItem('treino_v2', JSON.stringify(S)); }, [NAME, ago(60), ago(20)]);
+  await page.reload({ waitUntil: 'networkidle' });
+  const txt = async sel => (await page.locator(sel).first().innerText()).replace(/\n/g, ' ');
+
+  /* Histórico → lista → exercício */
+  await tap(page, '.nb[data-day="__hist"]');
+  check(await page.locator('.hx-row', { hasText: NAME }).count() === 1, 'Histórico devia listar o exercício com registos');
+  check(await noHScroll(page), 'Histórico: scroll horizontal');
+  await tap(page, `.hx-row[data-n="${NAME}"]`);
+  check(await page.locator('.hx-name', { hasText: NAME }).count() === 1, 'o ecrã do exercício não abriu');
+  let body = await txt('.hx');
+  check(/carga levantada\s*120 kg × 8/i.test(body), `recorde de carga real em falta: ${body.slice(0, 160)}`);
+  check(/não é um levantamento real/.test(body), 'o 1RM estimado devia dizer que é estimativa');
+  check(/Registo antigo: só a melhor série/.test(body), 'registo agregado devia dizer a granularidade que tem');
+  check(/Volume: 1\.?800 kg/.test(body), `volume só do dia com séries individuais (120×8+120×7=1800): ${body}`);
+  await tap(page, '.cat-chip:has-text("Volume")');
+  check(/Só um registo|Sem séries individuais/.test(await txt('.hx')), 'volume com um só dia devia explicar a falta de evolução');
+  await tap(page, '.cat-chip:has-text("Carga")'); await tap(page, '.cat-chip:has-text("Tudo")');
+  check(await page.locator('.hx svg.lc-svg').count() === 1, 'a carga devia ter gráfico com 2 registos');
+  check((await overlaps(page, '.hx button, .hx input')).length === 0 && await noHScroll(page), `histórico: sobreposição/scroll (${(await overlaps(page, '.hx button')).join(',')})`);
+  check((await small(page, '.hx-b, .hx-back, .hx-add')).length === 0, `histórico: alvos <44 px: ${(await small(page, '.hx-b, .hx-back, .hx-add')).join(',')}`);
+  await page.screenshot({ path: join(SHOTS, 'ux-historico-exercicio.png') });
+
+  /* corrigir peso: recalcula o recorde */
+  const dayRow = d => `.hx-day:has-text("${fmt(d)}")`;
+  await tap(page, `${dayRow(ago(20))} .hx-set:nth-of-type(2) .hx-b[aria-label="Corrigir"]`);
+  await page.fill('#hx-w', '125'); await tap(page, '.hx-b.ok');
+  check(/carga levantada\s*125 kg × 8/i.test(await txt('.hx')), 'corrigir peso devia atualizar o recorde');
+  let s = await state(); const e20 = s.log[NAME].find(e => e.date === ago(20));
+  check(e20.w === 125 && e20.sets[0].k === 'x:0' && e20.sets.length === 2, 'corrigir devia conservar as séries e o k');
+  check(!s.session, 'corrigir histórico não pode iniciar sessão');
+  /* corrigir data */
+  await tap(page, `${dayRow(ago(20))} .hx-b[aria-label="Mudar data"]`);
+  await page.fill('#hx-d', ago(21)); await tap(page, '.hx-b.ok');
+  s = await state(); check(s.log[NAME].some(e => e.date === ago(21)) && !s.log[NAME].some(e => e.date === ago(20)) && s.log[NAME].length === 2, 'corrigir data devia mover sem duplicar');
+  /* eliminar série (o diálogo de confirmação é aceite pelo teste) */
+  const n0 = s.log[NAME].find(e => e.date === ago(21)).sets.length;
+  await tap(page, `${dayRow(ago(21))} .hx-set:nth-of-type(3) .hx-b[aria-label="Eliminar"]`);
+  check((await state()).log[NAME].find(e => e.date === ago(21)).sets.length === n0 - 1, 'eliminar série devia retirar só essa');
+  /* treino passado (retroativo) */
+  await tap(page, '.hx-add');
+  await page.fill('#hx-ad', ago(40)); await page.fill('#hx-w', '90'); await page.fill('#hx-r', '10'); await tap(page, '.hx-act .start-wo');
+  s = await state(); check(s.log[NAME].some(e => e.date === ago(40) && e.sets.length === 1) && !s.session, 'registo retroativo devia criar o dia sem iniciar sessão');
+  /* refresh e offline mantêm o ecrã */
+  await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(800);
+  check(await page.locator('.hx-name', { hasText: NAME }).count() === 1, 'refresh devia voltar ao histórico do exercício');
+  await ctx.setOffline(true); await page.reload({ waitUntil: 'load' }).catch(() => {}); await page.waitForTimeout(600);
+  check(await page.locator('.hx-name', { hasText: NAME }).count() === 1, 'offline: o histórico devia abrir pela cache');
+  await ctx.setOffline(false);
+
+  /* importar o estado exportado: nenhuma perda */
+  const ref = await state();
+  const payload = JSON.stringify({ app: 'treino', v: 2, state: ref });
+  await page.setInputFiles('#importFile', { name: 'b.json', mimeType: 'application/json', buffer: Buffer.from(payload) });
+  await page.waitForTimeout(600);
+  const after = await state();
+  check(JSON.stringify(after.log) === JSON.stringify(ref.log) && JSON.stringify(after.workouts) === JSON.stringify(ref.workouts), 'importar o backup exportado devia manter log e workouts iguais');
+
+  /* guiado: referência discreta + PR sem modal, e sem gráficos/tabelas */
+  await tap(page, '.nb[data-day="__hist"]'); await tap(page, '.wk-row[data-day="Segunda"], .wk-chip[data-day="Segunda"]');
+  await tap(page, '#navMain');
+  const prev = await page.locator('.wo-prev').count() ? await txt('.wo-prev') : '';
+  check(/^Última vez: \d+(\.\d+)? kg × \d+$/.test(prev), `guiado: devia mostrar "Última vez: …" (${prev})`);
+  check(await page.locator('#woBody svg.lc-svg, #woBody table, #woBody .hx').count() === 0, 'guiado: não pode ter gráficos nem tabelas');
+  await page.fill('#wo-w', '300'); await page.fill('#wo-r', '5'); await tap(page, '.wo-main');
+  check(await page.locator('#toast.show').count() === 1 && /recorde de carga/.test(await txt('#toast')), 'novo recorde devia mostrar um aviso discreto');
+  check(await page.locator('#woBg.show').count() === 1 && (await page.locator('#toast').evaluate(e => getComputedStyle(e).pointerEvents)) === 'none', 'o recorde não pode interromper (sem modal, sem apanhar toques)');
+  await page.evaluate(() => document.getElementById('toast').classList.remove('show')); await page.waitForTimeout(600);
+  await tap(page, '.wo-main');   /* 2.ª série igual ao recorde */
+  check(await page.locator('#toast.show').count() === 0, 'igualar o recorde não repete o aviso');
+  check(await noHScroll(page), 'guiado: scroll horizontal');
+  await ctx.close();
+}
+
 /* ═══ larguras: 320, 360, 412 e desktop ═══════════════════════════════════ */
 for (const [w, h, mobile] of [[320, 640, true], [360, 740, true], [412, 915, true], [1280, 800, false]]) {
   const { ctx, page } = await open(w, h, mobile);

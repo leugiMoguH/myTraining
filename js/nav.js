@@ -126,7 +126,7 @@ function syncNav() {
     main.innerHTML = `<span class="nb-i" aria-hidden="true">${f.icon}</span><span class="nb-l">${f.label}</span>`;
   }
   /* o ecrã atual: um dia concreto conta como Histórico (vem da Semana); a Nutrição vive nas Opções */
-  const at = ST.view === '__dia' || ST.view === '__semana' ? '__hist' : ST.view === '__pers' ? '__hoje' : ST.view;
+  const at = ST.view === '__dia' || ST.view === '__semana' || ST.view === '__ex' ? '__hist' : ST.view === '__pers' ? '__hoje' : ST.view;
   document.querySelectorAll('.nb[data-day]').forEach(b => {
     const on = b.dataset.day === at;
     b.classList.toggle('active', on);

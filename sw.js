@@ -2,7 +2,7 @@
    Shell em cache para funcionar offline.
    Navegação: network-first (apanha updates quando online).
    Assets/imagens: cache-first (rápido e funciona sem rede). */
-const CACHE = 'treino-v19';
+const CACHE = 'treino-v20';
 /* instructions.en.json (610 KB) fica de fora: só é preciso ao abrir uma ficha,
    e o handler cache-first abaixo guarda-o na primeira vez que for pedido. */
 const CORE = [
@@ -21,13 +21,16 @@ const CORE = [
   './js/data.js',
   './js/editor.js',
   './js/guide.js',
+  './js/history.js',
   './js/labels.js',
   './js/loads.js',
+  './js/logedit.js',
   './js/media.js',
   './js/notify.js',
   './js/nutrition.js',
   './js/profile.js',
   './js/progression.js',
+  './js/records.js',
   './js/routine.js',
   './js/schedule.js',
   './js/sliders.js',

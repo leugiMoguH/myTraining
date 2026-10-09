@@ -397,6 +397,10 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
   const n0 = s.log[NAME].find(e => e.date === ago(21)).sets.length;
   await tap(page, `${dayRow(ago(21))} .hx-set:nth-of-type(3) .hx-b[aria-label="Eliminar"]`);
   check((await state()).log[NAME].find(e => e.date === ago(21)).sets.length === n0 - 1, 'eliminar série devia retirar só essa');
+  /* um formulário de cada vez: abrir a correção fecha o de acrescentar (ids únicos) */
+  await tap(page, '.hx-add'); await tap(page, `${dayRow(ago(21))} .hx-b[aria-label="Corrigir"]`);
+  check(await page.locator('#hx-w').count() === 1 && await page.locator('#hx-ad').count() === 0, 'formulários de corrigir e acrescentar não podem coexistir');
+  await tap(page, '.hx-b:has-text("✕")');
   /* treino passado (retroativo) */
   await tap(page, '.hx-add');
   await page.fill('#hx-ad', ago(40)); await page.fill('#hx-w', '90'); await page.fill('#hx-r', '10'); await tap(page, '.hx-act .start-wo');

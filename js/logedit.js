@@ -19,13 +19,14 @@ import { validDate, validSet } from './records.js';
 const fail = msg => ({ ok: false, msg });
 const OK = { ok: true };
 const entryOf = (name, date) => getLog(name).find(e => e.date === date);
-const baseSets = e => e.sets && e.sets.length ? e.sets : [{ w: e.w, r: e.r, ts: e.ts }];
+/* séries da entrada; um registo antigo ilegível (w/r inválidos) não tem série nenhuma para conservar */
+const baseSets = e => e.sets && e.sets.length ? e.sets : (validSet(e) ? [{ w: e.w, r: e.r, ts: e.ts }] : []);
 const liveId = () => (isLive() ? currentSession().id : null);
 const isLiveSet = s => !!s.sid && s.sid === liveId();
 const isoNoon = date => (date === todayStr() ? nowISO() : new Date(`${date}T12:00:00`).toISOString());
 
 function checkDate(date) {
-  if (!validDate(date) || isNaN(new Date(`${date}T12:00:00`).getTime())) return 'Data inválida.';
+  if (!validDate(date)) return 'Data inválida.';
   if (date > todayStr()) return 'A data não pode ser no futuro.';
   return '';
 }
@@ -47,8 +48,9 @@ function unmarkSlot(name, k, date) {
   ST.done = { ...ST.done, [kk]: total > 0 && arr.length >= total };
 }
 
+/* o resumo w/r vem só das séries válidas (as ilegíveis ficam guardadas, não se apagam em silêncio) */
 function put(name, old, sets) {
-  const b = bestSet(sets);
+  const ok = sets.filter(validSet).map(s => ({ ...s, w: +s.w, r: +s.r })), b = bestSet(ok.length ? ok : sets);
   putEntry(name, { ...old, w: b.w, r: b.r, sets });
   save();
 }
@@ -110,8 +112,10 @@ function moveEntry(name, from, to) {
   if (t && t.c) return fail('Esse dia é de um treino personalizado.');
   if (!t && !(e.sets && e.sets.length)) { drop(name, from); putEntry(name, { ...e, date: to }); save(); return OK; }   /* agregado sozinho: continua agregado */
   const have = t ? baseSets(t) : [];
-  const same = (a, b) => a.ts === b.ts && a.w === b.w && a.r === b.r && a.k === b.k;
-  const merged = [...have, ...sets.filter(s => !have.some(h => same(h, s)))];
+  /* as séries saem da origem, por isso não há duplicados a evitar; ordem cronológica por ts (a última série conta
+     para a progressão Greyskull), e sem ts completos fica destino + origem */
+  const all = [...have, ...sets], stamp = all.map(s => Date.parse(s.ts));
+  const merged = stamp.every(Number.isFinite) ? all.map((s, i) => [s, stamp[i], i]).sort((x, y) => x[1] - y[1] || x[2] - y[2]).map(x => x[0]) : all;
   drop(name, from);
   put(name, t || { ...e, date: to }, merged);
   return OK;

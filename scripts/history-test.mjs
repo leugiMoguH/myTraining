@@ -142,6 +142,23 @@ ok(JSON.stringify(rt.log) === JSON.stringify(ST.log) && JSON.stringify(rt.workou
 reset(); SE.startSession('Segunda', 'x'); S.addSetLog(N, 50, 8, false, 'Segunda:0', 'Segunda'); S.addSetLog(N, 50, 8, false, 'Segunda:0', 'Segunda'); SE.completeSession();
 ok(log().length === 1 && log()[0].sets.length === 1 && ST.workouts.length === 1, '17: sem duplicados em log/workouts');
 
+/* Revisão Codex: índice real, junção sem perdas, ordem, resumo ilegível, datas impossíveis */
+reset(); ST.log[N] = [{ date: day(5), ts: 'x', w: 50, r: 8, sets: [{ w: -5, r: 8 }, { w: 50, r: 8 }] }];
+ok(R.sessionsOf(N)[0].sets[0].i === 1, 'R1: a série visível guarda o índice real');
+E.editSet(N, day(5), 1, 60, 8); ok(log()[0].sets[0].w === -5 && log()[0].sets[1].w === 60 && log()[0].w === 60, 'R1: corrigir age na série escolhida e conserva a ilegível');
+E.deleteSet(N, day(5), 1); ok(log()[0].sets.length === 1 && log()[0].sets[0].w === -5, 'R1: eliminar retira a escolhida, não a ilegível');
+reset(); ST.log[N] = [entry(day(9), [{ w: 50, r: 8, sid: 'a' }], { ts: undefined }), entry(day(8), [{ w: 50, r: 8, sid: 'b' }])];
+ST.log[N].forEach(e => e.sets.forEach(s => delete s.ts));
+E.moveEntry(N, day(9), day(8)); ok(log().length === 1 && log()[0].sets.length === 2, 'R2: mover junta séries iguais de sessões diferentes sem perder nenhuma');
+reset(); ST.log[N] = [{ date: day(9), w: 50, r: 8 }, { date: day(8), w: 50, r: 8 }]; E.moveEntry(N, day(9), day(8));
+ok(log()[0].sets.length === 2, 'R2: dois agregados iguais ficam duas séries');
+reset(); ST.log[N] = [entry(day(8), [{ w: 50, r: 10, ts: '2026-01-02T10:00:00.000Z' }]), entry(day(9), [{ w: 50, r: 5, ts: '2026-01-01T10:00:00.000Z' }])];
+E.moveEntry(N, day(9), day(8)); ok(log()[0].sets[log()[0].sets.length - 1].r === 10, 'R3: ordem cronológica por ts: a última série continua a ser a mais recente');
+reset(); ST.log[N] = [{ date: day(6), ts: 'x', w: 'abc', r: 8 }]; E.addSet(N, day(6), 50, 10);
+ok(log()[0].w === 50 && log()[0].sets.length === 1, 'R4: acrescentar uma série válida recupera o resumo ilegível');
+reset(); ST.log[N] = [entry(day(6), [{ w: 50, r: 8 }])];
+ok(!E.checkDate('2026-02-30').length === false && !R.validDate('2026-02-30') && !E.moveEntry(N, day(6), '2026-02-30').ok && !E.addSet(N, '2026-02-30', 50, 8).ok, 'R6: datas impossíveis recusadas');
+
 if (fail.length) { console.error(`FALHOU (${fail.length}):\n  ` + fail.join('\n  ')); process.exit(1); }
 console.log('OK - dados do histórico: sessões, recordes (carga e 1RM), edição, datas, retroativo, eliminar, protegidas, round-trip.');
 process.exit(0);

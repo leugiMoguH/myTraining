@@ -71,12 +71,13 @@ function chartHTML(sessions) {
     <div class="cat-chips hx-per">${chips(PERIODS, HX.period, 'hxPeriod')}</div></div>`;
 }
 
-function setRowHTML(s, i, date, granular) {
+function setRowHTML(s, n, date, granular) {
+  const i = s.i;   /* posição guardada, não a posição entre as séries visíveis */
   const ed = HX.edit && HX.edit.date === date && HX.edit.i === i;
   if (ed) return `<div class="hx-set hx-editing"><input id="hx-w" type="number" inputmode="decimal" step="0.5" value="${s.w}" aria-label="Peso"> kg ×
     <input id="hx-r" type="number" inputmode="numeric" value="${s.r}" aria-label="Repetições">
     <button class="hx-b ok" onclick="hxSaveSet('${date}',${i})" aria-label="Guardar">✓</button><button class="hx-b" onclick="hxCancel()" aria-label="Cancelar">✕</button></div>`;
-  return `<div class="hx-set"><span>${granular ? `Série ${i + 1} · ` : ''}<b>${num(s.w)}</b> kg × <b>${s.r}</b></span>
+  return `<div class="hx-set"><span>${granular ? `Série ${n + 1} · ` : ''}<b>${num(s.w)}</b> kg × <b>${s.r}</b></span>
     <span><button class="hx-b" onclick="hxEditSet('${date}',${i})" aria-label="Corrigir">✎</button><button class="hx-b" onclick="hxDelSet('${date}',${i})" aria-label="Eliminar">🗑</button></span></div>`;
 }
 
@@ -85,7 +86,7 @@ function dayHTML(s) {
   const head = dateEd
     ? `<div class="hx-day-h"><input id="hx-d" type="date" max="${todayStr()}" value="${d}" aria-label="Nova data"><span><button class="hx-b ok" onclick="hxSaveDate('${d}')" aria-label="Guardar data">✓</button><button class="hx-b" onclick="hxCancel()" aria-label="Cancelar">✕</button></span></div>`
     : `<div class="hx-day-h"><b>${fmtD(d)}</b>${s.custom ? ' <small>personalizado</small>' : ''}<span><button class="hx-b" onclick="hxEditDate('${d}')" aria-label="Mudar data">📅</button><button class="hx-b" onclick="hxAddOpen('${d}')" aria-label="Acrescentar série">＋</button><button class="hx-b" onclick="hxDelDay('${d}')" aria-label="Eliminar dia">🗑</button></span></div>`;
-  const rows = s.sets.map((x, i) => setRowHTML(x, i, d, s.granular)).join('');
+  const rows = s.sets.map((x, n) => setRowHTML(x, n, d, s.granular)).join('');
   const foot = s.granular
     ? `<div class="hx-foot">Melhor: ${num(s.best.w)} kg × ${s.best.r} · Volume: ${num(s.volume)} kg</div>`
     : '<div class="hx-foot">Registo antigo: só a melhor série (sem séries individuais nem volume).</div>';
@@ -119,8 +120,8 @@ function renderExercise(content) {
 
 /* ── correções ─────────────────────────────────────────────────────────────────────────────────── */
 const done = r => { if (!r.ok) toast(r.msg); else { HX.edit = null; HX.adding = false; } render('__ex'); };
-function hxEditSet(date, i) { HX.edit = { date, i }; render('__ex'); }
-function hxEditDate(date) { HX.edit = { date, i: 'date' }; render('__ex'); }
+function hxEditSet(date, i) { HX.edit = { date, i }; HX.adding = false; render('__ex'); }   /* um formulário de cada vez (ids únicos) */
+function hxEditDate(date) { HX.edit = { date, i: 'date' }; HX.adding = false; render('__ex'); }
 function hxCancel() { HX.edit = null; HX.adding = false; render('__ex'); }
 function hxSaveSet(date, i) { done(editSet(ST.hx, date, i, val('hx-w'), val('hx-r'))); }
 function hxSaveDate(date) { done(moveEntry(ST.hx, date, val('hx-d'))); }

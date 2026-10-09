@@ -17,7 +17,12 @@ const E1RM_MAX_REPS = 12;
 const MAX_REPS = 100;                       /* acima disto é lixo de importação, não uma série */
 
 const validSet = s => !!s && Number.isFinite(+s.w) && Number.isFinite(+s.r) && +s.w > 0 && +s.r > 0 && +s.r <= MAX_REPS;
-const validDate = d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
+/* data civil real: '2026-02-30' não existe (o JS normalizaria para março e a data guardada ficaria a mentir) */
+const validDate = d => {
+  if (typeof d !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
+  const [y, m, dd] = d.split('-').map(Number), t = new Date(y, m - 1, dd);
+  return t.getFullYear() === y && t.getMonth() === m - 1 && t.getDate() === dd;
+};
 /* melhor série (para mostrar e para recordes): maior peso e, nesse peso, MAIS reps. Não é o resumo w/r de ST.log,
    que é conservador (menos reps) por causa da progressão — esse não se altera. */
 const bestOf = sets => sets.reduce((b, x) => (!b || x.w > b.w || (x.w === b.w && x.r > b.r)) ? x : b, null);
@@ -26,10 +31,11 @@ const bestOf = sets => sets.reduce((b, x) => (!b || x.w > b.w || (x.w === b.w &&
 function setsOf(e) {
   if (!e || !validDate(e.date)) return { sets: [], granular: false };
   if (Array.isArray(e.sets) && e.sets.length) {
-    const sets = e.sets.filter(validSet).map(s => ({ ...s, w: +s.w, r: +s.r }));
+    /* `i` = posição na entrada guardada: corrigir/eliminar age sobre ela, mesmo que séries inválidas fiquem escondidas */
+    const sets = e.sets.map((s, i) => ({ ...s, w: +s.w, r: +s.r, i })).filter(validSet);
     return { sets, granular: true };
   }
-  return validSet(e) ? { sets: [{ w: +e.w, r: +e.r }], granular: false } : { sets: [], granular: false };
+  return validSet(e) ? { sets: [{ w: +e.w, r: +e.r, i: 0 }], granular: false } : { sets: [], granular: false };
 }
 
 /* uma linha por dia, da mais antiga para a mais recente; dias sem nenhuma série válida ficam de fora */

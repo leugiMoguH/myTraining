@@ -321,6 +321,34 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
   await ctx.close();
 }
 
+/* ═══ treino já terminado hoje: o Play nunca fica mudo e o Reset desbloqueia ═════════════════════════ */
+{
+  const { ctx, page } = await open(412, 915);
+  const state = () => page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')));
+  const asks = []; let answer = true;
+  page.removeAllListeners('dialog'); page.on('dialog', d => { asks.push(d.message()); (answer || !/terminou hoje/.test(d.message()) ? d.accept() : d.dismiss()).catch(() => {}); });
+  const toDay = async () => { await tap(page, '.nb[data-day="__hist"]'); await tap(page, '.wk-row[data-day="Segunda"], .wk-chip[data-day="Segunda"]'); };
+  await toDay(); await tap(page, '#navMain');
+  await page.fill('#wo-w', '20'); await page.fill('#wo-r', '10'); await tap(page, '.wo-main');
+  await tap(page, '.wo-end');
+  const done = await state();
+  check(done.session && done.session.state === 'COMPLETED' && done.workouts.length === 1, 'terminar devia deixar a sessão COMPLETED');
+  await tap(page, '.nb[data-day="__hoje"]');
+  /* 1. terminado hoje + Play: tem de haver resposta (pergunta); recusar não muda nada */
+  answer = false; asks.length = 0; await tap(page, '#navMain');
+  check(asks.some(m => /terminou hoje/.test(m)), 'Play num treino terminado hoje ficou mudo (devia perguntar)');
+  check((await state()).session.id === done.session.id, 'recusar não devia criar sessão');
+  /* 2. Reset do dia: a sessão terminada deixa de bloquear; o Play inicia SEM perguntar; o histórico fica */
+  await toDay(); await tap(page, 'button:has-text("Reset")');
+  const r = await state();
+  check(r.session === null && r.workouts.length === 1, 'Reset devia soltar a sessão terminada e manter o histórico');
+  await tap(page, '.nb[data-day="__hoje"]'); asks.length = 0; await tap(page, '#navMain');
+  const p = await state();
+  check(p.session && p.session.state === 'ACTIVE' && p.session.id !== done.session.id && await page.locator('#woBg.show').count() === 1, 'Play depois de Reset (treino terminado) devia iniciar sessão nova');
+  check(!asks.some(m => /terminou hoje/.test(m)), 'depois do Reset o Play não devia perguntar');
+  await ctx.close();
+}
+
 /* ═══ larguras: 320, 360, 412 e desktop ═══════════════════════════════════ */
 for (const [w, h, mobile] of [[320, 640, true], [360, 740, true], [412, 915, true], [1280, 800, false]]) {
   const { ctx, page } = await open(w, h, mobile);

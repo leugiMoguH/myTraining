@@ -130,14 +130,16 @@ const abandonSession = () => finish(ABANDONED);
 /* fecha a sessão viva SE for deste dia (ex.: o treino personalizado acabou por decisão do utilizador) */
 function endSessionOf(day, completed) { const s = cur(); if (s && isLive() && s.day === day) finish(completed ? COMPLETED : ABANDONED); }
 
-/* O utilizador reiniciou o progresso deste dia: a sessão viva DELE deixa de existir (não vai para o histórico
-   nem fica ABANDONED — `finishedToday` bloquearia o Play). Devolve a sessão retirada (ou null). */
+/* O utilizador reiniciou o progresso deste dia: a sessão DELE (viva ou já terminada hoje) deixa de ser a sessão
+   atual. A viva não vai para o histórico nem fica ABANDONED; a terminada continua em ST.workouts, mas já não
+   bloqueia o Play (`finishedToday`). Devolve a sessão retirada (ou null). */
 function dropSessionOf(day) {
   const s = cur();
-  if (!s || !isLive() || s.day !== day) return null;
+  if (!s || s.day !== day) return null;
+  const live = isLive();
   ST.session = null;
   save();
-  for (const fn of ENDERS) { try { fn(s); } catch (e) { console.error('session end', e); } }
+  if (live) for (const fn of ENDERS) { try { fn(s); } catch (e) { console.error('session end', e); } }
   emit();
   return s;
 }

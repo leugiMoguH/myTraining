@@ -168,7 +168,8 @@ function resetDay(day) {
   const live=liveDay()===day;
   if(!confirm(live?`Resetar progresso de ${day}?\n\nO treino em curso deste dia é desfeito, com as cargas desta sessão. O histórico anterior fica.`:`Resetar progresso de ${day}?`)) return;
   DAYS[day].ex.forEach((_,i)=>{ delete ST.sets[key(day,i)]; delete ST.done[key(day,i)]; });
-  if(live){ dropSessionLoads(ST.session.id); dropSessionOf(day); timerDismiss(); }
+  if(live){ dropSessionLoads(ST.session.id); timerDismiss(); }
+  dropSessionOf(day);   /* viva ou terminada hoje: com ela a marcar o dia como feito, o Play ficava mudo */
   save(); render(day);
 }
 

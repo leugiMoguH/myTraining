@@ -53,7 +53,10 @@ function navMain() {
   if (!day) { render('__hist'); return; }
   /* terminado hoje: nada de reiniciar sozinho. Um personalizado é um treino novo de cada vez: só o concluído bloqueia
      (o descartado deixou uma sessão ABANDONED do dia, mas o treino novo é outro). */
-  if (day === CUSTOM_DAY ? ST.custom && ST.custom.stage === 'done' : finishedToday(day)) { render('__hoje'); return; }
+  if (day === CUSTOM_DAY ? ST.custom && ST.custom.stage === 'done' : finishedToday(day)) {
+    /* nunca mudo: o toque tem de dar resposta. Terminado hoje → pergunta se é para fazer outro. */
+    if (!confirm(`O treino de ${day} já terminou hoje. Iniciar outro?`)) return;
+  }
   startWorkout(day);
 }
 

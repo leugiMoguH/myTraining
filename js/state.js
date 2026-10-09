@@ -1,5 +1,6 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { DAYS } from './routine.js';
+import { newPR } from './records.js';
 import { dropSessionOf, liveDay } from './session.js';
 import { REST_SEC, timerDismiss, timerStart } from './timer.js';
 import { refreshCard, refreshProgress, render } from './ui.js';
@@ -61,9 +62,10 @@ function logSet(name,w,r,custom,day){
   const had=old && old.sets ? old.sets : [];
   const last=had[had.length-1], sid=liveSid(day) || (last && last.sid);
   const sets=[...had.slice(0,-1), {w,r,ts:nowISO(), ...(last && last.k ? {k:last.k} : {}), ...(sid ? {sid} : {})}];
-  const bs=bestSet(sets);
+  const bs=bestSet(sets), pr=newPR(name,w,r,t);
   putEntry(name,{...(old||{}), date:t, ts:nowISO(), w:bs.w, r:bs.r, sets, ...(custom?{c:1}:{})});
   save();
+  announcePR(name,w,r,pr);
   return true;
 }
 /* Séries individuais do dia: entry.sets=[{w,r,ts,k?}]; `k` ("dia:série") liga a série à marca em ST.sets; não leva o índice do exercício, por isso reordenar o dia não o desliga. entry.w/r = série representativa, sempre
@@ -77,6 +79,11 @@ function lastSetOf(name,day){
   if(t && t.sets && t.sets.length) return t.sets[t.sets.length-1];
   return arr.length ? arr[arr.length-1] : null;
 }
+/* recorde confirmado (a série já está gravada): a interface mostra um aviso discreto (history.js) */
+function announcePR(name,w,r,pr){
+  if(!pr||(!pr.load&&!pr.e1rm)) return;
+  try{ document.dispatchEvent(new CustomEvent('pr',{detail:{name,w,r,load:pr.load,e1rm:pr.e1rm,est:est1RM(w,r)}})); }catch(_){}
+}
 function putEntry(name,entry){
   const arr=getLog(name).filter(e=>e.date!==entry.date);
   arr.push(entry); arr.sort((a,b)=> a.date<b.date?-1:(a.date>b.date?1:0));
@@ -89,9 +96,10 @@ function addSetLog(name,w,r,custom,slot,day){
   const base=old && old.sets ? old.sets : (old ? [{w:old.w,r:old.r,ts:old.ts}] : []);
   /* a mesma série (slot) registada duas vezes substitui, nunca duplica */
   const sets=[...(slot ? base.filter(x=>x.k!==slot) : base), {w,r,ts:nowISO(), ...(slot?{k:slot}:{}), ...(sid?{sid}:{})}];
-  const b=bestSet(sets);
+  const b=bestSet(sets), pr=newPR(name,w,r,t);
   putEntry(name,{...(old||{}), date:t, ts:nowISO(), w:b.w, r:b.r, sets, ...(custom?{c:1}:{})});
   save();
+  announcePR(name,w,r,pr);
   return true;
 }
 /* retira a série ligada a esta marca (desmarcar em qualquer ecrã); sem série ligada não faz nada */
@@ -179,4 +187,4 @@ function getProgress(day) {
   return {total,done};
 }
 
-export { STORE_KEY, ST, setST, save, key, getSets, todayStr, nowISO, esc, fmtTime, fmtDateTime, getLog, logSet, addSetLog, removeSetLog, lastSetOf, logDate, clearDayMarks, est1RM, setProg, toggleSet, markDone, resetDay, getProgress };
+export { STORE_KEY, ST, setST, save, putEntry, bestSet, weekStartStr, liveSid, key, getSets, todayStr, nowISO, esc, fmtTime, fmtDateTime, getLog, logSet, addSetLog, removeSetLog, lastSetOf, logDate, clearDayMarks, est1RM, setProg, toggleSet, markDone, resetDay, getProgress };

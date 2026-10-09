@@ -2,6 +2,7 @@
 import { chartSVG } from './charts.js';
 import { calcTargets } from './nutrition.js';
 import { ST, fmtDateTime, fmtTime, nowISO, save, todayStr } from './state.js';
+import { muscleMapHTML, muscleMapWarm } from './muscle-map.js';
 import { volumeHTML } from './volume.js';
 
 /* ═══════════════════════ PERFIL ═════════════════════ */
@@ -155,7 +156,8 @@ function renderProfile(content){
   content=content||document.getElementById('content');
   document.getElementById('hdrSub').textContent='Perfil';
   document.getElementById('progFill').style.width='0%';
-  content.innerHTML=`<div class="nutri-wrap">${profileDataHTML()}${measuresHTML()}${macrosSummaryHTML()}${volumeHTML()}</div>`;
+  content.innerHTML=`<div class="nutri-wrap">${profileDataHTML()}${measuresHTML()}${macrosSummaryHTML()}${muscleMapHTML()}${volumeHTML()}</div>`;
+  muscleMapWarm();
 }
 
 export { getProfile, bodyMetrics, profileComplete, latestMeasure, latestWeight, bodyFat, METRIC_DEF, MEASURE_METRIC, MEASURE_EDIT_DATE, measureSeries, metricChartHTML, setMetric, measuresDashboard, profileDataHTML, saveProfile, measuresHTML, saveMeasure, editMeasure, cancelMeasureEdit, delMeasure, measuresHistoryHTML, macrosSummaryHTML, renderProfile };

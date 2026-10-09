@@ -6,6 +6,7 @@ import { catAdd, catFilter, catInput, catPick, catScope, closeCatalog, openSwap,
 import { cuAdd, cuBegin, cuDiscard, cuFinish, cuHome, cuRemove, cuSuggest, cuToggle, openCustom } from './custom.js';
 import { edAdd, edField, edLabel, edMove, edRemove, edReset, edRest, toggleEdit } from './editor.js';
 import { closeInfo, openInfo } from './guide.js';
+import { mmDays, mmSel } from './muscle-map.js';
 import { progInc, progScheme, saveLoad, toggleChart } from './loads.js';
 import { addMedia, delMedia } from './media.js';
 import { enableNotif } from './notify.js';
@@ -73,6 +74,8 @@ Object.assign(window, {
   progScheme,
   render,
   hxAddOpen, hxAddSave, hxBack, hxCancel, hxDelDay, hxDelSet, hxEditDate, hxEditSet, hxMetric, hxOpen, hxPeriod, hxSaveDate, hxSaveSet,
+  mmDays,
+  mmSel,
   resetDay,
   saveLoad,
   saveMeasure,

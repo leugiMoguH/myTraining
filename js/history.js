@@ -3,6 +3,7 @@
    Nada aqui entra no treino guiado. Os dados vêm de records.js (leitura) e logedit.js (escrita). */
 import { chartSVG } from './charts.js';
 import { METRICS, frequencyOf, exercisesWithLog, recordsOf, seriesOf, sessionsOf } from './records.js';
+import { adviceFor } from './advice.js';
 import { addSet, checkDate, deleteEntry, deleteSet, editSet, moveEntry } from './logedit.js';
 import { ST, esc, save, todayStr } from './state.js';
 import { render } from './ui.js';
@@ -71,13 +72,26 @@ function chartHTML(sessions) {
     <div class="cat-chips hx-per">${chips(PERIODS, HX.period, 'hxPeriod')}</div></div>`;
 }
 
+/* RIR opcional (repetições em reserva): só aqui, no ecrã de correções; vazio = sem RIR */
+const rirSelect = cur => `<select id="hx-rir" aria-label="RIR (repetições em reserva, opcional)"><option value="">RIR —</option>${[0, 1, 2, 3, 4, 5].map(n => `<option value="${n}"${cur === n ? ' selected' : ''}>RIR ${n}</option>`).join('')}</select>`;
+
+const ADVICE = { up: ['⬆', 'Considerar subir'], hold: ['🎯', 'Manter'], review: ['🔎', 'Rever'], insufficient: ['ℹ', 'Dados insuficientes'] };
+function adviceHTML(name) {
+  const a = adviceFor(name);
+  if (!a) return '';
+  const [icon, label] = ADVICE[a.kind];
+  return `<div class="hx-card hx-advice"><div class="hx-k">${icon} Sugestão de carga: ${label}</div><div>${esc(a.msg)}</div>
+    <div class="hx-foot">Opcional: não altera o plano nem as cargas. Baseia-se só em séries registadas.</div></div>`;
+}
+
 function setRowHTML(s, n, date, granular) {
   const i = s.i;   /* posição guardada, não a posição entre as séries visíveis */
   const ed = HX.edit && HX.edit.date === date && HX.edit.i === i;
   if (ed) return `<div class="hx-set hx-editing"><input id="hx-w" type="number" inputmode="decimal" step="0.5" value="${s.w}" aria-label="Peso"> kg ×
     <input id="hx-r" type="number" inputmode="numeric" value="${s.r}" aria-label="Repetições">
+    ${rirSelect(s.rir)}
     <button class="hx-b ok" onclick="hxSaveSet('${date}',${i})" aria-label="Guardar">✓</button><button class="hx-b" onclick="hxCancel()" aria-label="Cancelar">✕</button></div>`;
-  return `<div class="hx-set"><span>${granular ? `Série ${n + 1} · ` : ''}<b>${num(s.w)}</b> kg × <b>${s.r}</b></span>
+  return `<div class="hx-set"><span>${granular ? `Série ${n + 1} · ` : ''}<b>${num(s.w)}</b> kg × <b>${s.r}</b>${Number.isFinite(s.rir) ? ` · RIR ${s.rir}` : ''}</span>
     <span><button class="hx-b" onclick="hxEditSet('${date}',${i})" aria-label="Corrigir">✎</button><button class="hx-b" onclick="hxDelSet('${date}',${i})" aria-label="Eliminar">🗑</button></span></div>`;
 }
 
@@ -98,7 +112,7 @@ function addFormHTML() {
   return `<div class="hx-card hx-form"><div class="hx-k">Registar série num dia passado</div>
     <input id="hx-ad" type="date" max="${todayStr()}" value="${HX.date || todayStr()}" aria-label="Data">
     <div class="hx-set"><input id="hx-w" type="number" inputmode="decimal" step="0.5" placeholder="kg" aria-label="Peso"> kg ×
-    <input id="hx-r" type="number" inputmode="numeric" placeholder="reps" aria-label="Repetições"></div>
+    <input id="hx-r" type="number" inputmode="numeric" placeholder="reps" aria-label="Repetições"> ${rirSelect()}</div>
     <div class="hx-act"><button class="start-wo" onclick="hxAddSave()">Guardar</button><button class="reset-btn" onclick="hxCancel()">Cancelar</button></div>
     <div class="hx-foot">Não inicia nenhum treino. Para mais séries nesse dia, volta a guardar com a mesma data.</div></div>`;
 }
@@ -112,6 +126,7 @@ function renderExercise(content) {
   box.innerHTML = `<button class="reset-btn hx-back" onclick="hxBack()">‹ Histórico</button>
     <div class="cu-title hx-name">${esc(name || '')}</div>
     ${sessions.length ? recordsHTML(sessions) : ''}
+    ${sessions.length ? adviceHTML(name) : ''}
     ${sessions.length ? chartHTML(sessions) : '<div class="sched-note">Sem registos para este exercício. Podes registar um treino passado abaixo.</div>'}
     ${addFormHTML()}
     ${sessions.length ? '<div class="cu-title">Sessões</div>' : ''}${[...sessions].reverse().map(dayHTML).join('')}`;
@@ -123,7 +138,7 @@ const done = r => { if (!r.ok) toast(r.msg); else { HX.edit = null; HX.adding = 
 function hxEditSet(date, i) { HX.edit = { date, i }; HX.adding = false; render('__ex'); }   /* um formulário de cada vez (ids únicos) */
 function hxEditDate(date) { HX.edit = { date, i: 'date' }; HX.adding = false; render('__ex'); }
 function hxCancel() { HX.edit = null; HX.adding = false; render('__ex'); }
-function hxSaveSet(date, i) { done(editSet(ST.hx, date, i, val('hx-w'), val('hx-r'))); }
+function hxSaveSet(date, i) { done(editSet(ST.hx, date, i, val('hx-w'), val('hx-r'), val('hx-rir'))); }
 function hxSaveDate(date) { done(moveEntry(ST.hx, date, val('hx-d'))); }
 function hxDelSet(date, i) {
   if (!confirm(`Eliminar esta série de ${fmtD(date)}? Não se pode desfazer.`)) return;
@@ -137,7 +152,7 @@ function hxAddOpen(date) { HX.adding = true; HX.date = date || null; HX.edit = n
 function hxAddSave() {
   const d = val('hx-ad'), bad = checkDate(d);
   if (bad) { toast(bad); return; }
-  HX.date = d; done(addSet(ST.hx, d, val('hx-w'), val('hx-r')));
+  HX.date = d; done(addSet(ST.hx, d, val('hx-w'), val('hx-r'), val('hx-rir')));
 }
 
 export { hxOpen, hxBack, hxMetric, hxPeriod, hxEditSet, hxEditDate, hxCancel, hxSaveSet, hxSaveDate, hxDelSet, hxDelDay, hxAddOpen, hxAddSave, exerciseListHTML, renderExercise, toast };

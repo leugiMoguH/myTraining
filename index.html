@@ -759,6 +759,15 @@ body.guided #bnav, body.guided #timerBanner { display: none !important; }
 .hx-row { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 #toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 12px); transform: translate(-50%, -140%); max-width: calc(100vw - 32px); z-index: 800; padding: 10px 16px; border-radius: 999px; background: #1f2937; color: #fff; border: 1px solid var(--accent2, #f97316); font-size: 14px; font-weight: 600; pointer-events: none; opacity: 0; transition: transform .25s, opacity .25s; text-align: center; }
 #toast.show { transform: translate(-50%, 0); opacity: 1; }
+.hx-set { flex-wrap: wrap; }
+.hx select { padding: 10px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--bg, #0a0a0f); color: var(--text); font: inherit; min-height: 44px; }
+.mm { display: flex; flex-direction: column; gap: 10px; }
+.mm .muscle-svg { width: 100%; max-height: 240px; }
+.mm-chip small { opacity: 0.85; font-weight: 700; margin-left: 2px; }
+.mm-detail { gap: 6px; }
+.mm-sum { font-size: 13px; color: var(--muted); }
+.mm-ex { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; border-top: 1px solid var(--border); padding-top: 6px; }
+.mm-ex small { color: var(--muted); font-size: 11px; margin-left: 4px; }
 .wo-prev { font-size: 13px; color: var(--muted); }
 </style>
 </head>

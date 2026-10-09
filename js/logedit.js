@@ -10,7 +10,8 @@
    - a data não muda em registos do treino personalizado (o resumo em ST.sessions tem a data) nem em séries ligadas
      a marcas (k) da semana atual, porque desmarcar procura a carga por semana;
    - não há datas futuras; mudar para um dia que já tem registo junta as séries sem duplicar;
-   - o resumo `w/r` da entrada é sempre recalculado a partir das séries. */
+   - o resumo `w/r` da entrada é sempre recalculado a partir das séries;
+   - RIR (repetições em reserva) é opcional por série: '' = sem RIR, inteiro 0–5; editar peso/reps conserva-o se não for tocado. */
 import { DAYS } from './routine.js';
 import { currentSession, isLive } from './session.js';
 import { ST, bestSet, getLog, key, nowISO, putEntry, save, todayStr, weekStartStr } from './state.js';
@@ -35,6 +36,16 @@ function checkSet(w, r) {
   return validSet({ w, r }) ? '' : 'Peso e repetições têm de ser números maiores que zero.';
 }
 
+const RIR_MAX = 5;
+/* RIR opcional: undefined = não mexer · '' = sem RIR · inteiro 0–5. Devolve { v } ou { err } */
+function checkRir(v) {
+  if (v === undefined) return { v };
+  if (v === '' || v === null) return { v: null };
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 0 && n <= RIR_MAX ? { v: n } : { err: `RIR tem de ser um inteiro entre 0 e ${RIR_MAX}.` };
+}
+const withRir = (s, rir) => { if (rir === undefined) return s; const { rir: _, ...rest } = s; return rir === null ? rest : { ...rest, rir }; };
+
 /* a série tinha marca no treino desta semana ("dia:série" em ST.sets): tira-a, como o botão desfazer */
 function unmarkSlot(name, k, date) {
   if (!k || date < weekStartStr()) return;
@@ -56,22 +67,22 @@ function put(name, old, sets) {
 }
 function drop(name, date) { ST.log = { ...ST.log, [name]: getLog(name).filter(e => e.date !== date) }; }
 
-function editSet(name, date, idx, w, r) {
-  const e = entryOf(name, date), m = checkSet(w, r);
+function editSet(name, date, idx, w, r, rirIn) {
+  const e = entryOf(name, date), m = checkSet(w, r), q = checkRir(rirIn);
   if (!e) return fail('Registo não encontrado.');
-  if (m) return fail(m);
+  if (m || q.err) return fail(m || q.err);
   w = parseFloat(w); r = parseInt(r, 10);
   if (!e.sets || !e.sets.length) { putEntry(name, { ...e, w, r }); save(); return OK; }   /* agregado: continua agregado */
   if (!e.sets[idx]) return fail('Série não encontrada.');
-  put(name, e, e.sets.map((s, j) => j === idx ? { ...s, w, r } : s));
+  put(name, e, e.sets.map((s, j) => j === idx ? withRir({ ...s, w, r }, q.v) : s));
   return OK;
 }
 
-function addSet(name, date, w, r) {
-  const m = checkDate(date) || checkSet(w, r);
+function addSet(name, date, w, r, rirIn) {
+  const q = checkRir(rirIn), m = checkDate(date) || checkSet(w, r) || q.err;
   if (m) return fail(m);
   w = parseFloat(w); r = parseInt(r, 10);
-  const e = entryOf(name, date), sets = [...(e ? baseSets(e) : []), { w, r, ts: isoNoon(date) }];
+  const e = entryOf(name, date), sets = [...(e ? baseSets(e) : []), withRir({ w, r, ts: isoNoon(date) }, q.v)];
   put(name, e || { date, ts: isoNoon(date) }, sets);
   return OK;
 }
@@ -121,4 +132,4 @@ function moveEntry(name, from, to) {
   return OK;
 }
 
-export { editSet, addSet, deleteSet, deleteEntry, moveEntry, checkDate };
+export { RIR_MAX, editSet, addSet, deleteSet, deleteEntry, moveEntry, checkDate };

@@ -20,6 +20,7 @@ import { all, isLoaded, loadCatalog, muscleIdsOf, toRoutineEntry } from './catal
 import { openCatalog } from './catalog-ui.js';
 import { MUSCLES } from './charts.js';
 import { CUSTOM_DAY, dayNames, exercisesOf, findExercise, removeExercise } from './routine.js';
+import { groupSummary, muscleStats } from './muscles.js';
 import { EQUIPMENT, GROUPS, keyOf, recency, suggest } from './suggest.js';
 import { replaceCurrent, slotToReplace } from './schedule.js';
 import { endSessionOf, liveDay } from './session.js';
@@ -209,9 +210,9 @@ function renderPicker(content) {
     PICK.warmed = true;
     loadCatalog().then(() => { if (ST.view === '__pers' && !valid(ST.custom)) render('__pers'); }).catch(() => {});
   }
-  const rec = recency(ST.log, idsOf, todayStr());
+  const rec = recency(ST.log, idsOf, todayStr()), vol = groupSummary(muscleStats(7, todayStr()), GROUPS);
   const chips = GROUPS.map(g => {
-    const hint = hintOf(rec[g.id]);
+    const sets = vol[g.id].sets, hint = [hintOf(rec[g.id]), sets ? `${sets} sér./7d` : ''].filter(Boolean).join(' · ');
     const recent = rec[g.id] !== undefined && rec[g.id] <= 1;
     return `<button class="cat-chip cu-chip${PICK.sel.includes(g.id) ? ' on' : ''}${recent ? ' recent' : ''}" onclick="cuToggle('${g.id}')">
       ${g.label}${hint ? `<small>${hint}</small>` : ''}</button>`;

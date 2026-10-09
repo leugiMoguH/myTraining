@@ -61,7 +61,7 @@ function logSet(name,w,r,custom,day){
      e conserva as anteriores. Sem séries guardadas, é a única série do dia. */
   const had=old && old.sets ? old.sets : [];
   const last=had[had.length-1], sid=liveSid(day) || (last && last.sid);
-  const sets=[...had.slice(0,-1), {w,r,ts:nowISO(), ...(last && last.k ? {k:last.k} : {}), ...(sid ? {sid} : {})}];
+  const sets=[...had.slice(0,-1), {w,r,ts:nowISO(), ...(last && last.k ? {k:last.k} : {}), ...(sid ? {sid} : {}), ...(last && last.rir!=null && last.w===w && last.r===r ? {rir:last.rir} : {})}];
   const bs=bestSet(sets), pr=newPR(name,w,r,t);
   putEntry(name,{...(old||{}), date:t, ts:nowISO(), w:bs.w, r:bs.r, sets, ...(custom?{c:1}:{})});
   save();

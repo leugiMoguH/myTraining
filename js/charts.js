@@ -51,8 +51,9 @@ const MUSCLES={
   "Rosca polia":{p:["biceps"],s:[]}
 };
 function fillOf(id,P,S){ return P.indexOf(id)>=0?'#ef4444':(S.indexOf(id)>=0?'#f97316':'#2b2b3a'); }
-function bodySVG(P,S){
-  const f=id=>fillOf(id,P,S), O='#3a3a4a';
+/* `fill` (opcional): id → cor, para mapas de calor; sem ele, primário/secundário como antes */
+function bodySVG(P,S,fill){
+  const f=fill||(id=>fillOf(id,P,S)), O='#3a3a4a';
   return `<svg class="muscle-svg" viewBox="0 0 230 178" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
     <g>
       <circle cx="58" cy="14" r="10" fill="${O}"/>

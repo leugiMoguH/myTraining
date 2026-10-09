@@ -11,7 +11,7 @@
     "android:open": "npx cap open android",
     "test:browser": "node scripts/browser-test.mjs",
     "test:ux": "node scripts/ux-test.mjs",
-    "test:data": "node scripts/history-test.mjs"
+    "test:data": "node scripts/history-test.mjs && node scripts/muscle-test.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.1.0",

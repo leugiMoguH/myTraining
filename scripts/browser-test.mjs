@@ -656,6 +656,52 @@ await step('personalizado: Hoje volta ao plano normal', async () => {
   if (st.day === Object.keys(st.sched.replaced)[0] || !st.routine[st.day]) throw new Error('ST.day devia passar ao treino seguinte, e ser um dia real');
 });
 
+/* ── mapa muscular (Evolução), sugestão de carga e RIR ── */
+const semearMusculos = async () => {
+  await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('treino_v2'));
+    const ymd = n => { const x = new Date(); x.setDate(x.getDate() - n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+    const e = (n, w, r, k) => ({ date: ymd(n), ts: `${ymd(n)}T10:00:00.000Z`, w, r, sets: Array.from({ length: k }, () => ({ w, r, ts: `${ymd(n)}T10:00:00.000Z` })) });
+    st.log = { 'Supino reto': [e(12, 60, 12, 3), e(10, 60, 12, 3), e(1, 60, 12, 3)], 'Rosca direta': [{ date: ymd(3), ts: 'x', w: 20, r: 10 }] };
+    localStorage.setItem('treino_v2', JSON.stringify(st));
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+};
+await step('mapa muscular: 7/28 dias, seleção, exercícios, sem overflow', async () => {
+  await semearMusculos();
+  await goNav('__perfil');
+  await page.waitForSelector('#mmap svg.muscle-svg', { timeout: T });
+  const chip = id => page.locator(`#mmap .mm-chip[onclick="mmSel('${id}')"]`);
+  const txt = async id => (await chip(id).innerText()).replace(/\s+/g, ' ');
+  if (!/Peito 3/.test(await txt('peito'))) throw new Error(`7 dias: peito devia ter 3 séries (${await txt('peito')})`);
+  await click('#mmap .mm-days .cat-chip:has-text("28")');
+  if (!/Peito 9/.test(await txt('peito'))) throw new Error(`28 dias: peito devia ter 9 séries (${await txt('peito')})`);
+  if (!/Bíceps —/.test(await txt('biceps')) && !/Bíceps 0/.test(await txt('biceps'))) throw new Error('bíceps só com registo antigo não pode mostrar séries');
+  await click(`#mmap .mm-chip[onclick="mmSel('peito')"]`);
+  const det = await page.locator('#mmap .mm-detail').innerText();
+  if (!/Supino reto/.test(det) || !/9 séries diretas/.test(det) || !/3 dias/.test(det)) throw new Error(`detalhe do peito: ${det.replace(/\n/g, ' | ')}`);
+  await click(`#mmap .mm-chip[onclick="mmSel('biceps')"]`);
+  if (!/registo antigo/.test(await page.locator('#mmap .mm-detail').innerText())) throw new Error('bíceps devia indicar registo antigo');
+  const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (ov > 1) throw new Error(`scroll horizontal ${ov}px`);
+  await page.screenshot({ path: join(SHOTS, 'musculos.png'), fullPage: true });
+});
+await step('sugestão de carga e RIR no ecrã do exercício', async () => {
+  await page.evaluate(() => window.hxOpen('Supino reto'));
+  await page.waitForSelector('.hx-advice', { timeout: T });
+  const adv = await page.locator('.hx-advice').innerText();
+  if (!/considerar subir/i.test(adv) || !/duas sessões/.test(adv)) throw new Error(`sugestão: ${adv.replace(/\n/g, ' | ')}`);
+  await page.locator('.hx-day').first().locator('button[aria-label="Corrigir"]').first().click({ timeout: T });   /* sessões: a mais recente primeiro */
+  await page.selectOption('#hx-rir', '0');
+  await click('.hx-editing .hx-b.ok');
+  await page.waitForSelector('.hx-advice', { timeout: T });
+  if (!/RIR 0/.test(await page.locator('.hx').innerText())) throw new Error('RIR 0 devia aparecer na série');
+  const adv2 = await page.locator('.hx-advice').innerText();
+  if (!/manter/i.test(adv2) || !/falha/.test(adv2)) throw new Error(`RIR 0 devia travar a subida: ${adv2.replace(/\n/g, ' | ')}`);
+  const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (ov > 1) throw new Error(`scroll horizontal ${ov}px`);
+});
+
 await goNav('__hoje');
 await page.waitForTimeout(200);
 await page.screenshot({ path: join(SHOTS, 'hoje.png'), fullPage: true });

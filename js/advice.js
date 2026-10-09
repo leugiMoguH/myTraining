@@ -14,7 +14,7 @@
        todas as séries ≥ alvo de reps em ambas  -> considerar +salto (o do exercício, ST.prog[nome].inc ou o predefinido);
        alguma série < mínimo da gama em ambas   -> rever carga ou objetivo de reps;
        caso contrário                           -> manter.
-   - RIR (opcional): só trava. Se na última sessão todas as séries têm RIR e alguma foi até à falha (RIR 0), não se sobe.
+   - RIR (opcional): só trava. Se na última sessão alguma série registou RIR 0 (até à falha), não se sobe.
    Um recorde isolado nunca chega: é preciso o mesmo desempenho em duas sessões completas. */
 import { configOf, roundKg, targetReps } from './progression.js';
 import { sessionsOf } from './records.js';
@@ -49,9 +49,8 @@ function adviceFor(name, { today = todayStr(), exercise, prog } = {}) {
   const both = (f) => [a, b].every(s => f(s));
   const dates = `${fmtD(a.date)} e ${fmtD(b.date)}`;
   if (both(s => s.sets.every(x => x.r >= target))) {
-    const rirAll = b.sets.every(x => Number.isFinite(x.rir));
-    if (rirAll && Math.min(...b.sets.map(x => x.rir)) === 0) {
-      return out('hold', `Fizeste todas as séries com ${num(W)} kg, mas a última sessão teve séries até à falha (RIR 0): mantém.`, { evidence });
+    if (b.sets.some(x => x.rir === 0)) {
+      return out('hold', `Fizeste todas as séries com ${num(W)} kg, mas a última sessão teve uma série até à falha (RIR 0): mantém.`, { evidence });
     }
     const w = roundKg(W + cfg.inc);
     return out('up', `Completaste todas as séries previstas (≥ ${target} reps) nas últimas duas sessões com ${num(W)} kg (${dates}). Podes considerar +${num(cfg.inc)} kg (${num(w)} kg).`, { w, evidence });

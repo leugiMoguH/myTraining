@@ -120,7 +120,8 @@ ST.prog = { [SQ]: { inc: 2 } }; ok(adv(EXL).w === 102, '18: salto do utilizador'
 reset(); ST.log[BENCH] = [entry(day(8), rep(3, 60, 12)), entry(day(2), rep(3, 60, 12, { rir: 0 }))];
 ok(adv().kind === 'hold' && /falha/.test(adv().msg), '19: RIR 0 trava a subida');
 ST.log[BENCH] = [entry(day(8), rep(3, 60, 12)), entry(day(2), rep(3, 60, 12, { rir: 2 }))]; ok(adv().kind === 'up', '19: RIR>0 não trava');
-ST.log[BENCH] = [entry(day(8), rep(3, 60, 12)), entry(day(2), [{ w: 60, r: 12, rir: 0 }, ...rep(2, 60, 12)])]; ok(adv().kind === 'up', '19: RIR parcial não trava (sem dados completos)');
+ST.log[BENCH] = [entry(day(8), rep(3, 60, 12)), entry(day(2), [{ w: 60, r: 12, rir: 0 }, ...rep(2, 60, 12)])]; ok(adv().kind === 'hold', '19: um RIR 0 numa série já trava');
+ST.log[BENCH] = [entry(day(8), rep(3, 60, 12)), entry(day(2), [{ w: 60, r: 12, rir: 1 }, ...rep(2, 60, 12)])]; ok(adv().kind === 'up', '19: RIR 1 parcial não trava');
 /* RIR: gravar, validar, conservar, limpar, compatível */
 reset(); E.addSet(BENCH, day(3), 60, 8, 2);
 ok(S.getLog(BENCH)[0].sets[0].rir === 2, 'RIR gravado');

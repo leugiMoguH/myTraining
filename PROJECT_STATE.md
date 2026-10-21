@@ -2,7 +2,7 @@ Projeto: myTraining — cartão de exercício simplificado (piloto do orquestrad
 Plano: v1
 Atualizado: 2026-10-21
 Objetivo: Cartão de exercício mais simples, com o registo do treino igualmente rápido, avaliado pelo utilizador
-Próximo passo: Codex implementa num worktree isolado
+Próximo passo: libertar memória e arrancar a implementação Codex
 Decisão necessária:
 
 ## Sucesso
@@ -37,5 +37,6 @@ Decisão necessária:
 - Exportação Strava (dúvida sobre ficheiros na app Android)
 
 ## Bloqueios
+- 2026-10-21 · implementação não arrancou: RAM livre 912 MB < 1024 MB (guarda do orquestrador); 0 chamadas gastas (1 de 5 usada, a revisão do plano)
 ## Histórico do plano
 - v1 (2026-10-21): plano inicial

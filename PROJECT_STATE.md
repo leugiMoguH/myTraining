@@ -2,7 +2,7 @@ Projeto: myTraining — cartão de exercício simplificado (piloto do orquestrad
 Plano: v1
 Atualizado: 2026-10-21
 Objetivo: Cartão de exercício mais simples, com o registo do treino igualmente rápido, avaliado pelo utilizador
-Próximo passo: o utilizador experimenta o cartão em http://localhost:8011 (novo) e :8010 (antes)
+Próximo passo: o utilizador avalia a versão refinada em http://localhost:8011 (:8010 = antes)
 Decisão necessária: aceitar ou pedir ajustes ao cartão
 
 ## Sucesso
@@ -32,6 +32,8 @@ Decisão necessária: aceitar ou pedir ajustes ao cartão
 - 2026-10-21 · «Marcar feito» fica visível mas secundário (Codex propôs mover para «Mais») · é o único atalho de 1 toque e o utilizador pediu ações frequentes rápidas; fácil de mover se não gostar
 - 2026-10-21 · aceites da revisão: toggle por addEventListener sem tocar em bridge.js; IDs da carga preservados; Registar ≥44 px; testes ux do cartão e percursos do browser-test adaptados; ex.s/ex.r textuais intactos
 - 2026-10-21 · .agents/ e .claude/skills/ (graphify) e todolist_tommorow.md ficam fora de commits
+
+- 2026-10-22 · refinamento visual (Mais/Menos com ícone, hierarquia, espaçamentos) feito diretamente pelo CLAUDE no worktree, 0 chamadas Codex (3 de 5 usadas, 2 de reserva para a falha parcial) · pedido do utilizador; patch separado em ai-orchestration/orch/logs/impl/GYM1/claude_visual_r3.patch; testes smoke/superset/timer/browser/ux verdes
 
 ## Estacionadas
 - Exportação Strava (dúvida sobre ficheiros na app Android)

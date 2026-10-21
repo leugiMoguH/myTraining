@@ -2,8 +2,8 @@ Projeto: myTraining — cartão de exercício simplificado (piloto do orquestrad
 Plano: v1
 Atualizado: 2026-10-21
 Objetivo: Cartão de exercício mais simples, com o registo do treino igualmente rápido, avaliado pelo utilizador
-Próximo passo: libertar memória e arrancar a implementação Codex
-Decisão necessária:
+Próximo passo: o utilizador experimenta o cartão em http://localhost:8011 (novo) e :8010 (antes)
+Decisão necessária: aceitar ou pedir ajustes ao cartão
 
 ## Sucesso
 - Cartão fechado mostra só o essencial para registar; o resto fica em «Mais»
@@ -16,13 +16,13 @@ Decisão necessária:
 - [x] Plano revisto por Codex e integrado | ev: ai-orchestration/orch/pilot/GYM1_plano.json; decisões abaixo
 
 ## E2 — Implementação
-### T2.1 · peso 3 · Por iniciar · Codex implementa em worktree isolado
-- [ ] Alterações só nos ficheiros permitidos, patch guardado | ev:
-### T2.2 · peso 2 · Por iniciar · Verificação independente do Claude
-- [ ] Todas as suites verdes e dados intactos, confirmado fora do worktree do Codex | ev:
+### T2.1 · peso 3 · Concluída · Codex implementa em worktree isolado
+- [x] Alterações só nos ficheiros permitidos, patch guardado | ev: ai-orchestration/orch/logs/impl/GYM1/r2.patch (6 ficheiros, 0 fora do âmbito, ramo codex/GYM1)
+### T2.2 · peso 2 · Concluída · Verificação independente do Claude
+- [x] Todas as suites verdes e dados intactos, confirmado fora do worktree do Codex | ev: smoke, superset, timer, browser, ux verdes na 2.ª versão; 1.ª versão tinha 3 defeitos (⏱ do cartão com REST_SEC indefinido, já existia antes; Registar a 36 px no estado ✓; teste novo sujava o estado), corrigidos numa ronda
 
 ## E3 — Aceitação
-### T3.1 · peso 2 · Por iniciar · Avaliação visual pelo utilizador
+### T3.1 · peso 2 · Em validação · Avaliação visual pelo utilizador
 - [ ] O utilizador experimenta e confirma cartão mais simples e registo rápido | ev:
 ### T3.2 · peso 1 · Por iniciar · Teste de recuperação numa cópia descartável
 - [ ] Interrupção real: trabalho parcial detetado, repetição sem duplicar, projeto principal intacto | ev:
@@ -37,6 +37,7 @@ Decisão necessária:
 - Exportação Strava (dúvida sobre ficheiros na app Android)
 
 ## Bloqueios
+- (resolvido) memória livre insuficiente: fechado o Brave, arrancou à 2.ª tentativa, sem chamada gasta
 - 2026-10-21 · implementação não arrancou: RAM livre 912 MB < 1024 MB (guarda do orquestrador); 0 chamadas gastas (1 de 5 usada, a revisão do plano)
 ## Histórico do plano
 - v1 (2026-10-21): plano inicial

@@ -4,7 +4,7 @@
 import { closeSheet, exportBackup, exportIntakeCSV, exportLoadCSV, exportMeasuresCSV, importBackup, openSheet } from './backup.js';
 import { catAdd, catFilter, catInput, catPick, catScope, closeCatalog, openSwap, undoSwap } from './catalog-ui.js';
 import { cuAdd, cuBegin, cuDiscard, cuFinish, cuHome, cuRemove, cuSuggest, cuToggle, openCustom } from './custom.js';
-import { edAdd, edField, edLabel, edMove, edRemove, edReset, edRest, toggleEdit } from './editor.js';
+import { edAdd, edField, edLabel, edSuper, edMove, edRemove, edReset, edRest, toggleEdit } from './editor.js';
 import { closeInfo, openInfo } from './guide.js';
 import { mmDays, mmSel } from './muscle-map.js';
 import { progInc, progScheme, saveLoad, toggleChart } from './loads.js';
@@ -18,7 +18,7 @@ import { adjustRest, timerAdd, timerDismiss, timerStart } from './timer.js';
 import { hxAddOpen, hxAddSave, hxBack, hxCancel, hxDelDay, hxDelSet, hxEditDate, hxEditSet, hxMetric, hxOpen, hxPeriod, hxSaveDate, hxSaveSet } from './history.js';
 import { goDay, render, toggleDayDone } from './ui.js';
 import { toggleWake } from './wake.js';
-import { closeWorkout, startWorkout, woDoSet, woFinish, woGo, woInfo, woPause, woStep, woUndo } from './workout.js';
+import { closeWorkout, startWorkout, woDoSet, woFinish, woGo, woInfo, woPause, woStep, woSwap, woUndo } from './workout.js';
 
 Object.assign(window, {
   addIntakeUI,
@@ -35,7 +35,7 @@ Object.assign(window, {
   closeInfo,
   closeSheet,
   closeWorkout,
-  woDoSet, woFinish, woInfo, woPause, woStep, woUndo,
+  woDoSet, woFinish, woInfo, woPause, woStep, woSwap, woUndo,
   cuAdd,
   cuBegin,
   cuDiscard,
@@ -49,7 +49,7 @@ Object.assign(window, {
   delMedia,
   edAdd,
   edField,
-  edLabel,
+  edLabel, edSuper,
   edMove,
   edRemove,
   edReset,

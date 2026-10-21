@@ -147,6 +147,7 @@ function catPick(id) {
   if (!replaceExercise(CAT.day, CAT.i, toRoutineEntry(novo))) return;
   closeCatalog();
   render(CAT.day);
+  window.dispatchEvent(new Event('routine-changed'));   /* o guiado, se aberto, repinta */
 }
 
 /* Desfaz uma troca temporária antes do fim da semana. */

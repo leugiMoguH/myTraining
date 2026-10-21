@@ -127,7 +127,7 @@ function setProg(name,patch){
   return true;
 }
 
-function toggleSet(day,i,si) {
+function toggleSet(day,i,si,noRest) {
   const k=key(day,i), arr=getSets(day,i);
   const idx=arr.indexOf(si);
   if(idx>=0) arr.splice(idx,1); else arr.push(si);
@@ -139,7 +139,7 @@ function toggleSet(day,i,si) {
   save();
   refreshCard(day,i);
   refreshProgress();
-  if(idx<0) timerStart(REST_SEC);
+  if(idx<0 && !noRest) timerStart(REST_SEC);
 }
 
 function markDone(day,i) {

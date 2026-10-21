@@ -41,6 +41,7 @@ function timerTick(){
   if(TM.left<=0 && TM.on){
     TM.on=false; if(TM.iv) clearInterval(TM.iv); TM.iv=null;
     persistTimer();
+    document.getElementById('timerBanner').classList.remove('show','warn');   /* fim: o banner sai, não fica em 0:00 */
     fire();
     if(navigator.vibrate) navigator.vibrate([200,80,200,80,400]);
     maybeNotify();

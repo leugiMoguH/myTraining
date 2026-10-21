@@ -12,6 +12,7 @@ import { lastBefore } from './records.js';
 import { ACTIVE, PAUSED, completeSession, currentSession, fmtDur, isLive, notifySession, pauseSession, resumeSession, sessionState, setSessionPos, startSession, timeStats, touchSession } from './session.js';
 import { addSetLog, esc, getLog, getSets, lastSetOf, logDate, toggleSet } from './state.js';
 import { TM, onTimerChange, timerDismiss } from './timer.js';
+import { openSwap } from './catalog-ui.js';
 import { render } from './ui.js';
 import { acquireWake, releaseWake, wakeWanted } from './wake.js';
 
@@ -54,6 +55,9 @@ function closeWorkout(){
   render(WO.day); notifySession();
 }
 function woGo(d){ const ex=DAYS[WO.day].ex; WO.idx=Math.max(0,Math.min(ex.length-1,WO.idx+d)); setSessionPos(WO.idx); woRender(); }
+/* troca rápida: só antes de haver séries feitas neste exercício (assim não se perde nada) */
+function woSwap(){ if(!getSets(WO.day,WO.idx).length) openSwap(WO.day,WO.idx); }
+window.addEventListener('routine-changed',()=>{ if(WO.day && guidedOpen()) woRender(); });
 function woInfo(){ const ex=DAYS[WO.day].ex[WO.idx]; openInfo(ex.name, ex.catalogId||''); }
 
 /* ajuste rápido: kg usa o salto do exercício, reps ±1 */
@@ -78,13 +82,42 @@ function woDoSet(){
     return;
   }
   lastTap=Date.now();
-  toggleSet(WO.day,WO.idx,si);   /* marca a série e arranca o descanso (timer.js) */
+  const nx=superNext(DAYS[WO.day].ex,WO.idx,i=>getSets(WO.day,i).length+(i===WO.idx?1:0));
+  toggleSet(WO.day,WO.idx,si,nx>WO.idx);   /* marca a série; o descanso (timer.js) só corre no fim do par */
+  if(nx>WO.idx) timerDismiss();            /* e o do par anterior, ainda a correr, acaba aqui */
   touchSession();
+  if(nx>=0){ WO.idx=nx; setSessionPos(nx); }
   woRender();
+}
+/* Superset (ex.ss = "alterna com o seguinte"): depois de uma série segue-se o próximo membro do grupo com séries por
+   fazer; devolve o seu índice, ou -1 (grupo acabado / exercício isolado → descanso normal). */
+function superNext(ex,i,doneOf){
+  let a=i; while(a>0 && ex[a-1].ss) a--;
+  let b=i; while(b<ex.length-1 && ex[b].ss) b++;
+  if(a===b) return -1;
+  const need=k=>typeof ex[k].s==='number' && doneOf(k)<ex[k].s;
+  for(let n=1;n<=b-a;n++){ const k=a+(i-a+n)%(b-a+1); if(need(k)) return k; }
+  return -1;
+}
+/* membro do grupo (superset) cuja série foi executada mais recentemente; -1 se nenhum tem séries */
+function lastDoneInGroup(){
+  const ex=DAYS[WO.day].ex, pre=`${WO.day}:`;
+  let a=WO.idx; while(a>0 && ex[a-1].ss) a--;
+  let b=WO.idx; while(b<ex.length-1 && ex[b].ss) b++;
+  let best=-1, bt='';
+  for(let k=a;k<=b;k++){
+    const sets=getSets(WO.day,k); if(!sets.length) continue;
+    const t=getLog(ex[k].name).find(e=>e.date===logDate(WO.day));
+    const ts=((t&&t.sets)||[]).filter(x=>x.k&&x.k.startsWith(pre)&&sets.includes(+x.k.slice(pre.length))).map(x=>String(x.ts||'')).reduce((m,x)=>x>m?x:m,'');
+    if(best<0||ts>bt){ best=k; bt=ts; }
+  }
+  return best;
 }
 /* desfaz a última série EXECUTADA (a de registo mais recente), não a de maior índice */
 function woUndo(){
-  const ex=DAYS[WO.day].ex[WO.idx], sets=getSets(WO.day,WO.idx); if(!sets.length) return;
+  const m=lastDoneInGroup(); if(m<0) return;
+  if(m!==WO.idx){ WO.idx=m; setSessionPos(m); }
+  const ex=DAYS[WO.day].ex[WO.idx], sets=getSets(WO.day,WO.idx);
   const t=getLog(ex.name).find(e=>e.date===logDate(WO.day)), pre=`${WO.day}:`;
   const L=t&&t.sets?[...t.sets].reverse().find(x=>x.k&&x.k.startsWith(pre)&&sets.includes(+x.k.slice(pre.length))):null;
   let si=L?+L.k.slice(pre.length):NaN;
@@ -153,8 +186,9 @@ function woRender(keep){
       <button class="wo-step" onclick="woStep('${f}',1)" aria-label="Mais ${aria}">+</button></div>
       <label class="wo-lbl" for="${id}">${lbl}</label></div>`;
   const links=[
-    sets.length?`<button onclick="woUndo()">↶ Desfazer</button>`:'',
+    lastDoneInGroup()>=0?`<button onclick="woUndo()">↶ Desfazer</button>`:'',
     `<button onclick="woInfo()">ℹ Ficha</button>`,
+    sets.length?'':`<button onclick="woSwap()">⇄ Trocar</button>`,
     i>0?`<button onclick="woGo(-1)">‹ Anterior</button>`:'',
     (!lastEx&&!allDone&&totalSets)?`<button onclick="woGo(1)">Próximo ›</button>`:'',
   ].join('');
@@ -182,4 +216,4 @@ function woRender(keep){
   if(keep){ const s2=document.querySelector('.wo-scroll'); if(s2) s2.scrollTop=top; if(fid==='wo-w'||fid==='wo-r'){ const f=el(fid); if(f) f.focus(); } }
 }
 
-export { WO, startWorkout, openWorkout, closeWorkout, refreshWorkout, woGo, woInfo, woRender, woRestSync, woStep, woDoSet, woUndo, woPause, woFinish };
+export { WO, startWorkout, openWorkout, closeWorkout, refreshWorkout, woGo, woInfo, woSwap, woRender, woRestSync, woStep, woDoSet, woUndo, woPause, woFinish };

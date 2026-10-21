@@ -30,6 +30,9 @@ function edField(day, i, field, value) {
   render(day);
 }
 
+/* Superset: este exercício alterna com o seguinte (sem descanso entre os dois). */
+function edSuper(day, i, on) { if (updateExercise(day, i, { ss: !!on })) render(day); }
+
 function edLabel(day, value) { if (setDayLabel(day, value)) render(day); }
 
 /* Dia de descanso: sai da fila de treinos pendentes, mas os exercícios ficam
@@ -61,6 +64,7 @@ function editorHTML(day) {
             onchange="edField('${day}',${i},'s',this.value)"></label>
           <label>Reps<input type="text" value="${esc(e.r)}" onchange="edField('${day}',${i},'r',this.value)"></label>
         </div>
+        ${i < ex.length - 1 ? `<label class="ed-ss"><input type="checkbox" ${e.ss ? 'checked' : ''} onchange="edSuper('${day}',${i},this.checked)"><span>🔗 Superset com o seguinte</span></label>` : ''}
       </div>
       <button class="ed-btn ed-del" onclick="edRemove('${day}',${i})" aria-label="Remover">✕</button>
     </div>`).join('');
@@ -82,4 +86,4 @@ function editorHTML(day) {
     </div>`;
 }
 
-export { isEditing, toggleEdit, stopEdit, edMove, edRemove, edField, edLabel, edRest, edReset, edAdd, editorHTML };
+export { isEditing, toggleEdit, stopEdit, edMove, edRemove, edField, edLabel, edSuper, edRest, edReset, edAdd, editorHTML };

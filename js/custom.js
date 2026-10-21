@@ -83,7 +83,7 @@ function buildPool() {
       const ids = idsOf(e.name);
       if (!ids.length) continue;
       const m = MUSCLES[e.name] || e.mus || {};
-      put({ key: keyOf(e.name), ids, known: 2, sec: (m.s || []).length, equip: '', entry: JSON.parse(JSON.stringify(e)) });
+      put({ key: keyOf(e.name), ids, known: 2, sec: (m.s || []).length, equip: '', entry: (({ ss, ...r }) => r)(JSON.parse(JSON.stringify(e))) });
     }
   }
   for (const e of all()) {

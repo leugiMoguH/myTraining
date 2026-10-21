@@ -60,6 +60,8 @@ const DAYS = new Proxy({}, {
 function setDayExercises(day, exercises, indexMap) {
   const d = getDay(day);
   if (!d) return false;
+  const last = exercises.length - 1;   /* superset sem "seguinte" não existe: não pode herdar o próximo que vier */
+  exercises = exercises.map((e, k) => (k === last && e.ss ? { ...e, ss: false } : e));
 
   const sets = { ...ST.sets };
   const done = { ...ST.done };
@@ -106,7 +108,7 @@ function moveExercise(day, i, dir) {
 function updateExercise(day, i, patch) {
   const ex = exercisesOf(day);
   if (i < 0 || i >= ex.length) return false;
-  const allowed = ['s', 'r', 'tip', 'alt'];
+  const allowed = ['s', 'r', 'tip', 'alt', 'ss'];
   const clean = {};
   for (const k of allowed) if (patch[k] !== undefined) clean[k] = patch[k];
   const next = ex.map((e, k) => (k === i ? { ...e, ...clean } : e));
@@ -119,7 +121,7 @@ function updateExercise(day, i, patch) {
 function replaceExercise(day, i, entry) {
   const ex = exercisesOf(day);
   if (i < 0 || i >= ex.length || !entry || !entry.name) return false;
-  const keep = { ...entry, s: ex[i].s, r: ex[i].r };
+  const keep = { ...entry, s: ex[i].s, r: ex[i].r, ...(ex[i].ss ? { ss: true } : {}) };   /* o par mantém-se */
   return setDayExercises(day, ex.map((e, k) => (k === i ? keep : e)), ex.map((_, k) => (k === i ? -1 : k)));
 }
 

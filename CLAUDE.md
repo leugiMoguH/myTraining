@@ -94,6 +94,8 @@ do log**, nunca guardadas: não há contador para ficar dessincronizado.
 
 **Treino personalizado (`js/custom.js`):** vale só para hoje e vive em `ST.custom`, servido como o dia `CUSTOM_DAY` por `routine.js` (`getDay`/`DAYS`/`setDayExercises`) — **nunca** em `ST.routine` nem em `dayNames()`, por isso a agenda não o vê. Ecrã próprio `ST.view = '__pers'` (`render('Personalizado')` redireciona); `ST.day` continua a ser um dia real. Séries em `ST.sets['Personalizado:i']`; caduca no dia seguinte. Concluir grava `ST.sessions` e marca as cargas `c:1` em `ST.log`. Ao concluir, `replaceCurrent()` (`schedule.js`) marca o 1.º dia pendente `<=` hoje em `ST.sched.replaced` (estado `swapped`: sai da fila, **não** conta como feito; Reabrir desfaz); um por dia, nunca dias futuros; o reset semanal limpa-o.
 
+**Superset:** `ex.ss` = «alterna com o seguinte» (editor ✎ → 🔗). Só o guiado o usa (`superNext` em `workout.js`): sem descanso entre membros, descanso no fim da ronda, Desfazer age no último registo do grupo. `setDayExercises` limpa `ss` do último exercício; o personalizado não o herda. Troca rápida (⇄ Trocar) no guiado só com 0 séries feitas; `catPick` emite `routine-changed` para o guiado repintar. Teste: `npm run test:superset`.
+
 **Agenda (`js/schedule.js`):** o treino atual não é o dia da semana — é o **primeiro dia
 ainda por fazer** (`currentDay()`). Um dia falhado fica pendente em vez de ser saltado.
 Dias com `rest: true` (ou com "Descanso" na etiqueta) saem da fila. `ST.sched.week` é a

@@ -156,3 +156,5 @@ Push `main` para o GitHub → GitHub Pages faz deploy sozinho. Sem CI.
 Ao acrescentar ou remover um ficheiro em `js/`, atualizar a lista `CORE` em `sw.js` **e**
 subir a versão de `CACHE` (`treino-v3` → `v4`), senão os clientes ficam com o bundle antigo.
 `scripts/build-www.mjs` copia `js/` e `data/` para o APK (Capacitor).
+
+O cartão do Dia mostra séries e registo de carga; Mais abre detalhes só no DOM, fecha a cada render e preserva campos por registar ao alternar.

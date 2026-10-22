@@ -203,10 +203,10 @@ try {
     await page.setViewportSize({width:390,height:844});await page.evaluate(()=>window.setThemePref('auto'));
     for(const colorScheme of ['light','dark']){await page.emulateMedia({colorScheme,reducedMotion:'reduce'});await open();assert.equal(await modal().locator('form').evaluate(e=>getComputedStyle(e).animationName),'none');await choose('Cancelar');}
   });
-  await test('SW v30 em cache abre modal offline',async()=>{
+  await test('SW v32 em cache abre modal offline',async()=>{
     await page.evaluate(async()=>{await navigator.serviceWorker.ready;});
     await page.reload({waitUntil:'networkidle'});await page.evaluate(async()=>{window.M={dialog:await import('./js/dialog.js')};});
-    assert((await page.evaluate(()=>caches.keys())).includes('treino-v30'));
+    assert((await page.evaluate(()=>caches.keys())).includes('treino-v32'));
     await context.setOffline(true);await open();await choose('Confirmar');assert.equal(await result(),true);await context.setOffline(false);
   });
   assert.deepEqual(errors,[]);

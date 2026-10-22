@@ -184,8 +184,7 @@ function weekStripHTML(a) {
 
 function bannerHTML(a) {
   if (a.restToday && a.late) return `<div class="sched-note warn">😴 Hoje é descanso, mas <b>${a.current}</b> ficou pendente.</div>`;
-  if (a.late) return `<div class="sched-note warn">⏳ Em atraso: <b>${a.current}</b> ficou por fazer. Faz este antes de avançar.</div>`;
-  return '';   /* em dia: nada a avisar */
+  return '';   /* em dia, ou em atraso (o cartão Hoje já diz «Em atraso · dia»): nada a acrescentar */
 }
 
 /* Nada para treinar hoje: ou é dia de descanso, ou a semana já está fechada. */
@@ -210,10 +209,35 @@ function heroHTML(a) {
   const mins = estimateMin(a.current);
   const live = liveDay() === a.current;
   const why = ST.plan && ST.plan.why ? `<details><summary>Porquê este plano?</summary><p>${esc(ST.plan.why)}</p></details>` : '';
-  return `<div class="hero"><div class="hero-t" style="font-size:15px;font-weight:600;color:var(--muted)">${hi} 👋</div>
+  const names = d.ex.map(e => e.name), more = names.length - 3;
+  const preview = `${names.slice(0, 3).map(esc).join(' · ')}${more > 0 ? ` · +${more}` : ''}`;
+  return `<div class="hero"><div class="hero-hi">${hi} 👋</div>
     <div class="hero-k">${esc(kicker)}</div><div class="hero-t">${esc(d.label)}</div>
     <div class="hero-s">${mins ? `~${mins} min · ` : ''}${d.ex.length} exercícios</div>
+    <div class="hero-ex">${preview}</div>
     <button class="start-wo btn-primary" onclick="heroStart('${a.current}')">${live ? '▶ Continuar treino' : '▶ Começar treino'}</button>${why}</div>`;
+}
+
+/* Lista de exercícios do Hoje: recolhida por omissão; abre sozinha com treino em curso, séries marcadas ou edição.
+   O que o utilizador escolhe fica por dia enquanto a app está aberta (só vista, nunca dados). */
+const listChoice = {};
+function listOpen(day) {
+  if (day in listChoice) return listChoice[day];
+  return isEditing(day) || liveDay() === day || DAYS[day].ex.some((_, i) => getSets(day, i).length) || dayStatus(day) === 'partial';
+}
+function listToggleHTML(day) {
+  const open = listOpen(day), { total, done } = getProgress(day);
+  return `<button class="list-toggle" id="todayToggle" aria-expanded="${open}" aria-controls="todayList" onclick="toggleTodayList()">
+    <span>${open ? 'Esconder exercícios' : 'Ver exercícios e registar'}</span><small>${done}/${total}</small><i aria-hidden="true">▾</i></button>`;
+}
+function toggleTodayList() {
+  const btn = document.getElementById('todayToggle'), list = document.getElementById('todayList');
+  if (!btn || !list || isEditing(ST.day)) return;
+  const open = list.hidden;
+  listChoice[ST.day] = open;
+  list.hidden = !open;
+  btn.setAttribute('aria-expanded', String(open));
+  btn.querySelector('span').textContent = open ? 'Esconder exercícios' : 'Ver exercícios e registar';
 }
 
 function renderToday(content) {
@@ -239,11 +263,21 @@ function renderToday(content) {
   /* ST.day tem de ser um dia real: é a chave do progresso (`dia:índice`) */
   ST.day = a.current; save();
 
+  /* estado do dia (atraso/descanso) logo a seguir ao calendário, depois a ação principal e a lista recolhível */
   const note = document.createElement('div');
-  note.className = 'full';
-  note.innerHTML = heroHTML(a) + bannerHTML(a) + customEntryHTML();
+  note.className = 'full today-top';
+  note.innerHTML = bannerHTML(a) + heroHTML(a) + listToggleHTML(a.current);
   content.appendChild(note);
-  renderDay(content, a.current, false);
+  const list = document.createElement('div');
+  list.className = 'full today-list';
+  list.id = 'todayList';
+  list.hidden = !listOpen(a.current);
+  content.appendChild(list);
+  renderDay(list, a.current, false);
+  const cu = document.createElement('div');
+  cu.className = 'full';
+  cu.innerHTML = customEntryHTML();
+  content.appendChild(cu);
 }
 
 /* Vista da semana: uma linha por dia, para editar ou saltar para qualquer um. */
@@ -380,4 +414,4 @@ function render(target) {
   renderDay(content, target);
 }
 
-export { refreshProgress, refreshCard, buildCard, gifSlide, render, renderDay, renderToday, renderWeek, renderHistory, goDay, toggleDayDone };
+export { refreshProgress, refreshCard, buildCard, gifSlide, render, renderDay, renderToday, renderWeek, renderHistory, goDay, toggleDayDone, toggleTodayList };

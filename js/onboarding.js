@@ -5,7 +5,7 @@ import { show } from './notice.js';
    Usado de duas formas: 1.ª utilização (automático) e "Rever o meu plano" no Perfil (sem repetir o acolhimento). */
 import { applyPlan, estimateMin, getPrefs, hasPlan, isTraining, swapDays } from './plan.js';
 import { ensureOnb, isExistingUser, restoreSnapshot, snapshotInfo } from './migrate.js';
-import { GOAL_TEXT, WEEK, normalizePrefs, proposePlan } from './planner.js';
+import { EQUIPS, GOAL_TEXT, LIMITS, MINS, WEEK, normalizePrefs, proposePlan } from './planner.js';
 import { ST, esc, save } from './state.js';
 import { render } from './ui.js';
 
@@ -24,7 +24,10 @@ function step(n) { ST.onb = { ...ST.onb, step: n }; save(); }
 /* ── blocos ─────────────────────────────────────── */
 const opt = (js, on, emoji, title, sub) =>
   `<button class="ob-opt${on ? ' on' : ''}" onclick="${js}" aria-pressed="${on}"><span class="ob-e">${emoji}</span><span class="ob-t"><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</span></button>`;
-const chip = (js, on, text) => `<button class="ob-chip${on ? ' on' : ''}" onclick="${js}" aria-pressed="${on}">${text}</button>`;
+const chip = (js, on, text, multi) => `<button class="ob-chip${multi ? ' multi' : ''}${on ? ' on' : ''}" onclick="${js}" aria-pressed="${on}">${text}</button>`;
+/* erro junto ao campo (não no topo): id → mensagem; limpa-se ao mudar de resposta */
+let FIELD = {};
+const fieldErr = id => `<div class="inline-error" id="${id}-err" role="alert">${esc(FIELD[id] || '')}</div>`;
 const bar = n => `<div class="ob-prog" role="progressbar" aria-valuemin="1" aria-valuemax="${STEPS + 1}" aria-valuenow="${n + 1}"><i style="width:${(n + 1) / (STEPS + 1) * 100}%"></i></div>`;
 const msg = () => (MSG ? `<div class="sched-note warn" role="alert">${esc(MSG)}</div>` : '');
 
@@ -37,18 +40,19 @@ function stepHTML(n, d) {
     return `<h1>Quando consegues treinar?</h1><p class="ob-p">É melhor 2 dias que cumpres do que 5 que falhas. Escolhe de 2 a 5 dias.</p>
       <div class="ob-days">${WEEK.map(w => chip(`obDay('${w}')`, d.days.includes(w), SHORT[w])).join('')}</div>
       <p class="ob-p" aria-live="polite">${d.days.length} ${d.days.length === 1 ? 'dia' : 'dias'} por semana</p>
-      <h2>Tempo por sessão</h2><div class="ob-row">${[30, 45, 60].map(m => chip(`obSet('mins',${m})`, d.mins === m, `${m} min`)).join('')}</div>`;
+      <h2 id="ob-mins">Tempo por sessão</h2><div class="ob-row" role="group" aria-labelledby="ob-mins">${MINS.map(m => chip(`obSet('mins',${m})`, d.mins === m, `${m} min`)).join('')}</div>
+      <p class="ob-p">É o máximo que tens, não o que vamos encher: com mais tempo não aumentamos o treino só por isso.</p>`;
   }
   if (n === 2) {
     return `<h1>Como treinas?</h1>
       <h2>Experiência</h2><div class="ob-row">${chip("obSet('exp','inicio')", d.exp === 'inicio', 'A começar')}${chip("obSet('exp','regresso')", d.exp === 'regresso', 'A regressar')}${chip("obSet('exp','regular')", d.exp === 'regular', 'Já treino')}</div>
       <h2>Onde</h2><div class="ob-row">${chip("obSet('place','gym')", d.place === 'gym', 'Ginásio')}${chip("obSet('place','casa')", d.place === 'casa', 'Em casa')}${chip("obSet('place','ambos')", d.place === 'ambos', 'Ambos')}</div>
-      <h2>Preferes</h2><div class="ob-row">${chip("obSet('pref','maq')", d.pref === 'maq', 'Máquinas')}${chip("obSet('pref','livres')", d.pref === 'livres', 'Pesos livres')}${chip("obSet('pref','corpo')", d.pref === 'corpo', 'Peso corporal')}</div>
-      ${d.place === 'casa' && d.pref === 'maq' ? '<p class="ob-p">Em casa não há máquinas: usamos exercícios com o peso do corpo.</p>' : ''}`;
+      <h2 id="ob-eq">Preferes <small>(podes escolher mais do que uma)</small></h2><div class="ob-row" role="group" aria-labelledby="ob-eq" aria-describedby="ob-eq-err">${[['maq', 'Máquinas'], ['livres', 'Pesos livres'], ['corpo', 'Peso corporal']].map(e => chip(`obEquip('${e[0]}')`, d.equip.includes(e[0]), e[1], true)).join('')}</div>${fieldErr('ob-eq')}
+      ${d.place === 'casa' && !d.equip.some(e => e !== 'maq') ? '<p class="ob-p">Em casa não há máquinas: usamos exercícios com o peso do corpo.</p>' : ''}`;
   }
-  const L = [['joelhos', 'Joelhos'], ['costas', 'Costas'], ['ombros', 'Ombros']];
+  const L = [['joelhos', 'Joelhos'], ['costas', 'Costas'], ['ombros', 'Ombros'], ['ancas', 'Ancas'], ['punhos', 'Punhos'], ['cotovelos', 'Cotovelos'], ['pescoco', 'Pescoço']];
   return `<h1>Algo a evitar?</h1><p class="ob-p">Opcional. Evitamos exercícios que sobrecarreguem essas zonas. Não pedimos diagnósticos.</p>
-    <div class="ob-row">${L.map(l => chip(`obLimit('${l[0]}')`, d.limits.includes(l[0]), l[1])).join('')}</div>
+    <div class="ob-row" role="group" aria-label="Zonas a evitar">${chip("obLimit('none')", !d.limits.length, 'Nenhuma', true)}${L.map(l => chip(`obLimit('${l[0]}')`, d.limits.includes(l[0]), l[1], true)).join('')}</div>
     <h2>Como te chamamos? <small>(opcional)</small></h2>
     <input class="ob-input" type="text" maxlength="30" autocomplete="given-name" placeholder="Nome" value="${esc(d.name)}" oninput="obName(this.value)" aria-label="Nome">
     <div class="sched-note">🔒 Fica guardado neste dispositivo. Podes exportar ou apagar tudo em Opções.</div>`;
@@ -131,14 +135,30 @@ function obOpen(mode) {
 function maybeOpenOnboarding() { if (ensureOnb() && !ST.onb.done) obOpen('auto'); }
 
 /* ── handlers (ponte: bridge.js) ─────────────────── */
-function obSet(k, v) { patch({ [k]: v }); MSG = ''; paint(); }
+function obSet(k, v) { patch({ [k]: v }); MSG = ''; FIELD = {}; paint(); }
+/* equipamento: várias escolhas, nunca zero; `pref` acompanha para perfis/leitores antigos */
+function obEquip(e) {
+  if (!EQUIPS.includes(e)) return;
+  const cur = draft().equip, on = cur.includes(e);
+  if (on && cur.length === 1) { FIELD = { 'ob-eq': 'Escolhe pelo menos uma opção.' }; paint(); return; }
+  const equip = EQUIPS.filter(x => (x === e ? !on : cur.includes(x)));
+  patch({ equip, pref: equip[0] });
+  MSG = ''; FIELD = {}; paint();
+}
 function obDay(day) {
   const cur = draft().days;
   if (!cur.includes(day) && cur.length >= 5) { MSG = 'No máximo 5 dias.'; paint(); return; }
   patch({ days: cur.includes(day) ? cur.filter(x => x !== day) : WEEK.filter(w => cur.includes(w) || w === day) });
   MSG = ''; paint();
 }
-function obLimit(l) { const cur = draft().limits; patch({ limits: cur.includes(l) ? cur.filter(x => x !== l) : [...cur, l] }); paint(); }
+/* «Nenhuma» é exclusiva: limpa as zonas; escolher uma zona deixa «Nenhuma» desligada (limits vazio = nenhuma) */
+function obLimit(l) {
+  if (l === 'none') { patch({ limits: [] }); paint(); return; }
+  if (!LIMITS.includes(l)) return;
+  const cur = draft().limits;
+  patch({ limits: cur.includes(l) ? cur.filter(x => x !== l) : LIMITS.filter(x => x === l || cur.includes(x)) });
+  paint();
+}
 function obName(v) { patch({ name: String(v).slice(0, 30) }); }
 function obNext() {
   const n = ST.onb.step | 0;
@@ -206,4 +226,4 @@ function planCardHTML() {
     </div>${bak}</div>`;
 }
 
-export { obOpen, maybeOpenOnboarding, planCardHTML, obSet, obDay, obLimit, obName, obNext, obBack, obSkip, obApply, obClose, obPick, obUndoPlan };
+export { obOpen, maybeOpenOnboarding, planCardHTML, obSet, obEquip, obDay, obLimit, obName, obNext, obBack, obSkip, obApply, obClose, obPick, obUndoPlan };

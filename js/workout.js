@@ -154,6 +154,7 @@ function nextText(){
    por isso nunca se perde o que se está a escrever. */
 function woRestSync(){
   const box=el('woRest'); if(!box || !guidedOpen()) return;
+  box.parentElement.classList.toggle('resting',TM.on);   /* com descanso a correr a demonstração encolhe e deixa-o à vista */
   if(!TM.on){ box.hidden=true; box.innerHTML=''; return; }
   const m=Math.floor(TM.left/60), s=String(TM.left%60).padStart(2,'0');
   box.hidden=false;
@@ -167,10 +168,12 @@ onTimerChange(woRestSync);
 /* a sessão pode mudar por fora (ex.: pausada ao reabrir): repinta o ecrã se estiver aberto */
 function refreshWorkout(){ if(WO.day && guidedOpen()) woRender(true); }
 
-function thumbOf(ex){
-  const dmo=DEMOS[ex.name];
-  const src=ex.catalogId&&ex.m ? gifUrlFor(ex.catalogId,ex.m) : (dmo?demoUrl(dmo,0):'');
-  return src?`<img class="wo-thumb" src="${src}" alt="" onerror="this.style.display='none'">`:'';
+/* Demonstração grande: GIF do catálogo (quadrado) ou as duas fotos do free-exercise-db (3:2) em fundo cruzado. */
+function mediaOf(ex){
+  const dmo=DEMOS[ex.name], alt=`Demonstração: ${esc(ex.name)}`;
+  if(ex.catalogId&&ex.m) return `<figure class="wo-media"><img class="wo-img" src="${gifUrlFor(ex.catalogId,ex.m)}" alt="${alt}" onerror="this.closest('.wo-media').remove()"></figure>`;
+  if(dmo) return `<figure class="wo-media wide demo-slide"><img class="demo-a" src="${demoUrl(dmo,0)}" alt="${alt}" onerror="this.closest('.demo-slide').classList.add('demo-broken')"><img class="demo-b" src="${demoUrl(dmo,1)}" alt="" onerror="this.style.display='none'"></figure>`;
+  return '';
 }
 
 /* sem histórico, as reps já vêm pré-preenchidas com o início da gama prescrita ("8-10" → 8); só gamas numéricas */
@@ -210,8 +213,9 @@ function woRender(keep){
       <button class="wo-pause${paused?' paused':''}" onclick="woPause()">${paused?'▶ Retomar':'⏸ Pausar'}</button>
     </header>
     <div class="wo-scroll">
-      <div class="wo-title">${thumbOf(ex)}<div><div class="wo-name">${esc(ex.name)}</div><div class="wo-sub">${totalSets?`${ex.s} séries`:''}${totalSets&&ex.r?' · ':''}${ex.r?`${esc(String(ex.r))}${totalSets?' reps':''}`:''}</div></div></div>
-      ${dots}
+      ${mediaOf(ex)}
+      <div class="wo-title"><div class="wo-name">${esc(ex.name)}</div>
+        <div class="wo-meta"><div class="wo-sub">${totalSets?`${ex.s} séries`:''}${totalSets&&ex.r?' · ':''}${ex.r?`${esc(String(ex.r))}${totalSets?' reps':''}`:''}</div>${dots}</div></div>
       ${prev?`<div class="wo-prev">Última vez: ${prev.w} kg × ${prev.r}</div>`:''}
       <section id="woRest" class="wo-rest" aria-label="Descanso" hidden></section>
       ${hint?`<div class="wo-hint">${hint}</div>`:''}

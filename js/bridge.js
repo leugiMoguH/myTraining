@@ -18,10 +18,10 @@ import { slNext, slPrev, slTo } from './sliders.js';
 import { esc, markDone, resetDay, toggleSet } from './state.js';
 import { adjustRest, timerAdd, timerDismiss, timerStart } from './timer.js';
 import { hxAddOpen, hxAddSave, hxBack, hxCancel, hxDelDay, hxDelSet, hxEditDate, hxEditSet, hxMetric, hxOpen, hxPeriod, hxSaveDate, hxSaveSet } from './history.js';
-import { goDay, render, toggleDayDone } from './ui.js';
+import { goDay, render, toggleDayDone, toggleTodayList } from './ui.js';
 import { toggleWake } from './wake.js';
 import { heroStart } from './nav.js';
-import { obApply, obBack, obClose, obDay, obLimit, obName, obNext, obOpen, obPick, obSet, obSkip, obUndoPlan } from './onboarding.js';
+import { obApply, obBack, obClose, obDay, obEquip, obLimit, obName, obNext, obOpen, obPick, obSet, obSkip, obUndoPlan } from './onboarding.js';
 import { closeWorkout, startWorkout, woDoSet, woFinish, woGo, woInfo, woPause, woStep, woSwap, woUndo } from './workout.js';
 
 Object.assign(window, {
@@ -98,13 +98,14 @@ Object.assign(window, {
   timerStart,
   toggleChart,
   toggleDayDone,
+  toggleTodayList,
   toggleEdit,
   toggleSet,
   toggleWake,
   undoSwap,
   woGo,
   heroStart,
-  obApply, obBack, obClose, obDay, obLimit, obName, obNext, obOpen, obPick, obSet, obSkip, obUndoPlan,
+  obApply, obBack, obClose, obDay, obEquip, obLimit, obName, obNext, obOpen, obPick, obSet, obSkip, obUndoPlan,
 });
 
 /* Os handlers devolvem Promises sem rejeições por tratar. */

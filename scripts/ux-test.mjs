@@ -470,6 +470,7 @@ for (const [w, h, mobile] of [[320, 640, true], [360, 740, true], [412, 915, tru
 for (const w of [320, 360, 412]) {
   const { ctx, page } = await open(w, 640);
   await page.evaluate(() => window.goDay('Segunda'));
+  if (await page.locator('#todayToggle[aria-expanded="false"]').count()) await tap(page, '#todayToggle');   /* a lista do Hoje vem recolhida */
   const controls = '#card-0 button, #card-0 input, #card-0 .dot';
   const snapshot = () => page.evaluate(async () => { const { ST } = await import('./js/state.js'); return JSON.stringify([ST.log, ST.sets, ST.done]); });
   await page.fill('#w-0', '30'); await page.fill('#r-0', '10');

@@ -101,8 +101,15 @@ const goNav = async id => {
 };
 /* O html tem scroll-behavior:smooth: com a máquina carregada o Playwright vê o elemento a meio da animação,
    por baixo da barra fixa (o botão central sobe 16 px), e dá timeout. Centra-se sem animação antes de clicar. */
+/* a lista de exercícios do Hoje vem recolhida: abre-a se o alvo estiver lá dentro */
+const openToday = async loc => {
+  if (await loc.isVisible().catch(() => false)) return;
+  const t = page.locator('#todayToggle[aria-expanded="false"]');
+  if (await t.count() && await loc.evaluate(e => !!e.closest('#todayList')).catch(() => false)) await t.click();
+};
 const click = async sel => {
   const loc = page.locator(sel).first();
+  await openToday(loc);
   await loc.evaluate(e => e.scrollIntoView({ block: 'center', behavior: 'instant' })).catch(() => {});
   await loc.click({ timeout: T });
   await settleDialog(page);
@@ -403,7 +410,7 @@ await step('plano alterado com sessao pendente: nada se perde, decide o utilizad
 });
 await step('teclado: a barra so se esconde com teclado', async () => {
   await page.evaluate(() => window.goDay('Segunda'));
-  const inp = page.locator('.load-in').first(); await inp.focus(); await page.waitForTimeout(100);
+  const inp = page.locator('.load-in').first(); await openToday(inp); await inp.focus(); await page.waitForTimeout(100);
   if (!(await page.locator('#bnav').isVisible())) throw new Error('campo em foco sem teclado nao devia esconder a barra');
   await page.setViewportSize({ width: 412, height: 400 }); await inp.focus(); await page.waitForTimeout(200);
   if (await page.locator('#bnav').isVisible()) throw new Error('com teclado a barra devia esconder-se');
@@ -532,7 +539,7 @@ await stepClean('remover exercicio novo', async () => {
   await click('[onclick*="toggleEdit"]');
   const n = await page.locator('.ed-row').count();
   await page.locator('.ed-row').last().locator('.ed-del').click();
-  await page.waitForTimeout(300);
+  await page.waitForFunction(k => document.querySelectorAll('.ed-row').length === k, n - 1, { timeout: T }).catch(() => {});   /* o diálogo responde de forma assíncrona */
   if (await page.locator('.ed-row').count() !== n - 1) throw new Error('nao removeu');
   await click('[onclick*="toggleEdit"]');
 });
@@ -691,7 +698,7 @@ await step('personalizado: concluir', async () => {
 });
 await step('personalizado: Hoje volta ao plano normal', async () => {
   await click('text=Voltar a Hoje');
-  await page.waitForSelector('.day-hdr', { timeout: T });
+  await page.waitForSelector('.today-top .hero, .today-top .sched-note, .rest-card', { timeout: T });
   if (!(await page.locator('button.cu-entry').count())) throw new Error('o botao do personalizado nao voltou');
   if (!(await page.locator('.wk-chip.s-swapped').count())) throw new Error('a tira da semana nao mostra o dia substituido');
   const st = await lerST();

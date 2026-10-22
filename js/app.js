@@ -1,3 +1,4 @@
+import './theme.js';
 /* myTraining — arranque da app: constrói os separadores e faz o primeiro render.
    Ponto de entrada (<script type="module" src="js/app.js">). */
 import './bridge.js';

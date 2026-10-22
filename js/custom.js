@@ -180,7 +180,7 @@ function customEntryHTML() {
       <b>${esc(ST.custom.label)}</b>
       <button class="cat-chip on" onclick="openCustom()">Continuar</button></div>`;
   }
-  return `<button class="reset-btn cu-entry" onclick="openCustom()">🎯 Fazer treino personalizado hoje</button>`;
+  return `<button class="reset-btn btn-secondary cu-entry" onclick="openCustom()">🎯 Fazer treino personalizado hoje</button>`;
 }
 
 function setHeader(sub, pct = 0) {
@@ -226,8 +226,8 @@ function renderPicker(content) {
     <div class="cu-chips">${chips}</div>
     ${PICK.msg ? `<div class="sched-note warn">${esc(PICK.msg)}</div>` : ''}
     <div class="cu-actions">
-      <button class="start-wo wide" onclick="cuSuggest()"${PICK.busy ? ' disabled' : ''}>Sugerir treino</button>
-      <button class="reset-btn" onclick="cuHome()">← Treino programado</button>
+      <button class="start-wo btn-primary wide" onclick="cuSuggest()"${PICK.busy ? ' disabled' : ''}>Sugerir treino</button>
+      <button class="reset-btn btn-ghost" onclick="cuHome()">← Treino programado</button>
     </div>
     ${past ? `<div class="cu-title">Últimos personalizados</div>${past}` : ''}
   </div>`;
@@ -253,17 +253,17 @@ function renderReview(content, c) {
     <div class="cu-row">
       <span class="cu-n">${i + 1}</span>
       <span class="cu-info"><b>${esc(ex.name)}</b><small>${esc(ex.s)} × ${esc(ex.r)}${labelOf(ex) ? ` · ${esc(labelOf(ex))}` : ''}</small></span>
-      <button class="reset-btn" onclick="openSwap('${CUSTOM_DAY}',${i})" aria-label="Trocar" title="Trocar por um equivalente">🔄</button>
-      <button class="reset-btn" onclick="cuRemove(${i})" aria-label="Remover">✕</button>
+      <button class="reset-btn btn-ghost" onclick="openSwap('${CUSTOM_DAY}',${i})" aria-label="Trocar" title="Trocar por um equivalente">🔄</button>
+      <button class="reset-btn btn-ghost" onclick="cuRemove(${i})" aria-label="Remover">✕</button>
     </div>`).join('');
   content.innerHTML = `<div class="full">
     ${headHTML(`${esc(c.label)} · só hoje`)}
     ${c.offline ? '<div class="sched-note warn">Sem catálogo (offline): só saíram exercícios do teu plano.</div>' : ''}
     ${rows || '<div class="cat-msg">Sem exercícios. Adiciona algum ou cancela.</div>'}
     <div class="cu-actions">
-      <button class="start-wo wide" onclick="cuBegin()"${c.ex.length ? '' : ' disabled'}>▶ Começar treino</button>
-      <button class="reset-btn" onclick="cuAdd()">＋ Exercício</button>
-      <button class="reset-btn" onclick="cuDiscard()">✕ Cancelar</button>
+      <button class="start-wo btn-primary wide" onclick="cuBegin()"${c.ex.length ? '' : ' disabled'}>▶ Começar treino</button>
+      <button class="reset-btn btn-ghost" onclick="cuAdd()">＋ Exercício</button>
+      <button class="reset-btn btn-ghost" onclick="cuDiscard()">✕ Cancelar</button>
     </div>
     <div class="cu-note">${slotNote()}</div>
   </div>`;
@@ -271,13 +271,13 @@ function renderReview(content, c) {
 
 function renderActive(content, c) {
   content.innerHTML = headHTML(`${esc(c.label)} · só hoje`, `
-      <button class="start-wo" onclick="startWorkout('${CUSTOM_DAY}')">▶ Guiado</button>
-      <button class="reset-btn" onclick="cuAdd()">＋</button>
-      <button class="reset-btn" onclick="cuDiscard()">✕ Descartar</button>`);
+      <button class="start-wo btn-primary" onclick="startWorkout('${CUSTOM_DAY}')">▶ Guiado</button>
+      <button class="reset-btn btn-ghost" onclick="cuAdd()">＋</button>
+      <button class="reset-btn btn-ghost" onclick="cuDiscard()">✕ Descartar</button>`);
   c.ex.forEach((ex, i) => content.appendChild(buildCard(CUSTOM_DAY, ex, i)));
   const foot = document.createElement('div');
   foot.className = 'day-foot';
-  foot.innerHTML = `<button class="start-wo wide" onclick="cuFinish()">✓ Concluir treino</button>`;
+  foot.innerHTML = `<button class="start-wo btn-primary wide" onclick="cuFinish()">✓ Concluir treino</button>`;
   content.appendChild(foot);
   refreshProgress();
 }
@@ -291,7 +291,7 @@ function renderDone(content, c) {
       Ficou no histórico como personalizado. ${c.replaced
         ? `Ocupou o lugar de <b>${esc(c.replaced)}</b>; o resto da semana segue igual.`
         : 'Não ocupou nenhum treino do plano.'}</div>
-    <button class="start-wo" onclick="cuHome()">← Voltar a Hoje</button>
+    <button class="start-wo btn-primary" onclick="cuHome()">← Voltar a Hoje</button>
   </div></div>`;
 }
 

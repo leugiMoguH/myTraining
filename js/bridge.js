@@ -1,3 +1,4 @@
+import { setThemePref } from './theme.js';
 /* myTraining — ponte para os handlers inline (onclick="...") do HTML.
    Em ES modules nada é global: sem isto TODOS os botões falham em silêncio.
    Regra: um handler novo usado num atributo inline tem de ser acrescentado aqui. */
@@ -23,6 +24,7 @@ import { obApply, obBack, obClose, obDay, obLimit, obName, obNext, obOpen, obPic
 import { closeWorkout, startWorkout, woDoSet, woFinish, woGo, woInfo, woPause, woStep, woSwap, woUndo } from './workout.js';
 
 Object.assign(window, {
+  setThemePref,
   addIntakeUI,
   addMedia,
   adjustRest,

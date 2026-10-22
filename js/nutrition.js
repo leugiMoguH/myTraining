@@ -141,7 +141,7 @@ function nutriFormHTML(food){
   return `
   <div class="nplan-hdr">
     <div><div class="day-hdr-name">🥗 Nutrição</div><div class="day-hdr-sub">Preferências alimentares</div></div>
-    ${editing?`<button class="reset-btn" onclick="cancelNutri()">✕ Cancelar</button>`:''}
+    ${editing?`<button class="reset-btn btn-ghost" onclick="cancelNutri()">✕ Cancelar</button>`:''}
   </div>
   ${warn}
   <form id="nutriForm" class="nform" onsubmit="saveNutri(event)">
@@ -180,7 +180,7 @@ function nutriPlanHTML(food){
   return `
   <div class="nplan-hdr">
     <div><div class="day-hdr-name">🥗 Nutrição</div><div class="day-hdr-sub">${food.meals||4} refeições${goalTxt?` · ${goalTxt}`:''}</div></div>
-    <button class="reset-btn" onclick="editNutri()">✎ Editar</button>
+    <button class="reset-btn btn-ghost" onclick="editNutri()">✎ Editar</button>
   </div>
   ${targetsHTML}
   ${intakeHTML()}

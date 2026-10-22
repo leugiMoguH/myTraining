@@ -108,12 +108,12 @@ function dayHTML(s) {
 }
 
 function addFormHTML() {
-  if (!HX.adding) return `<button class="reset-btn hx-add" onclick="hxAddOpen()">＋ Registar treino passado</button>`;
+  if (!HX.adding) return `<button class="reset-btn btn-ghost hx-add" onclick="hxAddOpen()">＋ Registar treino passado</button>`;
   return `<div class="hx-card hx-form"><div class="hx-k">Registar série num dia passado</div>
     <input id="hx-ad" type="date" max="${todayStr()}" value="${HX.date || todayStr()}" aria-label="Data">
     <div class="hx-set"><input id="hx-w" type="number" inputmode="decimal" step="0.5" placeholder="kg" aria-label="Peso"> kg ×
     <input id="hx-r" type="number" inputmode="numeric" placeholder="reps" aria-label="Repetições"> ${rirSelect()}</div>
-    <div class="hx-act"><button class="start-wo" onclick="hxAddSave()">Guardar</button><button class="reset-btn" onclick="hxCancel()">Cancelar</button></div>
+    <div class="hx-act"><button class="start-wo btn-primary" onclick="hxAddSave()">Guardar</button><button class="reset-btn btn-ghost" onclick="hxCancel()">Cancelar</button></div>
     <div class="hx-foot">Não inicia nenhum treino. Para mais séries nesse dia, volta a guardar com a mesma data.</div></div>`;
 }
 
@@ -123,7 +123,7 @@ function renderExercise(content) {
   content.innerHTML = '';
   const box = document.createElement('div');
   box.className = 'full hx';
-  box.innerHTML = `<button class="reset-btn hx-back" onclick="hxBack()">‹ Histórico</button>
+  box.innerHTML = `<button class="reset-btn btn-ghost hx-back" onclick="hxBack()">‹ Histórico</button>
     <div class="cu-title hx-name">${esc(name || '')}</div>
     ${sessions.length ? recordsHTML(sessions) : ''}
     ${sessions.length ? adviceHTML(name) : ''}

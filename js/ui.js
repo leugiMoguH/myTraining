@@ -213,7 +213,7 @@ function heroHTML(a) {
   return `<div class="hero"><div class="hero-t" style="font-size:15px;font-weight:600;color:var(--muted)">${hi} 👋</div>
     <div class="hero-k">${esc(kicker)}</div><div class="hero-t">${esc(d.label)}</div>
     <div class="hero-s">${mins ? `~${mins} min · ` : ''}${d.ex.length} exercícios</div>
-    <button class="start-wo" onclick="heroStart('${a.current}')">${live ? '▶ Continuar treino' : '▶ Começar treino'}</button>${why}</div>`;
+    <button class="start-wo btn-primary" onclick="heroStart('${a.current}')">${live ? '▶ Continuar treino' : '▶ Começar treino'}</button>${why}</div>`;
 }
 
 function renderToday(content) {
@@ -313,10 +313,10 @@ function renderDay(content, day, standalone = true) {
     </div>
     <div class="day-hdr-btns">
       ${editing
-        ? `<button class="start-wo" onclick="toggleEdit('${day}')">✓ Pronto</button>`
-        : `${standalone ? `<button class="start-wo" onclick="startWorkout('${day}')">${liveDay()===day?'▶ Continuar':'▶ Iniciar'}</button>` : ''}
-           <button class="reset-btn" onclick="toggleEdit('${day}')">✎ Editar</button>
-           <button class="reset-btn" onclick="resetDay('${day}')">↺ Reset</button>`}
+        ? `<button class="start-wo btn-primary" onclick="toggleEdit('${day}')">✓ Pronto</button>`
+        : `${standalone ? `<button class="start-wo btn-primary" onclick="startWorkout('${day}')">${liveDay()===day?'▶ Continuar':'▶ Iniciar'}</button>` : ''}
+           <button class="reset-btn btn-secondary" onclick="toggleEdit('${day}')">✎ Editar</button>
+           <button class="reset-btn btn-ghost btn-danger" onclick="resetDay('${day}')">↺ Reset</button>`}
     </div>
   `;
   content.appendChild(hdr);
@@ -324,6 +324,9 @@ function renderDay(content, day, standalone = true) {
   if (editing) {
     const box = document.createElement('div');
     box.innerHTML = editorHTML(day);
+    box.querySelectorAll('.ed-btn').forEach(b => b.classList.add('btn-ghost'));
+    box.querySelectorAll('.ed-del').forEach(b => b.classList.add('btn-danger'));
+    box.querySelectorAll('.ed-tag').forEach(b => b.classList.add('tag'));
     content.appendChild(box);
     refreshProgress();
     return;
@@ -336,8 +339,8 @@ function renderDay(content, day, standalone = true) {
     foot.className = 'day-foot';
     foot.innerHTML = st === 'done' || st === 'swapped'
       ? `${st === 'swapped' ? '<div class="sched-note">🎯 Substituído por um treino personalizado.</div>' : ''}
-         <button class="reset-btn" onclick="toggleDayDone('${day}')">↩ Reabrir treino</button>`
-      : `<button class="start-wo wide" onclick="toggleDayDone('${day}')">✓ Concluir treino</button>`;
+         <button class="reset-btn btn-ghost" onclick="toggleDayDone('${day}')">↩ Reabrir treino</button>`
+      : `<button class="start-wo btn-primary wide" onclick="toggleDayDone('${day}')">✓ Concluir treino</button>`;
     content.appendChild(foot);
   }
   refreshProgress();

@@ -103,8 +103,8 @@ function groupSummary(stats, groups) {
 
 /* Escala de cor da vista: azul, mais claro = mais séries diretas, relativo ao músculo mais trabalhado da janela.
    Não é uma meta nem um sinal de recuperação. */
-const RAMP = ['#3f7fc0', '#5b9bdc', '#8ab8ea', '#cfe5fb'];
-const FILL = { none: '#2b2b3a', indirect: '#4a5670', aggregated: '#555568' };
+const RAMP = ['var(--muscle-1)', 'var(--muscle-2)', 'var(--muscle-3)', 'var(--muscle-4)'];
+const FILL = { none: 'var(--muscle-none)', indirect: 'var(--muscle-indirect)', aggregated: 'var(--muscle-aggregated)' };
 function heatFill(stats) {
   const max = Math.max(0, ...Object.values(stats.muscles).map(m => m.direct));
   return id => {

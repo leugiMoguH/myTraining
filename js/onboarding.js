@@ -191,10 +191,10 @@ function planCardHTML() {
   const bak = info ? `<p class="ob-p">Cópia de segurança de ${esc(new Date(info.at).toLocaleString('pt-PT'))}${info.counts.log || info.counts.workouts ? ` (${info.counts.log} exercícios com histórico, ${info.counts.workouts} treinos)` : ''}.</p>` : '';
   return `<div class="ob-plan"><div class="nplan-hdr"><div><div class="day-hdr-name">📋 O meu plano</div><div class="day-hdr-sub">${esc(resume)}</div></div></div>${intro}
     <div class="ob-plan-btns">
-      <button class="reset-btn" onclick="obOpen('edit')">✎ ${hasPlan() ? 'Rever objetivos e plano' : 'Criar plano novo'}</button>
-      <button class="reset-btn" onclick="obOpen('reorg')">↔ Reorganizar a semana</button>
-      <button class="reset-btn" onclick="exportBackup()">⬇ Guardar cópia em ficheiro</button>
-      ${info ? '<button class="reset-btn" onclick="obUndoPlan()">↩ Repor o estado anterior</button>' : ''}
+      <button class="reset-btn btn-secondary" onclick="obOpen('edit')">✎ ${hasPlan() ? 'Rever objetivos e plano' : 'Criar plano novo'}</button>
+      <button class="reset-btn btn-secondary" onclick="obOpen('reorg')">↔ Reorganizar a semana</button>
+      <button class="reset-btn btn-ghost" onclick="exportBackup()">⬇ Guardar cópia em ficheiro</button>
+      ${info ? '<button class="reset-btn btn-ghost" onclick="obUndoPlan()">↩ Repor o estado anterior</button>' : ''}
     </div>${bak}</div>`;
 }
 

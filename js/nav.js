@@ -141,7 +141,10 @@ function syncNav() {
   });
   const badge = agenda().pending;
   const home = document.querySelector('.nb[data-day="__hoje"] .nb-i');
-  if (home) home.dataset.badge = badge ? String(badge) : '';
+  if (home) {
+    home.dataset.badge = badge ? String(badge) : '';
+    home.setAttribute('aria-label', `${badge} treinos por fazer`);
+  }
 
   /* faixa de sessão viva (só quando a vista guiada está fechada) */
   const live = document.getElementById('navLive');

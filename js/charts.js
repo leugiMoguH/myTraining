@@ -8,8 +8,8 @@ function chartSVG(vals){
   const pts=vals.map((v,k)=>[+xAt(k).toFixed(1),+yAt(v).toFixed(1)]);
   const line=pts.map((p,k)=>`${k?'L':'M'}${p[0]} ${p[1]}`).join(' ');
   const area=`M${pts[0][0]} ${H-P} `+pts.map(p=>`L${p[0]} ${p[1]}`).join(' ')+` L${pts[n-1][0]} ${H-P} Z`;
-  const dots=pts.map((p,k)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${k===n-1?3.5:2.4}" fill="${k===n-1?'#f97316':'#ef4444'}"/>`).join('');
-  return `<svg class="lc-svg" viewBox="0 0 ${W} ${H}"><defs><linearGradient id="lcg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ef4444" stop-opacity="0.35"/><stop offset="1" stop-color="#ef4444" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#lcg)"/><path d="${line}" fill="none" stroke="#ef4444" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg>`;
+  const dots=pts.map((p,k)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${k===n-1?3.5:2.4}" style="fill:${k===n-1?'var(--chart-secondary)':'var(--chart-primary)'}"/>`).join('');
+  return `<svg class="lc-svg" viewBox="0 0 ${W} ${H}"><defs><linearGradient id="lcg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--chart-primary)" stop-opacity="0.35"/><stop offset="1" style="stop-color:var(--chart-primary)" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#lcg)"/><path d="${line}" fill="none" style="stroke:var(--chart-primary)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg>`;
 }
 
 /* ═══════════════ MAPA MUSCULAR ══════════════════════ */
@@ -61,44 +61,44 @@ const MUSCLES={
   "Superman":{p:["lombar"],s:["gluteos"]},
   "Desenvolvimento na máquina":{p:["ombro"],s:["triceps"]}
 };
-function fillOf(id,P,S){ return P.indexOf(id)>=0?'#ef4444':(S.indexOf(id)>=0?'#f97316':'#2b2b3a'); }
+function fillOf(id,P,S){ return P.indexOf(id)>=0?'var(--chart-primary)':(S.indexOf(id)>=0?'var(--chart-secondary)':'var(--muscle-none)'); }
 /* `fill` (opcional): id → cor, para mapas de calor; sem ele, primário/secundário como antes */
 function bodySVG(P,S,fill){
-  const f=fill||(id=>fillOf(id,P,S)), O='#3a3a4a';
+  const f=fill||(id=>fillOf(id,P,S)), O='var(--muscle-body)';
   return `<svg class="muscle-svg" viewBox="0 0 230 178" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
     <g>
-      <circle cx="58" cy="14" r="10" fill="${O}"/>
-      <rect x="53" y="22" width="10" height="7" rx="3" fill="${O}"/>
-      <path d="M40 31 Q58 27 76 31 L73 86 Q58 92 43 86 Z" fill="${O}"/>
-      <rect x="20" y="33" width="12" height="40" rx="6" fill="${O}"/><rect x="84" y="33" width="12" height="40" rx="6" fill="${O}"/>
-      <rect x="19" y="68" width="11" height="34" rx="5" fill="${O}"/><rect x="86" y="68" width="11" height="34" rx="5" fill="${O}"/>
-      <rect x="44" y="88" width="13" height="74" rx="6" fill="${O}"/><rect x="59" y="88" width="13" height="74" rx="6" fill="${O}"/>
-      <ellipse cx="30" cy="38" rx="10" ry="8" fill="${f('ombro')}"/><ellipse cx="86" cy="38" rx="10" ry="8" fill="${f('ombro')}"/>
-      <path d="M44 34 Q51 32 56 35 L56 49 Q50 51 45 48 Z" fill="${f('peito')}"/><path d="M72 34 Q65 32 60 35 L60 49 Q66 51 71 48 Z" fill="${f('peito')}"/>
-      <ellipse cx="25" cy="52" rx="6" ry="12" fill="${f('biceps')}"/><ellipse cx="91" cy="52" rx="6" ry="12" fill="${f('biceps')}"/>
-      <ellipse cx="24" cy="84" rx="5" ry="13" fill="${f('antebraco')}"/><ellipse cx="92" cy="84" rx="5" ry="13" fill="${f('antebraco')}"/>
-      <rect x="49" y="52" width="18" height="30" rx="4" fill="${f('abdominal')}"/>
-      <rect x="44" y="53" width="5" height="26" rx="2" fill="${f('oblique')}"/><rect x="67" y="53" width="5" height="26" rx="2" fill="${f('oblique')}"/>
-      <ellipse cx="50" cy="116" rx="8" ry="24" fill="${f('quadriceps')}"/><ellipse cx="66" cy="116" rx="8" ry="24" fill="${f('quadriceps')}"/>
-      <text x="58" y="174" text-anchor="middle" font-size="9" fill="#6b6b7d">Frente</text>
+      <circle cx="58" cy="14" r="10" style="fill:${O}"/>
+      <rect x="53" y="22" width="10" height="7" rx="3" style="fill:${O}"/>
+      <path d="M40 31 Q58 27 76 31 L73 86 Q58 92 43 86 Z" style="fill:${O}"/>
+      <rect x="20" y="33" width="12" height="40" rx="6" style="fill:${O}"/><rect x="84" y="33" width="12" height="40" rx="6" style="fill:${O}"/>
+      <rect x="19" y="68" width="11" height="34" rx="5" style="fill:${O}"/><rect x="86" y="68" width="11" height="34" rx="5" style="fill:${O}"/>
+      <rect x="44" y="88" width="13" height="74" rx="6" style="fill:${O}"/><rect x="59" y="88" width="13" height="74" rx="6" style="fill:${O}"/>
+      <ellipse cx="30" cy="38" rx="10" ry="8" style="fill:${f('ombro')}"/><ellipse cx="86" cy="38" rx="10" ry="8" style="fill:${f('ombro')}"/>
+      <path d="M44 34 Q51 32 56 35 L56 49 Q50 51 45 48 Z" style="fill:${f('peito')}"/><path d="M72 34 Q65 32 60 35 L60 49 Q66 51 71 48 Z" style="fill:${f('peito')}"/>
+      <ellipse cx="25" cy="52" rx="6" ry="12" style="fill:${f('biceps')}"/><ellipse cx="91" cy="52" rx="6" ry="12" style="fill:${f('biceps')}"/>
+      <ellipse cx="24" cy="84" rx="5" ry="13" style="fill:${f('antebraco')}"/><ellipse cx="92" cy="84" rx="5" ry="13" style="fill:${f('antebraco')}"/>
+      <rect x="49" y="52" width="18" height="30" rx="4" style="fill:${f('abdominal')}"/>
+      <rect x="44" y="53" width="5" height="26" rx="2" style="fill:${f('oblique')}"/><rect x="67" y="53" width="5" height="26" rx="2" style="fill:${f('oblique')}"/>
+      <ellipse cx="50" cy="116" rx="8" ry="24" style="fill:${f('quadriceps')}"/><ellipse cx="66" cy="116" rx="8" ry="24" style="fill:${f('quadriceps')}"/>
+      <text x="58" y="174" text-anchor="middle" font-size="9" style="fill:var(--muscle-label)">Frente</text>
     </g>
     <g transform="translate(114,0)">
-      <circle cx="58" cy="14" r="10" fill="${O}"/>
-      <rect x="53" y="22" width="10" height="7" rx="3" fill="${O}"/>
-      <path d="M40 31 Q58 27 76 31 L73 86 Q58 92 43 86 Z" fill="${O}"/>
-      <rect x="20" y="33" width="12" height="40" rx="6" fill="${O}"/><rect x="84" y="33" width="12" height="40" rx="6" fill="${O}"/>
-      <rect x="19" y="68" width="11" height="34" rx="5" fill="${O}"/><rect x="86" y="68" width="11" height="34" rx="5" fill="${O}"/>
-      <rect x="44" y="88" width="13" height="74" rx="6" fill="${O}"/><rect x="59" y="88" width="13" height="74" rx="6" fill="${O}"/>
-      <ellipse cx="30" cy="38" rx="10" ry="8" fill="${f('posterior')}"/><ellipse cx="86" cy="38" rx="10" ry="8" fill="${f('posterior')}"/>
-      <path d="M46 32 L70 32 L64 50 L52 50 Z" fill="${f('trapezio')}"/>
-      <path d="M44 50 L57 50 L55 78 Z" fill="${f('dorsais')}"/><path d="M72 50 L59 50 L61 78 Z" fill="${f('dorsais')}"/>
-      <ellipse cx="25" cy="52" rx="6" ry="12" fill="${f('triceps')}"/><ellipse cx="91" cy="52" rx="6" ry="12" fill="${f('triceps')}"/>
-      <ellipse cx="24" cy="84" rx="5" ry="13" fill="${f('antebraco')}"/><ellipse cx="92" cy="84" rx="5" ry="13" fill="${f('antebraco')}"/>
-      <rect x="50" y="62" width="16" height="20" rx="3" fill="${f('lombar')}"/>
-      <ellipse cx="51" cy="96" rx="8" ry="9" fill="${f('gluteos')}"/><ellipse cx="65" cy="96" rx="8" ry="9" fill="${f('gluteos')}"/>
-      <ellipse cx="50" cy="124" rx="7" ry="22" fill="${f('isquios')}"/><ellipse cx="66" cy="124" rx="7" ry="22" fill="${f('isquios')}"/>
-      <ellipse cx="50" cy="150" rx="6" ry="12" fill="${f('gemeos')}"/><ellipse cx="66" cy="150" rx="6" ry="12" fill="${f('gemeos')}"/>
-      <text x="58" y="174" text-anchor="middle" font-size="9" fill="#6b6b7d">Costas</text>
+      <circle cx="58" cy="14" r="10" style="fill:${O}"/>
+      <rect x="53" y="22" width="10" height="7" rx="3" style="fill:${O}"/>
+      <path d="M40 31 Q58 27 76 31 L73 86 Q58 92 43 86 Z" style="fill:${O}"/>
+      <rect x="20" y="33" width="12" height="40" rx="6" style="fill:${O}"/><rect x="84" y="33" width="12" height="40" rx="6" style="fill:${O}"/>
+      <rect x="19" y="68" width="11" height="34" rx="5" style="fill:${O}"/><rect x="86" y="68" width="11" height="34" rx="5" style="fill:${O}"/>
+      <rect x="44" y="88" width="13" height="74" rx="6" style="fill:${O}"/><rect x="59" y="88" width="13" height="74" rx="6" style="fill:${O}"/>
+      <ellipse cx="30" cy="38" rx="10" ry="8" style="fill:${f('posterior')}"/><ellipse cx="86" cy="38" rx="10" ry="8" style="fill:${f('posterior')}"/>
+      <path d="M46 32 L70 32 L64 50 L52 50 Z" style="fill:${f('trapezio')}"/>
+      <path d="M44 50 L57 50 L55 78 Z" style="fill:${f('dorsais')}"/><path d="M72 50 L59 50 L61 78 Z" style="fill:${f('dorsais')}"/>
+      <ellipse cx="25" cy="52" rx="6" ry="12" style="fill:${f('triceps')}"/><ellipse cx="91" cy="52" rx="6" ry="12" style="fill:${f('triceps')}"/>
+      <ellipse cx="24" cy="84" rx="5" ry="13" style="fill:${f('antebraco')}"/><ellipse cx="92" cy="84" rx="5" ry="13" style="fill:${f('antebraco')}"/>
+      <rect x="50" y="62" width="16" height="20" rx="3" style="fill:${f('lombar')}"/>
+      <ellipse cx="51" cy="96" rx="8" ry="9" style="fill:${f('gluteos')}"/><ellipse cx="65" cy="96" rx="8" ry="9" style="fill:${f('gluteos')}"/>
+      <ellipse cx="50" cy="124" rx="7" ry="22" style="fill:${f('isquios')}"/><ellipse cx="66" cy="124" rx="7" ry="22" style="fill:${f('isquios')}"/>
+      <ellipse cx="50" cy="150" rx="6" ry="12" style="fill:${f('gemeos')}"/><ellipse cx="66" cy="150" rx="6" ry="12" style="fill:${f('gemeos')}"/>
+      <text x="58" y="174" text-anchor="middle" font-size="9" style="fill:var(--muscle-label)">Costas</text>
     </g>
   </svg>`;
 }

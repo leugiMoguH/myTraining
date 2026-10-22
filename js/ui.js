@@ -125,7 +125,7 @@ function buildCard(day,ex,i) {
           ${ST.done[key(day,i)]?'✓ Concluído':'Marcar feito'}
         </button>
       </div>
-      <button class="card-more" aria-expanded="false" aria-controls="more-${i}">Mais</button>
+      <button class="card-more" aria-expanded="false" aria-controls="more-${i}"><span class="more-lbl">Mais</span><svg class="more-ic" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <div class="card-details" id="more-${i}" hidden>
         <div class="img-wrap">
           <div class="slides" id="slides-${i}">${slidesHTML}</div>
@@ -133,10 +133,12 @@ function buildCard(day,ex,i) {
           ${dotsHTML}
           <button class="info-btn" onclick="openInfo('${jsName}','${ex.catalogId||''}')" aria-label="Informação técnica">ℹ</button>
         </div>
-        ${totalSets>0?`<button class="load-chart-btn" onclick="toggleChart(${i},'${jsName}')" aria-label="Ver progresso">Progresso</button>
-        <div class="lc" id="lc-${i}" hidden></div>`:''}
         ${ex.tip?`<div class="tip">💡 ${ex.tip}</div>`:''}
-        <button class="act-btn act-swap" onclick="openSwap('${day}',${i})" title="Trocar por um equivalente">Trocar</button>
+        <div class="card-tools">
+          ${totalSets>0?`<button class="load-chart-btn" onclick="toggleChart(${i},'${jsName}')" aria-label="Ver progresso">📈 Progresso</button>`:''}
+          <button class="act-btn act-swap" onclick="openSwap('${day}',${i})" title="Trocar por um equivalente">🔄 Trocar</button>
+        </div>
+        ${totalSets>0?`<div class="lc" id="lc-${i}" hidden></div>`:''}
       </div>
     </div>
   `;
@@ -146,6 +148,7 @@ function buildCard(day,ex,i) {
   more.addEventListener('click',()=>{
     details.hidden=!details.hidden;
     more.setAttribute('aria-expanded',String(!details.hidden));
+    more.querySelector('.more-lbl').textContent=details.hidden?'Mais':'Menos';
   });
 
   // swipe

@@ -407,15 +407,26 @@ body.kb #bnav { display: none; }
 
 /* ── LOAD / PROGRESSÃO ────────────────────────────── */
 /* Cartao Dia: registo essencial e detalhes em Mais. */
-.card .card-body { gap: 10px; }
-.card .card-stats { font-size: 13px; color: var(--muted); }
+.card .card-body { gap: 12px; padding: 16px; }
+.card .card-title-row { align-items: center; }
+.card .card-stats { font-size: 13px; color: var(--muted); margin-top: -6px; }
+.card .sets-label { display: none; }
+.card .sets-row { margin-top: 0; }
+.card .load-row { gap: 8px; }
+.card .load-in { flex: 1; min-width: 0; }
+.card .card-actions { padding-top: 0; }
+.card .act-timer { flex: 0 0 auto; padding: 0 16px; }
+.card-tools { display: flex; gap: 8px; }
+.card-tools > button { flex: 1; }
 .card-details { display: flex; flex-direction: column; gap: 10px; }
 .card-details[hidden] { display: none; }
 .card .load-in, .card .load-save, .card .act-btn, .card-more { min-height: 44px; }
 .card .load-save { min-width: 44px; background: var(--green); border-color: var(--green); color: #000; }
 .card .act-done, .card .act-timer { background: transparent; border-color: var(--border); color: var(--text); }
-.card-more { border: 1px solid var(--border); border-radius: var(--r-sm); background: transparent; color: var(--text); font: inherit; cursor: pointer; }
-.card .load-chart-btn { width: auto; min-height: 44px; padding: 0 12px; color: var(--text); align-self: flex-start; }
+.card-more { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: -2px; }
+.more-ic { transition: transform 0.2s; }
+.card-more[aria-expanded="true"] .more-ic { transform: rotate(180deg); }
+.card .load-chart-btn { width: auto; min-height: 44px; padding: 0 12px; color: var(--text); font-size: 13px; font-weight: 700; }
 .card .slide-prev, .card .slide-next, .card .info-btn { width: 44px; height: 44px; background: #171720; color: #fff; }
 .card .dots { gap: 4px; bottom: 0; background: #171720; }
 .card .dot, .card .dot.on { width: 44px; height: 44px; border-radius: 0; background: transparent; display: grid; place-items: center; }

@@ -142,11 +142,48 @@ await step('volta a Segunda', async () => {
   if (!(await page.locator('.card').count())) throw new Error('sem cartoes na Segunda');
 });
 
+await step('series em texto', async () => {
+  await page.evaluate(async () => {
+    const { ST } = await import('./js/state.js');
+    const ex = ST.routine.Segunda.ex[0], original = ex.s;
+    try {
+      ex.s = 'livre'; window.render('Segunda');
+      const card = document.getElementById('card-0');
+      if (!card.querySelector('.card-stats').textContent.includes('livre') || card.querySelector('.set-btn')) throw new Error('series em texto');
+      card.querySelector('.card-more').click(); card.querySelector('.card-more').click();
+    } finally { ex.s = original; window.render('Segunda'); }
+  });
+});
 await step('marcar serie 1', async () => {
   await click('.set-btn');
   if (!(await page.locator('.set-btn.on').count())) throw new Error('serie nao ficou marcada - handler morto?');
 });
-await step('grafico de carga', () => click('.load-chart-btn'));
+await step('carga consecutiva e Mais sem alterar progresso', async () => {
+  const snapshot = () => page.evaluate(async () => { const { ST } = await import('./js/state.js'); return JSON.stringify([ST.log, ST.sets, ST.done]); });
+  const initial = await snapshot();
+  if (await page.locator('#card-0 .card-more').getAttribute('aria-expanded') !== 'false') throw new Error('Mais aberto por omissao');
+  await page.fill('#w-0', '40'); await page.fill('#r-0', '10');
+  await click('#load-0 .load-save');
+  await page.fill('#w-0', '42'); await click('#load-0 .load-save');
+  const log = await page.evaluate(async () => { const { ST } = await import('./js/state.js'); const n = document.querySelector('#card-0 .card-title').textContent; return ST.log[n].slice(-1)[0]; });
+  if (log.w !== 42 || log.r !== 10) throw new Error('registos consecutivos falharam');
+  await page.fill('#w-0', '43'); await page.fill('#r-0', '11');
+  const before = await snapshot();
+  for (const expanded of ['true', 'false']) {
+    await click('#card-0 .card-more');
+    if (await snapshot() !== before) throw new Error('Mais alterou log/sets/done');
+    if (await page.locator('#card-0 .card-more').getAttribute('aria-expanded') !== expanded) throw new Error('aria-expanded errado');
+    if (await page.locator('#w-0').inputValue() !== '43' || await page.locator('#r-0').inputValue() !== '11') throw new Error('Mais perdeu campos');
+  }
+  await page.evaluate(() => window.render('Segunda'));
+  if (await page.locator('#card-0 .card-more').getAttribute('aria-expanded') !== 'false') throw new Error('render nao fechou Mais');
+  await page.evaluate(async initial => {
+    const { ST, save } = await import('./js/state.js');
+    [ST.log, ST.sets, ST.done] = JSON.parse(initial);
+    save(); window.render('Segunda');
+  }, initial);
+});
+await step('grafico de carga', async () => { await click('#card-0 .card-more'); await click('.load-chart-btn'); });
 await step('escolher esquema de progressao', async () => {
   const nome = await page.locator('.card-title').first().innerText();
   await page.locator('.lc-prog .cat-chip', { hasText: 'Greyskull' }).first().click();
@@ -465,6 +502,7 @@ await step('sair do modo edicao', async () => {
   if (await page.locator('.ed-row').count()) throw new Error('continua em modo edicao');
 });
 await step('GIF do exercicio novo aparece', async () => {
+  await page.locator('.card:has(.cat-gif) .card-more').first().click();
   const gif = page.locator('.cat-gif').first();
   await gif.waitFor({ state: 'attached', timeout: 5000 });
   await gif.scrollIntoViewIfNeeded();          /* loading=lazy: fora do ecrã não descarrega */
@@ -543,6 +581,7 @@ await stepClean('trocar exercicio por equivalente', async () => {
   await click('.wk-chip[data-day="Segunda"]');
   const antes = await page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')).routine['Segunda'].ex[0]);
   trocaOriginal = antes.name;
+  await click('#card-0 .card-more[aria-expanded="false"]');
   await click('.act-swap');
   await page.waitForSelector('.cat-swap', { timeout: 8000 });
   await page.waitForSelector('.cat-row', { timeout: 8000 });
@@ -557,7 +596,7 @@ await stepClean('trocar exercicio por equivalente', async () => {
   await page.screenshot({ path: join(SHOTS, 'troca.png') });
 });
 await step('repor exercicio trocado', async () => {
-  if (!(await page.locator('.card-swap').count())) throw new Error('cartao nao avisa que esta trocado');
+  if (!(await page.locator('.card-swap').first().isVisible()) || await page.locator('#card-0 .card-more').getAttribute('aria-expanded') !== 'false') throw new Error('cartao nao avisa que esta trocado');
   await click('.card-swap .linklike');
   await page.waitForTimeout(300);
   const st = await page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')));

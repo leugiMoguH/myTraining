@@ -462,6 +462,50 @@ for (const [w, h, mobile] of [[320, 640, true], [360, 740, true], [412, 915, tru
   await ctx.close();
 }
 
+/* Cartoes abertos e fechados: toque real nas tres larguras. */
+for (const w of [320, 360, 412]) {
+  const { ctx, page } = await open(w, 640);
+  await page.evaluate(() => window.goDay('Segunda'));
+  const controls = '#card-0 button, #card-0 input, #card-0 .dot';
+  const snapshot = () => page.evaluate(async () => { const { ST } = await import('./js/state.js'); return JSON.stringify([ST.log, ST.sets, ST.done]); });
+  await page.fill('#w-0', '30'); await page.fill('#r-0', '10');
+  await tap(page, '#card-0 .load-save');
+  await tap(page, '#card-0 .set-btn'); await page.evaluate(() => window.timerDismiss());
+  check(await page.locator('#card-0 .set-btn.on').count() === 1, `${w}: serie sem Mais`);
+  const before = await snapshot();
+  const closedHeight = await page.locator('#card-0').evaluate(e => e.getBoundingClientRect().height);
+  for (const expanded of [false, true]) {
+    if (expanded) await tap(page, '#card-0 .card-more');
+    check(await noHScroll(page), `${w}: scroll no cartao ${expanded}`);
+    check((await small(page, controls)).length === 0, `${w}: alvo pequeno no cartao ${expanded}: ${(await small(page, controls)).join(',')}`);
+    check((await overlaps(page, controls)).length === 0, `${w}: sobreposicao no cartao ${expanded}`);
+    const visible = await page.locator(controls).evaluateAll(els => els.filter(e => e.getBoundingClientRect().width > 0).map((e, i) => { e.dataset.uxCard = i; return `[data-ux-card="${i}"]`; }));
+    for (const sel of visible) {
+      await page.locator(sel).evaluate(e => e.scrollIntoView({ block: 'center', behavior: 'instant' }));
+      check(await hit(page, sel), `${w}: controlo tapado ${sel} (${expanded})`);
+    }
+    const bad = await contrast(page, ['#card-0 button', '#card-0 input']);
+    check(bad.length === 0, `${w}: contraste cartao ${expanded}: ${bad.join(',')}`);
+    check(await snapshot() === before, `${w}: Mais mudou estado`);
+  }
+  check(await page.locator('#card-0').evaluate(e => e.getBoundingClientRect().height) > closedHeight, `${w}: Mais nao revelou detalhes`);
+  await tap(page, '#card-0 .load-chart-btn');
+  check(await page.locator('#lc-0').isVisible(), `${w}: grafico por toque`);
+  await tap(page, '#card-0 .info-btn');
+  check(await page.locator('#infoBg.show').count() === 1, `${w}: info por toque`);
+  await tap(page, '.info-close');
+  await tap(page, '#card-0 .card-more');
+  check(await snapshot() === before && !(await page.locator('#card-0 .img-wrap').isVisible()) && !(await page.locator('#lc-0').isVisible()), `${w}: fechar Mais`);
+  await tap(page, '#card-0 .act-timer');
+  check(await page.locator('#timerBanner.show').count() === 1, `${w}: timer por toque`);
+  await page.evaluate(() => window.timerDismiss());
+  await tap(page, '#card-0 .act-done');
+  check(await page.locator('#card-0.done').count() === 1, `${w}: feito por toque`);
+  await tap(page, '#card-0 .card-more'); await tap(page, '#card-0 .act-swap');
+  check(await page.locator('#catBg.show').count() === 1, `${w}: troca por toque`);
+  await ctx.close();
+}
+
 /* ═══ cache atualizada: o service worker serve a versão do disco e só ela ═══ */
 {
   const { ctx, page } = await open(412, 915);

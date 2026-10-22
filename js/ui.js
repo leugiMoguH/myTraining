@@ -105,47 +105,51 @@ function buildCard(day,ex,i) {
           <span class="load-x">×</span>
           <input class="load-in" id="r-${i}" type="number" inputmode="numeric" min="0" step="1" placeholder="reps" value="${lastLog?lastLog.r:''}" aria-label="Repetições">
           <button class="load-save" onclick="saveLoad(${i},'${jsName}')">Registar</button>
-          <button class="load-chart-btn" onclick="toggleChart(${i},'${jsName}')" aria-label="Ver progresso">📈</button>
         </div>
-        <div class="lc" id="lc-${i}" hidden></div>
       </div>` : '';
 
   card.innerHTML=`
-    <div class="img-wrap">
-      <div class="slides" id="slides-${i}">${slidesHTML}</div>
-      ${navHTML}
-      ${dotsHTML}
-      <button class="info-btn" onclick="openInfo('${jsName}','${ex.catalogId||''}')" aria-label="Informação técnica">ℹ</button>
-    </div>
     <div class="card-body">
       <div class="card-title-row">
         <div class="card-title">${ex.name}</div>
         <div class="done-pill">✓ Feito</div>
       </div>
-      <div class="card-stats">
-        <div class="stat">
-          <span class="stat-label">Séries</span>
-          <span class="stat-val">${ex.s}</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Reps</span>
-          <span class="stat-val">${ex.r}</span>
-        </div>
-      </div>
+      <div class="card-stats">Séries: ${ex.s} · Reps: ${ex.r}</div>
       ${setsHTML}
       ${loadHTML}
-      ${ex.tip?`<div class="tip">💡 ${ex.tip}</div>`:''}
       ${trocado?`<div class="card-swap">🔄 Trocado só esta semana ·
         <button class="linklike" onclick="undoSwap('${day}',${i})">repor ${esc(trocado.name)}</button></div>`:''}
       <div class="card-actions">
-        <button class="act-btn act-timer" onclick="timerStart(REST_SEC)">⏱ <span class="rest-lbl">${REST_SEC}s</span></button>
-        <button class="act-btn act-swap" onclick="openSwap('${day}',${i})" title="Trocar por um equivalente">🔄</button>
+        <button class="act-btn act-timer">⏱ <span class="rest-lbl">${REST_SEC}s</span></button>
         <button class="act-btn act-done" onclick="markDone('${day}',${i})">
           ${ST.done[key(day,i)]?'✓ Concluído':'Marcar feito'}
         </button>
       </div>
+      <button class="card-more" aria-expanded="false" aria-controls="more-${i}"><span class="more-lbl">Mais</span><svg class="more-ic" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="card-details" id="more-${i}" hidden>
+        <div class="img-wrap">
+          <div class="slides" id="slides-${i}">${slidesHTML}</div>
+          ${navHTML}
+          ${dotsHTML}
+          <button class="info-btn" onclick="openInfo('${jsName}','${ex.catalogId||''}')" aria-label="Informação técnica">ℹ</button>
+        </div>
+        ${ex.tip?`<div class="tip">💡 ${ex.tip}</div>`:''}
+        <div class="card-tools">
+          ${totalSets>0?`<button class="load-chart-btn" onclick="toggleChart(${i},'${jsName}')" aria-label="Ver progresso">📈 Progresso</button>`:''}
+          <button class="act-btn act-swap" onclick="openSwap('${day}',${i})" title="Trocar por um equivalente">🔄 Trocar</button>
+        </div>
+        ${totalSets>0?`<div class="lc" id="lc-${i}" hidden></div>`:''}
+      </div>
     </div>
   `;
+  card.querySelector('.act-timer').addEventListener('click',()=>timerStart(REST_SEC));
+  const more=card.querySelector('.card-more');
+  const details=card.querySelector('.card-details');
+  more.addEventListener('click',()=>{
+    details.hidden=!details.hidden;
+    more.setAttribute('aria-expanded',String(!details.hidden));
+    more.querySelector('.more-lbl').textContent=details.hidden?'Mais':'Menos';
+  });
 
   // swipe
   const wrap=card.querySelector('.img-wrap');

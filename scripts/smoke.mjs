@@ -7,6 +7,9 @@ const JS = new URL('../js/', import.meta.url);
 const read = f => readFileSync(new URL(f, JS), 'utf8');
 const files = readdirSync(JS).filter(f => f.endsWith('.js'));
 const fail = [];
+for(const file of files) {
+  if(/\b(?:alert|confirm|prompt)\s*\(/.test(read(file))) fail.push(`${file}: diálogo nativo`);
+}
 
 /* ── 1. DOM mínimo, só o suficiente para os módulos avaliarem ───────────── */
 const el = () => new Proxy(function () {}, {

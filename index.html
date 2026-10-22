@@ -1096,6 +1096,31 @@ button:active:not(:disabled) { opacity: .75; }
   .demo-slide .demo-b { opacity: 1; transform: none; }
 }
 
+
+.notice.info { background:var(--surface); color:var(--text); border-color:var(--border); }
+.barcode-form { margin:var(--sp-4) 0; }
+.barcode-row { display:flex; gap:var(--sp-2); }
+.barcode-row input { min-width:0; flex:1; }
+.barcode-row button { min-height:var(--tap); padding:var(--sp-3); border-radius:var(--r-sm); }
+/* Diálogos partilhados: fora das zonas que os relógios repintam. */
+.app-dialog-bg { position:fixed; inset:0; z-index:900; background:var(--backdrop,rgba(0,0,0,.65)); display:flex; align-items:center; justify-content:center; padding:var(--sp-4); }
+.app-dialog { box-sizing:border-box; width:100%; max-width:480px; max-height:100dvh; overflow:auto; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:var(--r-lg); padding:var(--sp-5); animation:dialog-enter var(--dur-fast) ease-out; }
+.app-dialog h2 { margin:0 0 var(--sp-3); font-size:var(--fs-lg); }
+.app-dialog p { margin:0 0 var(--sp-4); white-space:pre-line; font-size:var(--fs-md); line-height:1.5; }
+.app-dialog label { display:block; margin-bottom:var(--sp-2); }
+.app-dialog input { box-sizing:border-box; width:100%; min-height:var(--tap); background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:var(--r-sm); padding:var(--sp-3); font:inherit; }
+.app-dialog-actions { display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-top:var(--sp-5); }
+.app-dialog-actions button { flex:1 1 100px; min-height:var(--tap); padding:var(--sp-3); border-radius:var(--r-sm); font:inherit; cursor:pointer; }
+.app-dialog-actions .btn-danger { border:1px solid var(--danger); background:var(--surface); font-weight:700; }
+.app-dialog :focus-visible { outline:3px solid var(--focus-ring); outline-offset:2px; }
+.inline-error { color:var(--danger); font-size:var(--fs-sm); line-height:1.5; margin-top:var(--sp-2); }
+.inline-error:empty { display:none; }
+[aria-invalid=true] { border-color:var(--danger)!important; }
+@keyframes dialog-enter { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+@media(max-width:479px) { .app-dialog-bg { align-items:flex-end; padding:0; } .app-dialog { border-radius:var(--r-lg) var(--r-lg) 0 0; padding-bottom:max(var(--sp-5),env(safe-area-inset-bottom)); } }
+@media(max-width:340px) { .app-dialog-actions { flex-direction:column; } .app-dialog-actions button { flex:auto; } }
+@media(prefers-reduced-motion:reduce) { .app-dialog { animation:none; transition:none; } }
+
 </style>
 </head>
 <body>

@@ -1,3 +1,4 @@
+import { confirmDialog } from './dialog.js';
 /* myTraining — treino guiado: um ecrã dedicado (não uma camada sobre o resto).
    Barra de cima: Sair da vista · exercício e tempo · Pausar/Retomar. Corpo: exercício, descanso (quando há) e,
    por baixo, ao alcance do polegar, kg × reps e UMA ação principal. Terminar a sessão é um botão à parte, discreto.
@@ -10,7 +11,7 @@ import { DEMOS, demoUrl } from './media.js';
 import { configOf, progHint } from './progression.js';
 import { lastBefore } from './records.js';
 import { ACTIVE, PAUSED, completeSession, currentSession, fmtDur, isLive, notifySession, pauseSession, resumeSession, sessionState, setSessionPos, startSession, timeStats, touchSession } from './session.js';
-import { addSetLog, esc, getLog, getSets, lastSetOf, logDate, toggleSet } from './state.js';
+import { ST, addSetLog, esc, getLog, getSets, lastSetOf, logDate, toggleSet } from './state.js';
 import { TM, onTimerChange, timerDismiss } from './timer.js';
 import { openSwap } from './catalog-ui.js';
 import { render } from './ui.js';
@@ -23,12 +24,13 @@ const clockTxt=()=>fmtDur(timeStats().duration);
 /* com o guiado aberto o resto da app fica inerte (sem foco por teclado nem leitor de ecrã) */
 function background(on){ for(const id of ['hdr','content','bnav']){ const e=el(id); if(e) e.inert=on; } }
 
-function startWorkout(day){
+async function startWorkout(day){
   if(!DAYS[day] || !DAYS[day].ex.length) return;
   const live=isLive()?currentSession():null;
   /* nunca duas sessões: com outro treino em curso, oferece-se retomá-lo em vez de misturar registos */
   if(live && live.day!==day){
-    if(confirm(`Já tens o treino de ${live.day} em curso. Retomá-lo?`)) openWorkout(live.day, live.pos);
+    const id=live.id;
+    if(await confirmDialog({title:'Treino em curso', confirmLabel:'Retomar', message:`Já tens o treino de ${live.day} em curso. Retomá-lo?`})) { const now=currentSession(); if(now?.id===id && DAYS[now.day]?.ex.length) openWorkout(now.day, now.pos); }
     return;
   }
   if(!live) startSession(day,DAYS[day].label);   /* só um toque do utilizador inicia a sessão */
@@ -127,10 +129,17 @@ function woUndo(){
   woRender();
 }
 function woPause(){ if(sessionState()===ACTIVE) pauseSession(); else resumeSession(); woRender(true); }
-function woFinish(){
-  if(!confirm('Terminar o treino? Fica guardado no histórico.')) return;
-  /* o personalizado tem o seu próprio fecho (regista a sessão e substitui o treino do dia) */
-  if(WO.day===CUSTOM_DAY){ closeWorkout(); cuFinish(); return; }
+async function woFinish(){
+  const s=currentSession(), day=WO.day, custom=ST.custom;
+  if(!s || s.day!==day) return;
+  const id=s.id;
+  /* O personalizado decide tudo antes de fechar a vista, incluindo o descarte vazio. */
+  if(day===CUSTOM_DAY){
+    if(await cuFinish(true, id)) closeWorkout();
+    return;
+  }
+  if(!await confirmDialog({title:'Terminar treino', message:'Terminar o treino? Fica guardado no histórico.', confirmLabel:'Terminar'})) return;
+  if(currentSession()?.id!==id || WO.day!==day || !DAYS[day] || (day===CUSTOM_DAY && ST.custom!==custom)) return;
   completeSession(); closeWorkout();
 }
 

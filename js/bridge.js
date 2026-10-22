@@ -1,3 +1,4 @@
+import { show } from './notice.js';
 import { setThemePref } from './theme.js';
 /* myTraining — ponte para os handlers inline (onclick="...") do HTML.
    Em ES modules nada é global: sem isto TODOS os botões falham em silêncio.
@@ -105,3 +106,9 @@ Object.assign(window, {
   heroStart,
   obApply, obBack, obClose, obDay, obLimit, obName, obNext, obOpen, obPick, obSet, obSkip, obUndoPlan,
 });
+
+/* Os handlers devolvem Promises sem rejeições por tratar. */
+for (const name of ['heroStart','startWorkout','woFinish','cuFinish','cuDiscard','cuSuggest','edRemove','edReset','hxDelSet','hxDelDay','delMeasure','resetDay','obApply','obUndoPlan','importBackup','addMedia','scanBarcode','enableNotif']) {
+  const handler=window[name];
+  window[name]=(...args)=>{ try { return Promise.resolve(handler(...args)).catch(e=>show(e?.message || 'Não foi possível concluir a ação.', 'error')); } catch(e) { show(e?.message || 'Não foi possível concluir a ação.', 'error'); } };
+}

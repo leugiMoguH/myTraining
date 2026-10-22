@@ -1,7 +1,9 @@
+import { confirmDialog } from './dialog.js';
 /* myTraining — navegação inferior + faixa "treino em curso".
    Cinco destinos: Início · Evolução · [Treino] · Histórico · Opções.
    O botão central só controla a SESSÃO (iniciar / pausar / retomar), nunca o descanso.
    Tudo o que mostra deriva de ST.session e ST.view: não guarda estado próprio. */
+import { show } from './notice.js';
 import { CUSTOM_DAY, DAYS } from './routine.js';
 import { agenda, dayStatus } from './schedule.js';
 import { ACTIVE, PAUSED, abandonSession, completeSession, currentSession, durationMs, finishedToday, fmtDur, idleMs, isIdle, isLive, onSessionChange, pauseSession, resumeSession, sessionState, touchSession } from './session.js';
@@ -32,39 +34,46 @@ const openable = s => !!(DAYS[s.day] && DAYS[s.day].ex && DAYS[s.day].ex.length)
 
 /* Sessão que o plano atual já não consegue mostrar (dia sem exercícios, personalizado desfeito): nada se
    perde nem se fecha sozinho. As cargas já estão em ST.log; o utilizador escolhe, com confirmação. */
-function recoverBlocked(s) {
-  const quando = `${s.day} (${s.date})`;
-  if (confirm(`O treino de ${quando} já não existe no plano atual e não pode ser retomado.\n\nEncerrar guarda-o no histórico com as cargas já registadas. Encerrar agora?`)) { completeSession(); return; }
-  if (confirm(`Descartar o treino de ${quando}? Fica marcado como descartado; as cargas registadas ficam no histórico.`)) abandonSession();
+async function recoverBlocked(s) {
+  const id = s.id;
+  const decision = await confirmDialog({ title:'Treino indisponível', message:`O treino de ${s.day} (${s.date}) já não existe no plano atual. Encerrar guarda-o no histórico com as cargas registadas.`, confirmLabel:'Encerrar', altLabel:'Descartar', danger:true });
+  const live = currentSession();
+  if (!live || live.id !== id || openable(live)) return;
+  if (decision === true) completeSession();
+  else if (decision === 'alt') abandonSession();
 }
 
-function openLive() {
+async function openLive() {
   const s = currentSession();
   if (!s) return;
-  if (!openable(s)) { recoverBlocked(s); return; }
+  if (!openable(s)) { return recoverBlocked(s); }
   openWorkout(s.day, s.pos);
 }
 
 /* Botão do cartão "Hoje": inicia (ou retoma) o treino real deste dia, com as mesmas regras do botão central. */
-function heroStart(day) {
-  if (isLive()) { const s = currentSession(); if (s.day === day) openLive(); else startWorkout(day); return; }
-  if (finishedToday(day) && !confirm(`O treino de ${day} já terminou hoje. Iniciar outro?`)) return;
-  startWorkout(day);
+async function heroStart(day) {
+  if (isLive()) { const s = currentSession(); if (s.day === day) return openLive(); return startWorkout(day); }
+  const context = JSON.stringify([ST.view, ST.day, DAYS[day], ST.custom]);
+  if (finishedToday(day) && !await confirmDialog({title:'Iniciar outro treino', confirmLabel:'Iniciar outro', message:`O treino de ${day} já terminou hoje. Iniciar outro?`})) return;
+  if (isLive() || !DAYS[day] || context !== JSON.stringify([ST.view, ST.day, DAYS[day], ST.custom])) return;
+  return startWorkout(day);
 }
 
-function navMain() {
+async function navMain() {
   const st = sessionState();
   if (st === ACTIVE) { pauseSession(); return; }
   if (st === PAUSED) { resumeSession(); return; }   /* uma ação = uma transição; abrir o guiado é a faixa "Abrir" */
   const day = selectedDay();
   if (!day) { render('__hist'); return; }
+  const context = JSON.stringify([ST.view, ST.day, DAYS[day], ST.custom]);
   /* terminado hoje: nada de reiniciar sozinho. Um personalizado é um treino novo de cada vez: só o concluído bloqueia
      (o descartado deixou uma sessão ABANDONED do dia, mas o treino novo é outro). */
   if (day === CUSTOM_DAY ? ST.custom && ST.custom.stage === 'done' : finishedToday(day)) {
     /* nunca mudo: o toque tem de dar resposta. Terminado hoje → pergunta se é para fazer outro. */
-    if (!confirm(`O treino de ${day} já terminou hoje. Iniciar outro?`)) return;
+    if (!await confirmDialog({title:'Iniciar outro treino', confirmLabel:'Iniciar outro', message:`O treino de ${day} já terminou hoje. Iniciar outro?`})) return;
   }
-  startWorkout(day);
+  if (isLive() || !DAYS[day] || context !== JSON.stringify([ST.view, ST.day, DAYS[day], ST.custom])) return;
+  return startWorkout(day);
 }
 
 function navOpts() { openSheet(); }
@@ -72,12 +81,18 @@ function navOpts() { openSheet(); }
 const hhmm = ts => new Date(ts).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
 
 /* encerrar à hora da última atividade: decisão explícita, o tempo seguinte não conta */
-function navEnd() {
-  const s = currentSession();
-  if (s && confirm(`Encerrar o treino às ${hhmm(s.seenAt)} (última atividade)? O tempo depois dessa hora não conta.`)) completeSession(s.seenAt);
+async function navEnd() {
+  const s = currentSession(); if (!s) return;
+  const { id, seenAt } = s;
+  if (await confirmDialog({title:'Encerrar treino', message:`Encerrar o treino às ${hhmm(seenAt)} (última atividade)? O tempo depois dessa hora não conta.`, confirmLabel:'Encerrar'})) {
+    if (currentSession()?.id === id) completeSession(seenAt);
+  }
 }
-function navAbandon() {
-  if (confirm('Descartar este treino? Fica marcado como descartado; as séries e cargas já registadas ficam guardadas.')) abandonSession();
+async function navAbandon() {
+  const id = currentSession()?.id; if (!id) return;
+  if (await confirmDialog({title:'Descartar treino', message:'Descartar este treino? As séries e cargas já registadas ficam guardadas.', danger:true, confirmLabel:'Descartar'})) {
+    if (currentSession()?.id === id) abandonSession();
+  }
 }
 
 function mainFace() {
@@ -95,7 +110,7 @@ function buildNav() {
     b.type = 'button';
     if (it.id === 'main') {
       b.id = 'navMain'; b.className = 'nb nb-main';
-      b.onclick = navMain;
+      b.onclick = () => navMain().catch(() => show('Não foi possível iniciar o treino.', 'error'));
     } else {
       b.className = 'nb'; b.dataset.day = it.id;
       b.innerHTML = `<span class="nb-i" aria-hidden="true">${it.icon}</span><span class="nb-l">${it.label}</span>`;
@@ -103,9 +118,9 @@ function buildNav() {
     }
     row.appendChild(b);
   });
-  document.getElementById('navLive').onclick = openLive;
-  document.getElementById('navEnd').onclick = navEnd;
-  document.getElementById('navDrop').onclick = navAbandon;
+  document.getElementById('navLive').onclick = () => openLive().catch(() => show('Não foi possível atualizar o treino.', 'error'));
+  document.getElementById('navEnd').onclick = () => navEnd().catch(() => show('Não foi possível atualizar o treino.', 'error'));
+  document.getElementById('navDrop').onclick = () => navAbandon().catch(() => show('Não foi possível atualizar o treino.', 'error'));
   document.getElementById('navEnd').title = 'Encerrar à hora da última atividade';
   document.getElementById('navDrop').title = 'Descartar treino';
   syncNav();

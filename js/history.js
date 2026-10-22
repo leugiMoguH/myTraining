@@ -1,3 +1,4 @@
+import { confirmDialog } from './dialog.js';
 /* myTraining — histórico detalhado por exercício: recordes, evolução, sessões e correções.
    Ecrã próprio (`ST.view = '__ex'`, exercício em `ST.hx`), aberto a partir do cartão do exercício e do Histórico.
    Nada aqui entra no treino guiado. Os dados vêm de records.js (leitura) e logedit.js (escrita). */
@@ -140,12 +141,18 @@ function hxEditDate(date) { HX.edit = { date, i: 'date' }; HX.adding = false; re
 function hxCancel() { HX.edit = null; HX.adding = false; render('__ex'); }
 function hxSaveSet(date, i) { done(editSet(ST.hx, date, i, val('hx-w'), val('hx-r'), val('hx-rir'))); }
 function hxSaveDate(date) { done(moveEntry(ST.hx, date, val('hx-d'))); }
-function hxDelSet(date, i) {
-  if (!confirm(`Eliminar esta série de ${fmtD(date)}? Não se pode desfazer.`)) return;
+async function hxDelSet(date, i) {
+  const name=ST.hx, entry=()=>JSON.stringify((ST.log[name]||[]).find(e=>e.date===date));
+  const before=entry(); if(!before) return;
+  if (!await confirmDialog({title:'Eliminar série', confirmLabel:'Eliminar', message:`Eliminar esta série de ${fmtD(date)}? Não se pode desfazer.`, danger:true})) return;
+  if(ST.hx!==name || before!==entry()) return;
   done(deleteSet(ST.hx, date, i));
 }
-function hxDelDay(date) {
-  if (!confirm(`Eliminar todos os registos de ${ST.hx} em ${fmtD(date)}? Não se pode desfazer.`)) return;
+async function hxDelDay(date) {
+  const name=ST.hx, entry=()=>JSON.stringify((ST.log[name]||[]).find(e=>e.date===date));
+  const before=entry(); if(!before) return;
+  if (!await confirmDialog({title:'Eliminar registos', confirmLabel:'Eliminar', message:`Eliminar todos os registos de ${ST.hx} em ${fmtD(date)}? Não se pode desfazer.`, danger:true})) return;
+  if(ST.hx!==name || before!==entry()) return;
   done(deleteEntry(ST.hx, date));
 }
 function hxAddOpen(date) { HX.adding = true; HX.date = date || null; HX.edit = null; render('__ex'); }

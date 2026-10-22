@@ -1,8 +1,9 @@
+import { confirmDialog } from './dialog.js';
 /* Modo de edição de um dia: reordenar, apagar, mudar séries/reps, adicionar do catálogo. */
 import { openCatalog } from './catalog-ui.js';
 import { exercisesOf, moveExercise, removeExercise, updateExercise, resetRoutine, setDayLabel, getDay } from './routine.js';
 import { isRest, setRest } from './schedule.js';
-import { esc } from './state.js';
+import { ST, esc } from './state.js';
 import { render } from './ui.js';
 
 const ED = { day: null };
@@ -13,9 +14,12 @@ function stopEdit() { ED.day = null; }
 
 function edMove(day, i, dir) { if (moveExercise(day, i, dir)) render(day); }
 
-function edRemove(day, i) {
-  const ex = exercisesOf(day)[i];
-  if (!ex || !confirm(`Remover "${ex.name}" de ${day}?\n\nO histórico de cargas deste exercício não se perde.`)) return;
+async function edRemove(day, i) {
+  const ex = exercisesOf(day)[i], dayId=getDay(day)?.id, id=ex?.id;
+  if (!ex || !await confirmDialog({title:'Remover exercício', confirmLabel:'Remover', message:`Remover "${ex.name}" de ${day}?\n\nO histórico de cargas deste exercício não se perde.`, danger:true})) return;
+  if(getDay(day)?.id!==dayId) return;
+  i=exercisesOf(day).findIndex(e=>e.id===id);
+  if(i<0) return;
   if (removeExercise(day, i)) render(day);
 }
 
@@ -39,8 +43,11 @@ function edLabel(day, value) { if (setDayLabel(day, value)) render(day); }
    guardados (mobilidade, caminhada) para quem quiser fazê-los na mesma. */
 function edRest(day, checked) { if (setRest(day, checked)) render(day); }
 
-function edReset(day) {
-  if (!confirm('Repor o plano original?\n\nPerdes os exercícios que acrescentaste e as séries marcadas. O histórico de cargas fica.')) return;
+async function edReset(day) {
+  const signature=()=>JSON.stringify([ST.routine, ST.sets, ST.done, ST.sched, ST.custom, ST.session?.id]);
+  const before=signature();
+  if (!await confirmDialog({title:'Repor plano original', confirmLabel:'Repor plano', message:'Repor o plano original?\n\nPerdes os exercícios que acrescentaste e as séries marcadas. O histórico de cargas fica.', danger:true})) return;
+  if(before!==signature()) return;
   resetRoutine();
   stopEdit();
   render(day);

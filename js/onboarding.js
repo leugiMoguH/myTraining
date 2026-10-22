@@ -1,3 +1,5 @@
+import { confirmDialog } from './dialog.js';
+import { show } from './notice.js';
 /* myTraining — acolhimento + proposta de plano + reorganizar a semana (ecrã sobreposto #onbBg).
    Retomável: cada escolha grava logo em ST.onb.draft e o passo em ST.onb.step.
    Usado de duas formas: 1.ª utilização (automático) e "Rever o meu plano" no Perfil (sem repetir o acolhimento). */
@@ -154,9 +156,12 @@ function obSkip() {
   if (!hasPlan() && !isExistingUser()) { ST.onb = { ...ST.onb, done: true, skipped: true, draft: {} }; save(); }
   close(); render('__hoje');
 }
-function obApply() {
+async function obApply() {
+  const signature=()=>JSON.stringify([draft(), ST.routine, ST.prefs, ST.plan]);
+  const before=signature();
   const replacing = isExistingUser() || hasPlan();
-  if (replacing && !confirm('Isto substitui a tua rotina atual pelo plano proposto.\n\nO histórico de cargas, os recordes e as medidas ficam. Fazemos antes uma cópia de segurança e podes repor o estado anterior no Perfil.\n\nContinuar?')) return;
+  if (replacing && !await confirmDialog({title:'Substituir rotina', confirmLabel:'Substituir', message:'Isto substitui a tua rotina atual pelo plano proposto.\n\nO histórico de cargas, os recordes e as medidas ficam. Fazemos antes uma cópia de segurança e podes repor o estado anterior no Perfil.\n\nContinuar?'})) return;
+  if(before!==signature()) return;
   const r = applyPlan(proposePlan(draft()), { reason: replacing ? 'antes de aplicar plano novo' : 'plano inicial' });
   if (!r.ok) { MSG = r.error; paint(); return; }
   close(); render('__hoje');
@@ -172,11 +177,14 @@ function obPick(day) {
   if (!r.ok) MSG = r.error;
   paint();
 }
-function obUndoPlan() {
+async function obUndoPlan() {
+  if(document.getElementById('woBg').classList.contains('show')) { document.dispatchEvent(new CustomEvent('app-notice',{detail:{msg:'Sai do treino guiado antes de repor uma cópia.',kind:'info'}})); return; }
+  const raw=localStorage.getItem('treino_v2_snap');
   const info = snapshotInfo();
-  if (!info || !confirm(`Repor o estado de ${new Date(info.at).toLocaleString('pt-PT')}?\n\nO que fizeste depois dessa data (treinos, cargas) deixa de aparecer. O estado atual fica guardado para poderes voltar atrás.`)) return;
+  if (!info || !await confirmDialog({title:'Repor estado anterior', confirmLabel:'Repor', message:`Repor o estado de ${new Date(info.at).toLocaleString('pt-PT')}?\n\nO que fizeste depois dessa data (treinos, cargas) deixa de aparecer. O estado atual fica guardado para poderes voltar atrás.`})) return;
+  if(raw!==localStorage.getItem('treino_v2_snap') || document.getElementById('woBg').classList.contains('show')) return;
   const r = restoreSnapshot('snap');
-  if (!r.ok) { alert(r.error || 'Não foi possível repor.'); return; }
+  if (!r.ok) { show(r.error || 'Não foi possível repor.', 'error'); return; }
   render('__perfil');
 }
 

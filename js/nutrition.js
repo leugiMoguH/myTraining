@@ -1,5 +1,6 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { chartSVG } from './charts.js';
+import { fieldError } from './inline-error.js';
 import { bodyMetrics, profileComplete } from './profile.js';
 import { ST, esc, fmtTime, nowISO, save, todayStr } from './state.js';
 import { render } from './ui.js';
@@ -77,7 +78,7 @@ function fillIntake(k){ const f=FOODS[k]; if(!f) return; const set=(id,v)=>{cons
 function addIntakeUI(){
   const v=id=>{const el=document.getElementById(id); return el?el.value:'';};
   if(addIntake(v('i-name'),v('i-kcal'),v('i-prot'))) renderNutri();
-  else alert('Indica pelo menos um nome ou as kcal.');
+  else fieldError('i-name','Indica pelo menos um nome ou as kcal.');
 }
 function intakeHTML(){
   const list=intakeToday().slice().sort((a,b)=>(a.ts||'')<(b.ts||'')?-1:1);
@@ -101,6 +102,12 @@ function intakeHTML(){
     <button class="load-chart-btn" onclick="scanBarcode()" aria-label="Ler código de barras" title="Ler código de barras">📷</button>
     <button class="load-save" onclick="addIntakeUI()">+ Add</button>
   </div>
+  <form id="barcodeForm" class="barcode-form">
+    <label class="nfield" for="barcode">Código de barras</label>
+    <div class="barcode-row"><input id="barcode" class="nfree" inputmode="numeric" autocomplete="off" aria-describedby="barcode-help"><button class="btn-secondary" type="submit">Pesquisar</button></div>
+    <div id="barcode-help" class="ndisc">Escreve o código ou usa a câmara. Também podes preencher o alimento manualmente.</div>
+    <div id="barcode-status" class="inline-error" role="status" aria-live="polite"></div>
+  </form>
   <div class="qfoods">${FOODS.map((f,k)=>`<button type="button" class="qfood" onclick="fillIntake(${k})">${f.n}</button>`).join('')}</div>
   ${ list.length ? `<div class="ilist">${list.map(x=>`<div class="iitem"><div class="iitem-main"><span class="iitem-n">${esc(x.name)}</span><span class="iitem-t">${fmtTime(x.ts)}</span></div><div class="iitem-r"><span>${Math.round(x.kcal)}kcal · ${Math.round(x.protein)}g</span><button class="iitem-x" onclick="delIntake('${x.id}')" aria-label="Remover">✕</button></div></div>`).join('')}</div>` : '<div class="ndisc">Ainda nada registado hoje.</div>' }
   ${ series.length>1 ? `<div class="lc">${chartSVG(series.map(p=>p.v))}<div class="lc-meta"><span><b>${Math.round(tot.kcal)}</b> kcal hoje</span><span class="lc-range">${series.length} dias registados</span></div></div>` : '' }
@@ -198,6 +205,11 @@ function renderNutri(content){
   const p=ST.nutri&&ST.nutri.profile;
   const showForm = !p || NUTRI_EDIT;
   content.innerHTML=`<div class="nutri-wrap">${ showForm ? nutriFormHTML(p) : nutriPlanHTML(p) }</div>`;
+  // O diário e a entrada manual existem mesmo antes de definir preferências.
+  if(showForm) content.querySelector('.nutri-wrap').insertAdjacentHTML('beforeend',intakeHTML());
+  const form=document.getElementById('barcodeForm'), field=document.getElementById('barcode');
+  if(form) form.addEventListener('submit',e=>{ e.preventDefault(); offLookup(field.value); });
+  if(field) field.addEventListener('input',()=>{ lookupOperation++; document.getElementById('barcode-status').textContent=''; });
 }
 function editNutri(){ NUTRI_EDIT=true; renderNutri(); }
 function cancelNutri(){ NUTRI_EDIT=false; renderNutri(); }
@@ -218,25 +230,41 @@ function saveNutri(e){
 
 
 /* ═══════════ DIÁRIO: scan + Open Food Facts ═══════════ */
+let lookupOperation=0;
 async function offLookup(code){
-  code=(code||'').replace(/\D/g,''); if(code.length<6){ alert('Código inválido.'); return; }
+  const field=document.getElementById('barcode'); if(!field) return;
+  code=String(code||'').trim(); field.value=code;
+  const operation=++lookupOperation, view=ST.view;
+  const valid=()=>operation===lookupOperation && field.isConnected && document.getElementById('barcode')===field && field.value===code && ST.view===view;
+  if(!/^\d{6,}$/.test(code)){ fieldError('barcode','Código inválido. Introduz pelo menos 6 algarismos.'); return; }
+  const status=document.getElementById('barcode-status');
+  status.textContent='A pesquisar…';
   const set=(id,val)=>{ const el=document.getElementById(id); if(el) el.value=val; };
   try{
     const r=await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
+    if(!valid()) return;
     const j=await r.json();
-    if(j.status!==1){ alert('Produto não encontrado no Open Food Facts. Preenche manualmente.'); return; }
+    if(!valid()) return;
+    if(j.status!==1){ status.textContent='Produto não encontrado no Open Food Facts. Preenche manualmente.'; return; }
     const p=j.product||{}, n=p.nutriments||{};
     const nm=p.product_name||p.generic_name||('Cód '+code);
     set('i-name', nm+' (100g)');
     set('i-kcal', Math.round(n['energy-kcal_100g']||0));
     set('i-prot', Math.round((n.proteins_100g||0)*10)/10);
-  }catch(e){ alert('Sem ligação ao Open Food Facts.'); }
+    status.textContent='Produto encontrado. Confirma os valores por 100 g.';
+  }catch(e){ if(valid()) status.textContent='Sem ligação ao Open Food Facts. Preenche manualmente.'; }
+}
+function manualBarcode(message){
+  const field=document.getElementById('barcode');
+  if(!field) return;
+  document.getElementById('barcode-status').textContent=message;
+  field.focus();
 }
 function scanBarcode(){
   if(!('BarcodeDetector' in window) || !(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){
-    const c=prompt('Introduz o código de barras:'); if(c) offLookup(c); return;
+    manualBarcode('Introduz o código de barras para pesquisar.'); return;
   }
-  startScan();
+  return startScan();
 }
 let scanStream=null, scanRAF=null;
 async function startScan(){
@@ -251,7 +279,7 @@ async function startScan(){
       scanRAF=requestAnimationFrame(loop);
     };
     loop();
-  }catch(e){ stopScan(); const c=prompt('Câmara indisponível. Código de barras:'); if(c) offLookup(c); }
+  }catch(e){ stopScan(); manualBarcode('Câmara indisponível. Introduz o código de barras ou preenche manualmente.'); }
 }
 function stopScan(){
   const ov=document.getElementById('scanBg'); if(ov) ov.classList.remove('show');

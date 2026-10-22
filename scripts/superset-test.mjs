@@ -1,3 +1,4 @@
+import { dialogResponder, settleDialog } from './_dialogs.mjs';
 /* Superset e troca rápida no guiado (Chromium) — npm run test:superset */
 import { chromium } from 'playwright';
 import { skipOnboarding } from './_skip-onb.mjs';
@@ -22,7 +23,7 @@ const page = await (await browser.newContext({ viewport: { width: 412, height: 8
 await skipOnboarding(page);
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', e => errors.push(e.message));
-page.on('dialog', d => d.accept().catch(() => {}));
+await dialogResponder(page, () => true, errors);
 await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'networkidle' });
 
 const state = () => page.evaluate(() => {

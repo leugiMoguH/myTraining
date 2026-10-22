@@ -1,5 +1,6 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { ST, save } from './state.js';
+import { promptDialog } from './dialog.js';
 import { render } from './ui.js';
 
 /* demonstrações (imagem/GIF/vídeo) por exercício, fornecidas pelo utilizador */
@@ -12,11 +13,12 @@ function mediaSlide(url,name,mi){
     : `<img src="${safe}" alt="${name}" loading="lazy" onerror="this.closest('.slide').innerHTML='<div class=\\'no-img\\'><span>🎬</span><span>Demo indisponível</span></div>'">`;
   return `<div class="slide media-slide">${inner}<button class="media-del" onclick="delMedia('${jn}',${mi})" aria-label="Remover demo">✕</button></div>`;
 }
-function addMedia(name){
-  const url=prompt('Cola o link de uma imagem, GIF ou vídeo de demonstração do exercício:');
+async function addMedia(name){
+  const before=JSON.stringify([ST.day, ST.view, ST.media?.[name]]);
+  const url=await promptDialog({title:'Adicionar demonstração', message:'Cola o link de uma imagem, GIF ou vídeo de demonstração do exercício.', label:'URL da demonstração', placeholder:'https://…', confirmLabel:'Guardar', validate:v=>/^https?:\/\//i.test(v.trim()) || /^images\//i.test(v.trim()) ? '' : 'Link inválido — usa http://, https:// ou images/.'});
   if(!url) return;
+  if(before!==JSON.stringify([ST.day, ST.view, ST.media?.[name]])) return;
   const u=url.trim();
-  if(!/^https?:\/\//i.test(u) && !/^images\//i.test(u)){ alert('Link inválido — tem de começar por http:// ou https://'); return; }
   const cur=(ST.media&&ST.media[name])||[];
   ST.media=Object.assign({},ST.media,{[name]:cur.concat([u])});
   save(); render(ST.day);

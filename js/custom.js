@@ -1,3 +1,4 @@
+import { confirmDialog } from './dialog.js';
 /* Treino personalizado — "hoje não quero o programado, quero treinar X".
 
    Vale só para hoje e nunca toca no plano: o treino vive em ST.custom (um "dia"
@@ -144,22 +145,28 @@ function cuBegin() {
 
 function cuHome() { render('__hoje'); }
 
-function cuDiscard(force) {
-  const started = valid(ST.custom) && ST.custom.ex.some((_, i) => getSets(CUSTOM_DAY, i).length);
-  if (started && !force && !confirm('Descartar o treino personalizado? As séries marcadas perdem-se.')) return;
-  dropCustom();
-  render('__hoje');
+async function cuDiscard(force = false) {
+  const c=ST.custom;
+  if(!valid(c) || c.stage==='done') return false;
+  const count=()=>c.ex.reduce((n,_,i)=>n+getSets(CUSTOM_DAY,i).length,0);
+  const started=count();
+  if(force && started) return false;
+  if(started && !await confirmDialog({title:'Descartar personalizado', message:'Descartar o treino personalizado? As séries marcadas perdem-se.', danger:true, confirmLabel:'Descartar'})) return false;
+  if(ST.custom!==c || c.stage==='done' || (force && count()) || (!started && count())) return false;
+  dropCustom(); render('__hoje'); return true;
 }
 
-/* Concluir regista a sessão uma única vez (stage passa a 'done'). */
-function cuFinish() {
-  const c = ST.custom;
-  if (!valid(c) || c.stage === 'done') return;
-  const sets = c.ex.reduce((n, _, i) => n + getSets(CUSTOM_DAY, i).length, 0);
-  if (!sets) {
-    if (confirm('Nenhuma série marcada. Descartar este treino personalizado?')) cuDiscard(true);
-    return;
+async function cuFinish(ask = false, sessionId = null) {
+  const c=ST.custom;
+  if(!valid(c) || c.stage==='done') return false;
+  const count=()=>c.ex.reduce((n,_,i)=>n+getSets(CUSTOM_DAY,i).length,0);
+  const empty=!count();
+  if(empty || ask){
+    if(!await confirmDialog({title:empty?'Descartar personalizado':'Terminar treino', message:empty?'Nenhuma série marcada. Descartar este treino personalizado?':'Terminar o treino? Fica guardado no histórico.', confirmLabel:empty?'Descartar':'Terminar', danger:empty})) return false;
+    if(ST.custom!==c || c.stage==='done' || (sessionId && ST.session?.id!==sessionId) || (empty && count())) return false;
+    if(empty) return cuDiscard(true);
   }
+  const sets=count();
   /* só ocupa o lugar do treino de hoje se ainda for hoje (ecrã deixado aberto da véspera: não) */
   const replaced = c.date === todayStr() ? replaceCurrent() : null;
   const ex = c.ex.map(e => e.name).filter((_, i) => getSets(CUSTOM_DAY, i).length);
@@ -168,7 +175,7 @@ function cuFinish() {
   ST.custom = { ...c, stage: 'done', sets, replaced };
   save();
   endSessionOf(CUSTOM_DAY, true);   /* a sessão guiada não fica a correr depois de concluir */
-  render('__pers');
+  render('__pers'); return true;
 }
 
 /* ── ecrãs ────────────────────────────────────────────────────────────────── */

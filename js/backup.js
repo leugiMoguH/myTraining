@@ -1,3 +1,5 @@
+import { confirmDialog } from './dialog.js';
+import { show } from './notice.js';
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { DEFAULT_DAYS } from './data.js';
 import { migrate, snapshot } from './migrate.js';
@@ -5,7 +7,7 @@ import { DAYS } from './routine.js';
 import { syncNotifUI } from './notify.js';
 import { bodyFat } from './profile.js';
 import { ST, est1RM, fmtTime, save, todayStr, setST } from './state.js';
-import { REST_SEC, setRest } from './timer.js';
+import { REST_SEC, setRest, timerDismiss } from './timer.js';
 import { render } from './ui.js';
 import { syncWakeUI } from './wake.js';
 
@@ -23,20 +25,30 @@ function exportBackup(){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
-function importBackup(e){
-  const file=e.target.files && e.target.files[0];
-  if(!file) return;
-  const reader=new FileReader();
-  reader.onload=()=>{
-    try{
-      const p=JSON.parse(reader.result);
+let importOperation=0;
+async function importBackup(e){
+  const input=e.target, file=input.files && input.files[0], operation=++importOperation;
+  if(!file) { input.value=''; return; }
+  const guided=()=>document.getElementById('woBg').classList.contains('show');
+  // O relógio pode avançar; todas as outras alterações invalidam a aprovação.
+  const signature=()=>JSON.stringify(ST,(key,value)=>['seenAt','confirmedMs'].includes(key)?undefined:value);
+  const before=signature();
+  try{
+      const raw=await file.text();
+      if(operation!==importOperation || input.files[0]!==file || before!==signature()) return;
+      const p=JSON.parse(raw);
       const incoming=(p && typeof p==='object' && p.state) ? p.state : p;
       const isObj=o=>!!o && typeof o==='object' && !Array.isArray(o);
       if(!isObj(incoming) || !isObj(incoming.sets) || !isObj(incoming.done))
         throw new Error('estrutura inválida');
-      if(!confirm('Importar substitui o progresso atual. Continuar?')){ e.target.value=''; return; }
+      // Recusar enquanto o guiado está aberto evita referências WO/descanso antigas.
+      if(guided()){ show('Sai do treino guiado antes de importar uma cópia.', 'info'); return; }
+      if(!await confirmDialog({title:'Importar backup', message:'Importar substitui o progresso atual. Continuar?', danger:true, confirmLabel:'Importar'})) return;
+      if(operation!==importOperation || input.files[0]!==file || before!==signature() || guided()) return;
       const snap=snapshot('antes de importar');
-      if(!snap.ok){ alert('Não foi possível guardar uma cópia do estado atual antes de importar: '+snap.error+'\nNada foi alterado.'); return; }
+      if(!snap.ok){ show('Não foi possível guardar uma cópia do estado atual antes de importar: '+snap.error+'\nNada foi alterado.', 'error'); return; }
+      const previous=ST, previousRest=REST_SEC;
+      try {
       setST({ day:'Segunda', sets:{}, done:{}, log:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], media:{}, routine:null, ...incoming });
       if(!ST.log || typeof ST.log!=='object') ST.log={};
       if(!ST.nutri || typeof ST.nutri!=='object') ST.nutri={profile:null};
@@ -50,20 +62,19 @@ function importBackup(e){
       if(!ST.routine || typeof ST.routine!=='object' || !Object.keys(ST.routine).length) ST.routine=JSON.parse(JSON.stringify(DEFAULT_DAYS));
       if(ST.day!=='__nutri' && ST.day!=='__perfil' && !DAYS[ST.day]) ST.day='Segunda';
       if(p && typeof p.rest_sec==='number') setRest(p.rest_sec);
-      save();
-      migrate();   /* ids, onb e meta também para backups antigos */
+      const migration=migrate();   /* ids, onb e meta também para backups antigos */
+      if(migration.error || migration.saved===false || !save()) throw new Error(migration.error || 'Não foi possível guardar o backup.');
+      } catch(err) { setST(previous); setRest(previousRest); save(); throw err; }
+      timerDismiss();
       closeSheet();
       render(ST.day);
       document.getElementById('restLabel').textContent=REST_SEC+'s';
-      alert('Backup importado ✓');
+      show('Backup importado ✓', 'ok');
     }catch(err){
-      alert('Não foi possível importar: '+(err && err.message ? err.message : 'ficheiro inválido'));
+      if(operation===importOperation) show('Não foi possível importar: '+(err && err.message ? err.message : 'ficheiro inválido'), 'error');
     }finally{
-      e.target.value='';
+      if(operation===importOperation) input.value='';
     }
-  };
-  reader.onerror=()=>{ alert('Erro a ler o ficheiro.'); e.target.value=''; };
-  reader.readAsText(file);
 }
 
 /* ── EXPORTAÇÃO CSV ───────────────────────────────── */
@@ -79,19 +90,19 @@ function csvDownload(filename, rows){
 function exportMeasuresCSV(){
   const rows=[['data','hora','peso_kg','cintura_cm','pescoco_cm','anca_cm','peito_cm','braco_cm','coxa_cm','gordura_pct']];
   (ST.measures||[]).forEach(e=>{ const bf=bodyFat(e); rows.push([e.date, e.ts?fmtTime(e.ts):'', e.weight, e.waist||'', e.neck||'', e.hip||'', e.chest||'', e.arm||'', e.thigh||'', bf!=null?bf:'']); });
-  if(rows.length<2){ alert('Sem medidas para exportar.'); return; }
+  if(rows.length<2){ show('Sem medidas para exportar.', 'info'); return; }
   csvDownload(`medidas-${todayStr()}.csv`, rows); closeSheet();
 }
 function exportIntakeCSV(){
   const rows=[['data','hora','alimento','kcal','proteina_g']];
   (ST.intake||[]).slice().sort((a,b)=>(a.ts||'')<(b.ts||'')?-1:1).forEach(x=>rows.push([x.date, x.ts?fmtTime(x.ts):'', x.name, Math.round(x.kcal), x.protein]));
-  if(rows.length<2){ alert('Sem registos de ingestão para exportar.'); return; }
+  if(rows.length<2){ show('Sem registos de ingestão para exportar.', 'info'); return; }
   csvDownload(`diario-${todayStr()}.csv`, rows); closeSheet();
 }
 function exportLoadCSV(){
   const rows=[['exercicio','data','hora','peso_kg','reps','rm_estimado','tipo']];
   Object.keys(ST.log||{}).forEach(name=>{ (ST.log[name]||[]).forEach(e=>rows.push([name, e.date, e.ts?fmtTime(e.ts):'', e.w, e.r, est1RM(e.w,e.r), e.c?'personalizado':'programado'])); });
-  if(rows.length<2){ alert('Sem cargas para exportar.'); return; }
+  if(rows.length<2){ show('Sem cargas para exportar.', 'info'); return; }
   csvDownload(`cargas-${todayStr()}.csv`, rows); closeSheet();
 }
 

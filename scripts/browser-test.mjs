@@ -1,3 +1,4 @@
+import { dialogResponder, settleDialog } from './_dialogs.mjs';
 /* Teste real no browser (Chromium headless) — corre com: npm run test:browser
    Serve o site, abre-o, clica em tudo e falha se o Console tiver um único erro. */
 import { chromium } from 'playwright';
@@ -30,8 +31,8 @@ await skipOnboarding(page);
 
 page.setDefaultTimeout(T + 4000);
 /* confirm()/alert(): um só ouvinte, resposta pedida pelo teste (true = aceitar, false = recusar; sem pedido = recusar) */
-const dialogQueue = [];
-page.on('dialog', d => { const a = dialogQueue.shift(); (a ? d.accept() : d.dismiss()).catch(() => {}); });
+const dialogQueue = [], nativeErrors = [];
+await dialogResponder(page, () => dialogQueue.shift() || false, nativeErrors);
 
 /* Diagnóstico de intermitências: regista cada abrir/fechar da vista guiada (#woBg) com a hora, o
    passo do teste em curso e o estado da sessão. Só é impresso se o teste rebentar. */
@@ -59,7 +60,7 @@ process.on('uncaughtException', async e => {
   console.error('FALHAS ATE AQUI:', JSON.stringify(fail));
   await dumpTrace(); process.exit(1);
 });
-const errors = [];
+const errors = nativeErrors;
 page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
 page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
 page.on('requestfailed', r => {
@@ -104,6 +105,7 @@ const click = async sel => {
   const loc = page.locator(sel).first();
   await loc.evaluate(e => e.scrollIntoView({ block: 'center', behavior: 'instant' })).catch(() => {});
   await loc.click({ timeout: T });
+  await settleDialog(page);
 };
 
 await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'networkidle' });
@@ -392,7 +394,7 @@ await step('plano alterado com sessao pendente: nada se perde, decide o utilizad
   await injetar({ state: 'ACTIVE', day: 'Personalizado' }, { custom: null });
   if (await visible('#woBg.show')) throw new Error('sem treino para mostrar, a vista nao devia abrir');
   if (!(await visible('#navLive:not([hidden])'))) throw new Error('a faixa devia continuar a oferecer a sessao');
-  dialogQueue.push(false, false);
+  dialogQueue.push(false);
   await click('#navLive');
   if ((await stSession()).state !== 'ACTIVE') throw new Error('recusar as duas confirmacoes nao pode fechar a sessao');
   dialogQueue.push(true);

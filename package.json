@@ -11,6 +11,7 @@
     "android:open": "npx cap open android",
     "test:browser": "node scripts/browser-test.mjs",
     "test:theme": "node scripts/theme-test.mjs",
+    "test:dialogs": "node scripts/dialog-test.mjs",
     "test:ux1": "node scripts/ux-bloco1-test.mjs",
     "test:ux": "node scripts/ux-test.mjs",
     "test:timer": "node scripts/timer-test.mjs",

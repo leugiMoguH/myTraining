@@ -7,7 +7,7 @@ function show(msg, kind) {
   const host = document.getElementById('notice');
   if (!host) return;
   host.textContent = msg;
-  host.className = `notice show ${kind === 'error' ? 'err' : 'ok'}`;
+  host.className = `notice show ${kind === 'error' ? 'err' : kind === 'info' ? 'info' : 'ok'}`;
   clearTimeout(hideTimer);
   hideTimer = setTimeout(() => host.classList.remove('show'), kind === 'error' ? 9000 : 3500);
 }

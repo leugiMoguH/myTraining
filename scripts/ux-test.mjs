@@ -1,3 +1,4 @@
+import { dialogResponder, settleDialog } from './_dialogs.mjs';
 /* Teste de UX real (Chromium, toque) — corre com: npm run test:ux
    Não confirma só que os elementos existem: toca neles com o ecrã tátil, verifica que o elemento no ponto do
    toque é mesmo o controlo (não está tapado), que nada se sobrepõe, que não há scroll horizontal, que o contraste
@@ -35,7 +36,7 @@ async function open(w, h, mobile = true) {
   page.setDefaultTimeout(T);
   page.on('console', m => { if (m.type() === 'error') errors.push(`${w}px console: ${m.text()}`); });
   page.on('pageerror', e => errors.push(`${w}px pageerror: ${e.message}`));
-  page.on('dialog', d => d.accept().catch(() => {}));
+  await dialogResponder(page, message => page.__answer ? page.__answer(message) : true, errors);
   await page.goto(URL_, { waitUntil: 'networkidle' });
   return { ctx, page };
 }
@@ -54,6 +55,7 @@ const tap = async (page, sel) => {
   const r = await page.locator(sel).first().boundingBox();
   await page.touchscreen.tap(r.x + r.width / 2, r.y + r.height / 2);
   await page.waitForTimeout(130);
+  await settleDialog(page);
 };
 const holdTouch = async (page, ctx, sel, ms) => {
   const cdp = await ctx.newCDPSession(page);
@@ -328,7 +330,7 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
   const { ctx, page } = await open(412, 915);
   const state = () => page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')));
   const asks = []; let answer = true;
-  page.removeAllListeners('dialog'); page.on('dialog', d => { asks.push(d.message()); (answer || !/terminou hoje/.test(d.message()) ? d.accept() : d.dismiss()).catch(() => {}); });
+  page.__answer = message => { asks.push(message); return answer || !/terminou hoje/.test(message); };
   const toDay = async () => { await tap(page, '.nb[data-day="__hist"]'); await tap(page, '.wk-row[data-day="Segunda"], .wk-chip[data-day="Segunda"]'); };
   await toDay(); await tap(page, '#navMain');
   await page.fill('#wo-w', '20'); await page.fill('#wo-r', '10'); await tap(page, '.wo-main');

@@ -1,3 +1,4 @@
+import { dialogResponder, settleDialog } from './_dialogs.mjs';
 /* Acolhimento + plano + Hoje no app real (Chromium, 412px, toque) — npm run test:onboarding
    Percursos: utilizador NOVO (retoma a meio, confirma, treina) e utilizador EXISTENTE (histórico intacto,
    sem acolhimento imposto, plano novo opcional com cópia e reposição). Falha com qualquer erro de consola. */
@@ -28,7 +29,7 @@ async function newPage(seed) {
   const page = await ctx.newPage();
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', e => errors.push(e.message));
-  page.on('dialog', d => d.accept());
+  await dialogResponder(page, () => true, errors);
   if (seed) await page.addInitScript(s => { try { if (!localStorage.getItem('treino_v2')) localStorage.setItem('treino_v2', JSON.stringify(s)); } catch (_) { /* sem storage */ } }, seed);
   await page.goto(URL_, { waitUntil: 'networkidle' });
   return page;
@@ -36,7 +37,7 @@ async function newPage(seed) {
 const state = page => page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')));
 const shown = (page, sel) => page.locator(sel).isVisible();
 const shot = (page, n) => page.screenshot({ path: join(SHOTS, `onb-${n}.png`) });
-const tap = (page, text) => page.locator('#onbBg').getByRole('button', { name: text }).first().tap();
+const tap = async (page, text) => { await page.locator('#onbBg').getByRole('button', { name: text }).first().tap(); await settleDialog(page); };
 
 /* ═══ 1. UTILIZADOR NOVO ═══════════════════════════════════════════════════ */
 {
@@ -166,7 +167,7 @@ const tap = (page, text) => page.locator('#onbBg').getByRole('button', { name: t
   const snap = await page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2_snap')));
   check(snap && JSON.stringify(snap.state.routine) === routineBefore, 'existente: a cópia anterior ao plano não é a rotina antiga');
   await page.locator('#bnav').getByText('Evolução').tap();
-  await page.getByRole('button', { name: /Repor o estado anterior/ }).tap();
+  await page.getByRole('button', { name: /Repor o estado anterior/ }).tap(); await settleDialog(page);
   await page.waitForTimeout(200);
   st = await state(page);
   check(JSON.stringify(st.routine) === routineBefore && JSON.stringify(st.log) === JSON.stringify(log), 'existente: repor devia devolver a rotina e o histórico');
@@ -191,7 +192,7 @@ for (const w of [320, 360]) {
   const page = await ctx.newPage();
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', e => errors.push(e.message));
-  page.on('dialog', d => d.accept());
+  await dialogResponder(page, () => true, errors);
   await page.goto(URL_, { waitUntil: 'networkidle' });
   const audit = async tag => {
     const r = await page.evaluate(() => ({

@@ -1,3 +1,5 @@
+import { confirmDialog } from './dialog.js';
+import { fieldError } from './inline-error.js';
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { chartSVG } from './charts.js';
 import { calcTargets } from './nutrition.js';
@@ -75,7 +77,7 @@ function profileDataHTML(){
 function saveProfile(){
   const v=id=>{ const el=document.getElementById(id); return el?el.value:''; };
   const height=parseFloat(v('p-height'));
-  if(!(height>0)){ alert('A altura é obrigatória.'); return; }
+  if(!(height>0)){ fieldError('p-height','A altura é obrigatória.'); return; }
   ST.profile={ sex:v('p-sex'), age:parseInt(v('p-age'),10)||0, height, goal:v('p-goal'), activity:v('p-activity') };
   save(); renderProfile();
 }
@@ -106,7 +108,7 @@ function measuresHTML(){
 function saveMeasure(){
   const num=id=>{ const el=document.getElementById(id); const x=el?parseFloat(el.value):NaN; return x>0?x:undefined; };
   const weight=num('m-weight');
-  if(!(weight>0)){ alert('O peso é obrigatório para registar medidas.'); return; }
+  if(!(weight>0)){ fieldError('m-weight','O peso é obrigatório para registar medidas.'); return; }
   const dEl=document.getElementById('m-date');
   let date=(dEl && /^\d{4}-\d{2}-\d{2}$/.test(dEl.value)) ? dEl.value : (MEASURE_EDIT_DATE||todayStr());
   if(date>todayStr()) date=todayStr();
@@ -123,8 +125,11 @@ function saveMeasure(){
 }
 function editMeasure(date){ MEASURE_EDIT_DATE=date; renderProfile(); }
 function cancelMeasureEdit(){ MEASURE_EDIT_DATE=null; renderProfile(); }
-function delMeasure(date){
-  if(!confirm('Apagar este registo de medidas?')) return;
+async function delMeasure(date){
+  const entry=()=>JSON.stringify((ST.measures||[]).find(e=>e.date===date));
+  const before=entry(); if(!before) return;
+  if(!await confirmDialog({title:'Apagar medidas', confirmLabel:'Apagar', message:'Apagar este registo de medidas?', danger:true})) return;
+  if(before!==entry()) return;
   ST.measures=(ST.measures||[]).filter(e=>e.date!==date);
   if(MEASURE_EDIT_DATE===date) MEASURE_EDIT_DATE=null;
   save(); renderProfile();

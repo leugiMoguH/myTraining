@@ -1,3 +1,4 @@
+import { confirmDialog } from './dialog.js';
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { DAYS } from './routine.js';
 import { newPR } from './records.js';
@@ -179,9 +180,13 @@ function dropSessionLoads(sid){
 /* Reset do dia: tira as marcas e, se o treino em curso é DESTE dia, desfaz-o por inteiro (sessão, cargas dessa
    sessão e descanso) — senão ficava uma sessão PAUSED sem séries e o Play só a "retomava". Cargas de outros
    treinos e dias ficam. */
-function resetDay(day) {
-  const live=liveDay()===day;
-  if(!confirm(live?`Resetar progresso de ${day}?\n\nO treino em curso deste dia é desfeito, com as cargas desta sessão. O histórico anterior fica.`:`Resetar progresso de ${day}?`)) return;
+async function resetDay(day) {
+  let live=liveDay()===day;
+  const dayId=DAYS[day]?.id, sid=ST.session?.id;
+  if(!DAYS[day]) return;
+  if(!await confirmDialog({title:'Resetar progresso', confirmLabel:'Resetar', message:live?`Resetar progresso de ${day}?\n\nO treino em curso deste dia é desfeito, com as cargas desta sessão. O histórico anterior fica.`:`Resetar progresso de ${day}?`, danger:true})) return;
+  if(!DAYS[day] || DAYS[day].id!==dayId || ST.session?.id!==sid) return;
+  live=liveDay()===day;
   DAYS[day].ex.forEach((_,i)=>{ delete ST.sets[key(day,i)]; delete ST.done[key(day,i)]; });
   if(live){ dropSessionLoads(ST.session.id); timerDismiss(); }
   dropSessionOf(day);   /* viva ou terminada hoje: com ela a marcar o dia como feito, o Play ficava mudo */

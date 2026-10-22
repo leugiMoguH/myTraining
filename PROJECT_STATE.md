@@ -1,9 +1,8 @@
 Projeto: myTraining — cartão de exercício simplificado (piloto do orquestrador)
 Plano: v1
-Atualizado: 2026-10-21
+Atualizado: 2026-10-22
 Objetivo: Cartão de exercício mais simples, com o registo do treino igualmente rápido, avaliado pelo utilizador
-Próximo passo: o utilizador avalia a versão refinada em http://localhost:8011 (:8010 = antes)
-Decisão necessária: aceitar ou pedir ajustes ao cartão
+Próximo passo: nenhum; piloto encerrado e integrado
 
 ## Sucesso
 - Cartão fechado mostra só o essencial para registar; o resto fica em «Mais»
@@ -23,9 +22,9 @@ Decisão necessária: aceitar ou pedir ajustes ao cartão
 
 ## E3 — Aceitação
 ### T3.1 · peso 2 · Em validação · Avaliação visual pelo utilizador
-- [ ] O utilizador experimenta e confirma cartão mais simples e registo rápido | ev:
-### T3.2 · peso 1 · Por iniciar · Teste de recuperação numa cópia descartável
-- [ ] Interrupção real: trabalho parcial detetado, repetição sem duplicar, projeto principal intacto | ev:
+- [x] O utilizador experimenta e confirma cartão mais simples e registo rápido | ev: aprovação visual e funcional do utilizador (2026-10-22); main 7bb01c1, testes verdes
+### T3.2 · peso 1 · Concluída · Teste de recuperação numa cópia descartável
+- [x] Interrupção real: trabalho parcial detetado, repetição sem duplicar, projeto principal intacto | ev: ai-orchestration/evidence/gym1/AVALIACAO_FINAL.md (processo morto em repo descartável, sem modelo; Codex real não testado)
 
 ## Decisões
 - 2026-10-21 · limite global de 5 chamadas Codex no piloto (plano 1 + implementação 1 + correções ≤2 + 1 reserva operacional) · autorizado pelo utilizador

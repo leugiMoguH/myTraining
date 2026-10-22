@@ -21,7 +21,7 @@ Próximo passo: nenhum; piloto encerrado e integrado
 - [x] Todas as suites verdes e dados intactos, confirmado fora do worktree do Codex | ev: smoke, superset, timer, browser, ux verdes na 2.ª versão; 1.ª versão tinha 3 defeitos (⏱ do cartão com REST_SEC indefinido, já existia antes; Registar a 36 px no estado ✓; teste novo sujava o estado), corrigidos numa ronda
 
 ## E3 — Aceitação
-### T3.1 · peso 2 · Em validação · Avaliação visual pelo utilizador
+### T3.1 · peso 2 · Concluída · Avaliação visual pelo utilizador
 - [x] O utilizador experimenta e confirma cartão mais simples e registo rápido | ev: aprovação visual e funcional do utilizador (2026-10-22); main 7bb01c1, testes verdes
 ### T3.2 · peso 1 · Concluída · Teste de recuperação numa cópia descartável
 - [x] Interrupção real: trabalho parcial detetado, repetição sem duplicar, projeto principal intacto | ev: ai-orchestration/evidence/gym1/AVALIACAO_FINAL.md (processo morto em repo descartável, sem modelo; Codex real não testado)

@@ -64,7 +64,18 @@ const DEMOS={
   "Arnold press":"Arnold_Dumbbell_Press",
   "Tríceps francês":"Standing_Dumbbell_Triceps_Extension",
   "Rosca martelo":"Hammer_Curls",
-  "Rosca polia":"Standing_Biceps_Cable_Curl"
+  "Rosca polia":"Standing_Biceps_Cable_Curl",
+  "Supino na máquina":"Machine_Bench_Press",
+  "Supino com halteres":"Dumbbell_Bench_Press",
+  "Flexões":"Pushups",
+  "Flexões inclinadas":"Incline_Push-Up",
+  "Agachamento corporal":"Bodyweight_Squat",
+  "Passada":"Dumbbell_Lunges",
+  "Ponte de glúteos":"Butt_Lift_Bridge",
+  "Remada sentado":"Seated_Cable_Rows",
+  "Remada invertida":"Inverted_Row",
+  "Superman":"Superman",
+  "Desenvolvimento na máquina":"Machine_Shoulder_Military_Press"
 };
 function demoUrl(dir,n){ return DEMO_BASE+dir+'/'+n+'.jpg'; }
 function demoSlide(dir,name){

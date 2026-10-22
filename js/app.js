@@ -3,6 +3,9 @@
 import './bridge.js';
 import { initNav } from './nav.js';
 import { expireCustom } from './custom.js';
+import { migrate } from './migrate.js';
+import { initNotice } from './notice.js';
+import { maybeOpenOnboarding } from './onboarding.js';
 import { ensureWeek } from './schedule.js';
 import { currentSession, isIdle, isLive } from './session.js';
 import { ST } from './state.js';
@@ -10,6 +13,10 @@ import { REST_SEC, restoreTimer } from './timer.js';
 import { render } from './ui.js';
 import { openWorkout } from './workout.js';
 import { acquireWake, syncWakeUI } from './wake.js';
+
+/* Avisos visíveis primeiro (erros de gravação) e migração protegida por cópia verificada, antes de tudo. */
+initNotice();
+migrate();
 
 /* Reset semanal antes do primeiro render: a semana nova começa limpa. */
 /* Nada aqui fecha ou descarta uma sessão: mudar de semana/dia/plano só a preserva (ver session.js). */
@@ -25,6 +32,7 @@ restoreTimer();
    exercício onde ficou (séries marcadas e descanso já vêm do estado persistido). Sem sinal há muito
    (esquecida), fica numa faixa com opções explícitas: abrir, encerrar ou descartar. */
 initNav();
+maybeOpenOnboarding();   /* só utilizadores novos, e só enquanto não concluírem ou saltarem */
 if(isLive() && !isIdle()){ const s=currentSession(); openWorkout(s.day, s.pos); }
 
 /* ═══════════════ PWA + WAKE INIT ════════════════════ */

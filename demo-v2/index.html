@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>myTraining V2 — Demonstração</title>
+<style>
+:root{--bg:#0a0a0f;--surface:#111118;--card:#16161f;--card2:#1c1c28;--border:rgba(255,255,255,.07);--accent:#ef4444;--accent2:#f97316;--green:#22c55e;--blue:#3b82f6;--text:#f1f5f9;--muted:rgba(241,245,249,.66)}
+*{box-sizing:border-box;margin:0}
+body{background:#000;color:var(--text);font:16px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;display:flex;justify-content:center}
+#app{width:100%;max-width:440px;min-height:100vh;background:var(--bg);position:relative;padding:0 16px 96px}
+.sim{position:sticky;top:0;z-index:5;margin:0 -16px 12px;padding:6px 16px;background:#3b2a05;color:#fbbf24;font-size:12px;display:flex;justify-content:space-between;gap:8px}
+.sim button{background:none;border:0;color:#fbbf24;text-decoration:underline;font:inherit;cursor:pointer}
+h1{font-size:26px;margin:18px 0 6px}h2{font-size:18px;margin:20px 0 8px}
+p,.m{color:var(--muted);font-size:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin:10px 0}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border:0;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font:700 16px inherit;cursor:pointer;margin:10px 0}
+.btn.sec{background:var(--card2);color:var(--text);font-weight:600}
+.btn.ghost{background:none;color:var(--muted);min-height:44px;font-weight:500}
+.opt{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:10px 14px;margin:8px 0;background:var(--card);border:2px solid var(--border);border-radius:14px;color:var(--text);font:inherit;text-align:left;cursor:pointer}
+.opt.on{border-color:var(--accent);background:rgba(239,68,68,.1)}
+.opt .e{font-size:22px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.chip{min-height:44px;padding:0 16px;border-radius:22px;background:var(--card);border:2px solid var(--border);color:var(--text);font:inherit;cursor:pointer}
+.chip.on{border-color:var(--accent);background:rgba(239,68,68,.1)}
+.prog{height:6px;background:var(--card2);border-radius:3px;margin:14px 0}.prog i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.row{display:flex;align-items:center;gap:10px}.grow{flex:1;min-width:0}
+.tag{font-size:12px;padding:3px 8px;border-radius:10px;background:var(--card2);color:var(--muted)}
+.tag.g{background:rgba(34,197,94,.15);color:var(--green)}.tag.b{background:rgba(59,130,246,.15);color:#93c5fd}.tag.o{background:rgba(249,115,22,.15);color:var(--accent2)}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:8px 0}
+.day{text-align:center;padding:8px 0;border-radius:10px;background:var(--card);font-size:12px;color:var(--muted)}
+.day b{display:block;font-size:18px;color:var(--text)}.day.now{outline:2px solid var(--accent)}.day.done b{color:var(--green)}
+.day small{display:block;font-size:11px;min-height:14px}
+nav{position:fixed;bottom:0;width:100%;max-width:440px;display:flex;background:var(--surface);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;min-height:58px;background:none;border:0;color:var(--muted);font:11px inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+nav button span{font-size:20px}nav button.on{color:var(--text)}nav button.on span{filter:none}
+.big{font-size:32px;font-weight:800}
+.bar{height:8px;background:var(--card2);border-radius:4px;overflow:hidden;margin:6px 0}.bar i{display:block;height:100%;border-radius:4px}
+.sets{display:flex;gap:8px;margin:10px 0}.set{flex:1;min-height:48px;border-radius:12px;border:2px solid var(--border);background:var(--card2);color:var(--text);font:600 15px inherit;cursor:pointer}.set.on{background:var(--green);border-color:var(--green);color:#052e16}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet>div{width:100%;max-width:440px;background:var(--surface);border-radius:20px 20px 0 0;padding:18px 16px 28px}
+.badge{display:flex;flex-direction:column;align-items:center;text-align:center;padding:12px 6px;border-radius:14px;background:var(--card);font-size:12px;color:var(--muted)}.badge b{font-size:28px}.badge.lock{opacity:.4;filter:grayscale(1)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+svg{display:block;width:100%}
+input[type=text]{width:100%;min-height:48px;border-radius:12px;border:2px solid var(--border);background:var(--card);color:var(--text);font:inherit;padding:0 14px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* Demonstração V2 — SIMULAÇÃO. Dados fictícios, nada é guardado nem enviado. */
+const S={screen:'welcome',step:0,tab:'hoje',a:{goal:'forca',days:3,mins:45,exp:'inicio',place:'gym',pref:'maq',class:true,name:''},sets:[0,0,0],swapOpen:false,swapped:false,short:false,planOk:false};
+const $=s=>document.getElementById(s);
+const go=(k,v)=>{Object.assign(S,k);render()};
+const set=(k,v)=>{S.a[k]=v;render()};
+const opt=(k,v,e,t,sub)=>`<button class="opt ${S.a[k]===v?'on':''}" onclick="set('${k}','${v}')"><span class="e">${e}</span><span class="grow"><b>${t}</b>${sub?`<div class="m">${sub}</div>`:''}</span></button>`;
+const chip=(k,v,t)=>`<button class="chip ${S.a[k]===v?'on':''}" onclick="set('${k}',${typeof v==='number'?v:`'${v}'`})">${t}</button>`;
+
+const STEPS=[
+ ()=>`<h1>O que queres alcançar?</h1><p>Escolhe o que mais se aproxima. Podes mudar quando quiseres.</p>
+  ${opt('goal','forma','💪','Melhorar a condição física')}${opt('goal','forca','🏋️','Ganhar força ou massa muscular')}${opt('goal','gordura','🔥','Reduzir gordura corporal')}${opt('goal','saude','🧘','Saúde e mobilidade')}${opt('goal','rotina','📅','Criar uma rotina')}`,
+ ()=>`<h1>Quando consegues treinar?</h1><p>Sê realista: é melhor 2 dias que cumpres do que 5 que falhas.</p>
+  <h2>Dias por semana</h2><div class="chips">${[2,3,4].map(n=>chip('days',n,n+' dias')).join('')}</div>
+  <h2>Tempo por sessão</h2><div class="chips">${[30,45,60].map(n=>chip('mins',n,n+' min')).join('')}</div>`,
+ ()=>`<h1>Como treinas?</h1>
+  <h2>Experiência</h2><div class="chips">${chip('exp','inicio','A começar')}${chip('exp','regresso','A regressar')}${chip('exp','regular','Já treino')}</div>
+  <h2>Onde</h2><div class="chips">${chip('place','gym','Ginásio')}${chip('place','casa','Em casa')}${chip('place','ambos','Ambos')}</div>
+  <h2>Preferes</h2><div class="chips">${chip('pref','maq','Máquinas')}${chip('pref','livres','Pesos livres')}${chip('pref','corpo','Peso corporal')}</div>
+  <p style="margin-top:14px">Algum movimento a evitar? <button class="chip" style="min-height:36px">Opcional · saltar</button></p>`,
+ ()=>`<h1>Fazes aulas de grupo?</h1><p>Contamos com elas no plano para não te sobrecarregar.</p>
+  ${opt('class',true,'🚴','Sim — cycling às terças, 18:30','Exemplo: podes indicar modalidade, dia, hora e duração')}${opt('class',false,'🙅','Não, só treino de força')}`,
+ ()=>`<h1>Como te chamamos?</h1><p>Só isto. Peso e medidas pedimos mais tarde, e só se quiseres a parte de alimentação.</p>
+  <input type="text" placeholder="Nome (opcional)" value="${S.a.name}" oninput="S.a.name=this.value">
+  <div class="card m">🔒 Tudo fica no teu telemóvel até criares conta. Podes exportar ou apagar a qualquer momento.</div>`
+];
+
+function onboarding(){
+  const last=S.step===STEPS.length-1;
+  return `<div class="prog"><i style="width:${(S.step+1)/(STEPS.length+1)*100}%"></i></div>${STEPS[S.step]()}
+  <button class="btn" onclick="${last?`go({screen:'plan'})`:`go({step:S.step+1})`}">${last?'Ver a minha proposta':'Continuar'}</button>
+  ${S.step>0?`<button class="btn ghost" onclick="go({step:S.step-1})">Voltar</button>`:''}`;
+}
+
+function planRows(){
+  const d=S.a.days, cls=S.a.class;
+  const names=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  const plan={2:{0:'A',3:'B'},3:{0:'A',2:'B',4:'C'},4:{0:'A',1:'B',3:'C',4:'D'}}[d];
+  const cyc=cls?1:-1; // terça
+  const rows=names.map((n,i)=>{
+    if(i===cyc) return {n,t:'🚴 Aula',s:'Cycling 18:30',c:'b'};
+    return plan[i]?{n,t:plan[i],s:'Treino '+plan[i],c:'o'}:{n,t:'·',s:'',c:''};
+  });
+  return rows;
+}
+const WNAME={A:'Corpo inteiro A',B:'Corpo inteiro B',C:'Corpo inteiro C',D:'Corpo inteiro D'};
+function plan(){
+  const rows=planRows(), a=S.a;
+  const why=`Com ${a.days} dias e ${a.mins} min, o corpo inteiro em cada treino dá mais prática por movimento a quem está a começar. ${a.class?'O cycling de terça já conta como esforço de pernas, por isso o treino de quarta poupa as pernas e o de sexta volta a trabalhá-las.':''}`;
+  return `<h1>${a.name?a.name+', e':'E'}sta é a tua semana</h1><p>Proposta inicial. Não está fechada.</p>
+  <div class="week">${rows.map(r=>`<div class="day"><small>${r.n}</small><b>${r.t.length<3?r.t:r.t.split(' ')[0]}</b><small>${r.s?'':'descanso'}</small></div>`).join('')}</div>
+  <div class="card"><b>Porquê assim?</b><p style="margin-top:6px">${why}</p></div>
+  ${['A','B','C','D'].slice(0,a.days).map(k=>`<div class="card row"><span class="tag o">${k}</span><div class="grow"><b>${WNAME[k]}</b><div class="m">~${a.mins} min · 6 exercícios · ${a.pref==='maq'?'máquinas':a.pref==='livres'?'pesos livres':'peso corporal'}</div></div></div>`).join('')}
+  <button class="btn" onclick="go({screen:'app',tab:'hoje',planOk:true})">Confirmar e começar</button>
+  <button class="btn sec" onclick="go({screen:'onb',step:1})">Ajustar</button>`;
+}
+
+const EX=[
+ {n:'Leg press',s:3,r:'10-12',kg:60,last:'Última vez: 55 kg × 12',alt:'Agachamento no Smith',why:'mesmo movimento (empurrar com as pernas), mesmos músculos'},
+ {n:'Remada na máquina',s:3,r:'10-12',kg:35,last:'Última vez: 35 kg × 10 · hoje tenta 11',alt:'Remada com haltere',why:'puxar na horizontal, dorsais e bíceps'},
+ {n:'Supino na máquina',s:3,r:'10-12',kg:25,last:'Primeira vez',alt:'Flexões inclinadas',why:'empurrar na horizontal, peito e tríceps'}
+];
+
+function hoje(){
+  const a=S.a;
+  return `<h1>Boa tarde${a.name?', '+a.name:''} 👋</h1>
+  <div class="week">${['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map((n,i)=>{const r=planRows()[i];return `<div class="day ${i===2?'now':''} ${i===0?'done':''}"><small>${n}</small><b>${i===0?'✓':r.t.length<3?r.t:'🚴'}</b><small>${r.s?'':'—'}</small></div>`}).join('')}</div>
+  <div class="card" style="border-color:rgba(239,68,68,.4)">
+    <span class="tag o">Hoje · quarta</span>
+    <div class="big" style="font-size:24px;margin-top:8px">${WNAME.B}</div>
+    <p>~${S.short?18:a.mins} min · ${S.short?3:6} exercícios${S.short?' · versão rápida':''}</p>
+    <p style="margin-top:8px">💡 Na segunda subiste 5 kg no leg press. Hoje mantém e foca a técnica.</p>
+    <button class="btn" onclick="go({tab:'treino'})">Começar treino</button>
+    <div class="row"><button class="btn sec" style="min-height:44px" onclick="go({short:!S.short})">${S.short?'Voltar ao treino completo':'⏱ Hoje tenho pouco tempo'}</button></div>
+  </div>
+  <div class="card row"><span style="font-size:26px">🌱</span><div class="grow"><b>Semana 2 ativa</b><div class="m">1 de 3 treinos feitos. Sem pressa: há tempo até domingo.</div></div></div>
+  <div class="card row"><span style="font-size:26px">🥗</span><div class="grow"><b>Alimentação</b><div class="m">Proteína de ontem: 82 g de ~110 g</div></div></div>`;
+}
+
+function treino(){
+  const ex=(S.swapped?[{...EX[0],n:'Agachamento no Smith',last:'Primeira vez neste exercício (histórico do leg press mantém-se)'}, ...EX.slice(1)]:EX).slice(0,S.short?3:3);
+  return `<div class="row"><button class="btn ghost" style="width:auto" onclick="go({tab:'hoje'})">‹ Sair</button><div class="grow"></div><span class="tag">⏱ 12:40</span></div>
+  <h1 style="margin-top:0">${WNAME.B}</h1>
+  ${ex.map((e,i)=>`<div class="card"><div class="row"><div class="grow"><b>${e.n}</b><div class="m">${e.s} séries · ${e.r} reps · ${e.kg} kg</div></div><span class="tag b">▶ demo</span></div>
+   <p style="margin-top:4px">${e.last}</p>
+   <div class="sets">${[0,1,2].map(j=>`<button class="set ${S.sets[i]>j?'on':''}" onclick="S.sets[${i}]=S.sets[${i}]===${j+1}?${j}:${j+1};render()">${S.sets[i]>j?'✓':j+1}</button>`).join('')}</div>
+   ${i===0?`<button class="btn sec" style="min-height:44px" onclick="go({swapOpen:true})">🔄 Máquina ocupada — trocar</button>`:''}</div>`).join('')}
+  <button class="btn" onclick="go({tab:'evol'})">Terminar treino</button>
+  ${S.swapOpen?`<div class="sheet" onclick="go({swapOpen:false})"><div onclick="event.stopPropagation()"><h2 style="margin-top:0">Em vez do ${EX[0].n}</h2>
+   <div class="card" style="border-color:var(--green)"><b>${EX[0].alt}</b><p>Porquê: ${EX[0].why}.</p><span class="tag g">Equivalente · Máquina livre</span></div>
+   <button class="btn" onclick="go({swapped:true,swapOpen:false})">Usar este</button>
+   <button class="btn sec" onclick="go({swapOpen:false})">Ver outra alternativa</button>
+   <p class="m">O histórico do ${EX[0].n} não se perde.</p></div></div>`:''}`;
+}
+
+function evol(){
+  const pts=[40,45,45,50,55,55,60], w=300,h=110;
+  const xs=pts.map((p,i)=>[10+i*(w-20)/6,h-10-(p-35)/(65-35)*(h-20)]);
+  return `<h1>Evolução</h1>
+  <div class="card"><b>Leg press</b> <span class="tag g">novo recorde 60 kg</span>
+   <svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Carga no leg press a subir de 40 para 60 kg em 7 treinos"><polyline fill="none" stroke="#22c55e" stroke-width="3" points="${xs.map(p=>p.join(',')).join(' ')}"/>${xs.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#22c55e"/>`).join('')}</svg>
+   <div class="m">+20 kg em 7 treinos</div></div>
+  <h2>Conquistas</h2><div class="grid3">
+   <div class="badge"><b>🎯</b>Primeiro treino</div><div class="badge"><b>🌱</b>Primeira semana</div><div class="badge"><b>🏆</b>Novo recorde</div>
+   <div class="badge"><b>📈</b>Subiste de carga</div><div class="badge lock"><b>🔁</b>4 semanas seguidas</div><div class="badge lock"><b>🌅</b>Regresso após pausa</div></div>
+  <div class="card m" style="margin-top:14px">Sem rankings nem sequências que se perdem. Se falhares uma semana, a app propõe uma retoma suave.</div>`;
+}
+
+function nutri(){
+  const m=[['Proteína',82,110,'var(--green)'],['Hidratos',190,250,'var(--blue)'],['Gordura',55,70,'var(--accent2)']];
+  return `<h1>Alimentação</h1>
+  <div class="card"><b>Estimativa para ti</b><div class="big">≈ 2 300 <span class="m">kcal/dia</span></div>
+   <p>Método: Mifflin-St Jeor × atividade ligeira–moderada. É uma estimativa, não uma prescrição. <u>Ver pressupostos</u></p></div>
+  <div class="card">${m.map(x=>`<div class="row"><b class="grow">${x[0]}</b><span class="m">${x[1]} / ${x[2]} g</span></div><div class="bar"><i style="width:${x[1]/x[2]*100}%;background:${x[3]}"></i></div>`).join('')}
+   <p>Resumo opcional. Não precisas de registar tudo.</p></div>
+  <h2>Ideias para o jantar</h2>
+  <div class="card row"><span style="font-size:26px">🐟</span><div class="grow"><b>Pescada com batata e brócolos</b><div class="m">~35 g proteína · alternativa: frango grelhado</div></div></div>
+  <div class="card row"><span style="font-size:26px">🥣</span><div class="grow"><b>Arroz de feijão com ovo</b><div class="m">~28 g proteína · vegetariano</div></div></div>
+  <div class="card m">⚠️ Simulação: valores ilustrativos. Na versão real virão da tabela PortFIR (INSA), com a fonte indicada. Gravidez, menores, doença ou perturbações alimentares: sem estimativas, indicamos procurar um profissional.</div>`;
+}
+
+function perfil(){
+  return `<h1>Perfil</h1>
+  ${[['🎯','Objetivo','Força / massa muscular'],['📅','Calendário','3 treinos + cycling terça'],['🏠','Onde treino','Ginásio'],['🔔','Lembretes','Desligados (a pedido teu)'],['☁️','Conta e cópia','Só neste telemóvel · Criar conta'],['⬇️','Exportar / apagar os meus dados','']].map(r=>`<div class="card row"><span style="font-size:22px">${r[0]}</span><div class="grow"><b>${r[1]}</b><div class="m">${r[2]}</div></div><span class="m">›</span></div>`).join('')}
+  <button class="btn ghost" onclick="go({screen:'welcome',step:0,tab:'hoje'})">↺ Reiniciar demonstração</button>`;
+}
+
+const TABS=[['hoje','🏠','Hoje'],['plano','📅','Plano'],['treino','▶️','Treino'],['evol','📈','Evolução'],['nutri','🥗','Comer'],['perfil','👤','Perfil']];
+function planoTab(){
+  const rows=planRows();
+  return `<h1>Plano</h1><p>Semana atual · editável</p>${rows.map((r,i)=>`<div class="card row"><b style="width:36px">${r.n}</b><div class="grow">${r.s?`<b>${r.t.length<3?WNAME[r.t]:r.s}</b>`:'<span class="m">Descanso</span>'}</div>${r.c?`<span class="tag ${r.c==='b'?'b':'o'}">${r.c==='b'?'aula':'força'}</span>`:''}</div>`).join('')}
+  <div class="card m">Faltaste na segunda? Aparece aqui: «Mover para sábado?» — tu decides.</div>
+  <button class="btn sec">＋ Adicionar aula</button>`;
+}
+function render(){
+  const app=$('app'); let h=`<div class="sim"><span>⚠ SIMULAÇÃO · dados fictícios · nada é guardado</span><button onclick="go({screen:'welcome',step:0,tab:'hoje',sets:[0,0,0],swapped:false,short:false})">reiniciar</button></div>`;
+  if(S.screen==='welcome') h+=`<div style="text-align:center;padding-top:60px"><div style="font-size:64px">🏋️</div><h1>myTraining</h1><p>O teu companheiro de treino.<br>Diz-nos 4 coisas e montamos a tua semana.</p><button class="btn" onclick="go({screen:'onb',step:0})">Começar</button><button class="btn ghost" onclick="go({screen:'app',tab:'hoje'})">Já tenho conta / dados</button></div>`;
+  else if(S.screen==='onb') h+=onboarding();
+  else if(S.screen==='plan') h+=plan();
+  else{ h+={hoje,plano:planoTab,treino,evol,nutri,perfil}[S.tab](); }
+  app.innerHTML=h;
+  if(S.screen==='app') app.insertAdjacentHTML('beforeend',`<nav>${TABS.filter(t=>t[0]!=='treino').map(t=>`<button class="${S.tab===t[0]?'on':''}" onclick="go({tab:'${t[0]}'})"><span>${t[1]}</span>${t[2]}</button>`).join('')}</nav>`);
+  window.scrollTo(0,0);
+}
+render();
+</script>
+</body>
+</html>

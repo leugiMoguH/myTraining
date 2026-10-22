@@ -3,6 +3,7 @@
    toque é mesmo o controlo (não está tapado), que nada se sobrepõe, que não há scroll horizontal, que o contraste
    cumpre WCAG AA e que cada toque provoca exatamente uma transição. Capturas em test-results/ux-*.png. */
 import { chromium } from 'playwright';
+import { skipOnboarding } from './_skip-onb.mjs';
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { extname, join } from 'node:path';
@@ -30,6 +31,7 @@ const errors = [];
 async function open(w, h, mobile = true) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, screen: { width: w, height: h }, hasTouch: mobile, isMobile: mobile });
   const page = await ctx.newPage();
+  await skipOnboarding(page);
   page.setDefaultTimeout(T);
   page.on('console', m => { if (m.type() === 'error') errors.push(`${w}px console: ${m.text()}`); });
   page.on('pageerror', e => errors.push(`${w}px pageerror: ${e.message}`));

@@ -28,7 +28,14 @@ if(!ST.profile.height && ST.nutri && ST.nutri.profile && ST.nutri.profile.height
    troca o objeto inteiro por aqui; os importadores veem o novo valor (live binding). */
 function setST(next) { ST = next; }
 
-function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(ST)); } catch(_){} }
+/* Devolve false se não gravou (quota cheia, armazenamento bloqueado) e avisa o utilizador: nunca em silêncio. */
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(ST)); return true; }
+  catch(_){
+    try{ document.dispatchEvent(new CustomEvent('app-notice',{detail:{msg:'Não foi possível guardar as alterações neste dispositivo. Exporta uma cópia em Opções para não perderes dados.',kind:'error',once:'save'}})); }catch(__){}
+    return false;
+  }
+}
 function key(day,i) { return `${day}:${i}`; }
 function getSets(day,i) { return ST.sets[key(day,i)] || []; }
 

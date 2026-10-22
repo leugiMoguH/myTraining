@@ -8,6 +8,7 @@ import { openInfo } from './guide.js';
 import { saveLoad, toggleChart } from './loads.js';
 import { DEMOS, demoSlide, mediaSlide } from './media.js';
 import { renderNutri } from './nutrition.js';
+import { estimateMin, getPrefs } from './plan.js';
 import { renderProfile } from './profile.js';
 import { slInit, slNext, slPrev, slTo } from './sliders.js';
 import { agenda, completeDay, dayStatus, reopenDay, swapOriginal } from './schedule.js';
@@ -189,7 +190,6 @@ function bannerHTML(a) {
 
 /* Nada para treinar hoje: ou é dia de descanso, ou a semana já está fechada. */
 function restCardHTML(a) {
-  const next = a.current;
   return `
     <div class="rest-card">
       <div class="rest-emoji">${a.allDone?'🎉':'😴'}</div>
@@ -197,8 +197,23 @@ function restCardHTML(a) {
       <div class="rest-sub">${a.allDone
         ? 'Todos os treinos do plano estão feitos. O progresso faz reset na Segunda.'
         : 'Recupera. Dormir e comer é onde o músculo cresce.'}</div>
-      ${next?`<button class="start-wo" onclick="goDay('${next}')">▶ Treinar na mesma: ${next}</button>`:''}
     </div>`;
+}
+
+/* Cartão "Hoje": o próximo treino, quanto demora, porquê este plano, e o botão que inicia o treino real. */
+function heroHTML(a) {
+  const d = DAYS[a.current];
+  if (!d || !d.ex.length) return '';
+  const h = new Date().getHours(), p = getPrefs();
+  const hi = `${h < 6 || h >= 20 ? 'Boa noite' : h < 13 ? 'Bom dia' : 'Boa tarde'}${p && p.name ? `, ${esc(p.name)}` : ''}`;
+  const kicker = a.late ? `Em atraso · ${a.current}` : a.current === a.today ? `Hoje · ${a.current}` : `Próximo treino · ${a.current}`;
+  const mins = estimateMin(a.current);
+  const live = liveDay() === a.current;
+  const why = ST.plan && ST.plan.why ? `<details><summary>Porquê este plano?</summary><p>${esc(ST.plan.why)}</p></details>` : '';
+  return `<div class="hero"><div class="hero-t" style="font-size:15px;font-weight:600;color:var(--muted)">${hi} 👋</div>
+    <div class="hero-k">${esc(kicker)}</div><div class="hero-t">${esc(d.label)}</div>
+    <div class="hero-s">${mins ? `~${mins} min · ` : ''}${d.ex.length} exercícios</div>
+    <button class="start-wo" onclick="heroStart('${a.current}')">${live ? '▶ Continuar treino' : '▶ Começar treino'}</button>${why}</div>`;
 }
 
 function renderToday(content) {
@@ -214,7 +229,7 @@ function renderToday(content) {
   if (a.allDone || (a.restToday && !a.late)) {
     const box = document.createElement('div');
     box.className = 'full';
-    box.innerHTML = restCardHTML(a) + customEntryHTML();
+    box.innerHTML = restCardHTML(a) + (a.current ? heroHTML(a) : '') + customEntryHTML();
     content.appendChild(box);
     document.getElementById('hdrSub').textContent = a.allDone ? 'Semana concluída' : 'Descanso';
     document.getElementById('progFill').style.width = a.allDone ? '100%' : '0';
@@ -226,7 +241,7 @@ function renderToday(content) {
 
   const note = document.createElement('div');
   note.className = 'full';
-  note.innerHTML = bannerHTML(a) + customEntryHTML();
+  note.innerHTML = heroHTML(a) + bannerHTML(a) + customEntryHTML();
   content.appendChild(note);
   renderDay(content, a.current, false);
 }
@@ -234,7 +249,7 @@ function renderToday(content) {
 /* Vista da semana: uma linha por dia, para editar ou saltar para qualquer um. */
 function renderWeek(content) {
   const a = agenda();
-  const LBL = { done:'Feito', swapped:'Substituído', partial:'A meio', todo:'Por fazer', rest:'Descanso' };
+  const LBL = { done:'Feito', swapped:'Substituído', partial:'A meio', todo:'Por fazer', rest:'Descanso', skipped:'Antes do plano' };
   content.innerHTML = `<div class="full">
     ${weekStripHTML(a)}
     <div class="week-list">${a.days.map(d=>{
@@ -299,7 +314,7 @@ function renderDay(content, day, standalone = true) {
     <div class="day-hdr-btns">
       ${editing
         ? `<button class="start-wo" onclick="toggleEdit('${day}')">✓ Pronto</button>`
-        : `<button class="start-wo" onclick="startWorkout('${day}')">${liveDay()===day?'▶ Continuar':'▶ Iniciar'}</button>
+        : `${standalone ? `<button class="start-wo" onclick="startWorkout('${day}')">${liveDay()===day?'▶ Continuar':'▶ Iniciar'}</button>` : ''}
            <button class="reset-btn" onclick="toggleEdit('${day}')">✎ Editar</button>
            <button class="reset-btn" onclick="resetDay('${day}')">↺ Reset</button>`}
     </div>

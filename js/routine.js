@@ -8,6 +8,7 @@
    a ordem de um exercício sem reindexar mudava o progresso de sítio — todas as
    alterações passam por setDayExercises(), que trata disso. */
 import { DEFAULT_DAYS } from './data.js';
+import { uid } from './ids.js';
 import { ST, key, save } from './state.js';
 
 /* Clone profundo simples: só há objetos, arrays, strings e números aqui. */
@@ -61,7 +62,7 @@ function setDayExercises(day, exercises, indexMap) {
   const d = getDay(day);
   if (!d) return false;
   const last = exercises.length - 1;   /* superset sem "seguinte" não existe: não pode herdar o próximo que vier */
-  exercises = exercises.map((e, k) => (k === last && e.ss ? { ...e, ss: false } : e));
+  exercises = exercises.map((e, k) => (k === last && e.ss ? { ...e, ss: false } : e)).map(e => (e.id ? e : { ...e, id: uid() }));
 
   const sets = { ...ST.sets };
   const done = { ...ST.done };

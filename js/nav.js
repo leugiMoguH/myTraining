@@ -45,6 +45,13 @@ function openLive() {
   openWorkout(s.day, s.pos);
 }
 
+/* Botão do cartão "Hoje": inicia (ou retoma) o treino real deste dia, com as mesmas regras do botão central. */
+function heroStart(day) {
+  if (isLive()) { const s = currentSession(); if (s.day === day) openLive(); else startWorkout(day); return; }
+  if (finishedToday(day) && !confirm(`O treino de ${day} já terminou hoje. Iniciar outro?`)) return;
+  startWorkout(day);
+}
+
 function navMain() {
   const st = sessionState();
   if (st === ACTIVE) { pauseSession(); return; }
@@ -191,4 +198,4 @@ function initNav() {
   if (window.visualViewport) window.visualViewport.addEventListener('resize', updateKb);
 }
 
-export { selectedDay, navMain, navOpts, mainFace, buildNav, syncNav, initNav, openLive };
+export { selectedDay, navMain, heroStart, navOpts, mainFace, buildNav, syncNav, initNav, openLive };

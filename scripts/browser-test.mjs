@@ -1,6 +1,7 @@
 /* Teste real no browser (Chromium headless) — corre com: npm run test:browser
    Serve o site, abre-o, clica em tudo e falha se o Console tiver um único erro. */
 import { chromium } from 'playwright';
+import { skipOnboarding } from './_skip-onb.mjs';
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { extname, join } from 'node:path';
@@ -25,6 +26,7 @@ await new Promise(r => server.listen(PORT, r));
 mkdirSync(SHOTS, { recursive: true });
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 412, height: 915 }, screen: { width: 412, height: 915 } });
+await skipOnboarding(page);
 
 page.setDefaultTimeout(T + 4000);
 /* confirm()/alert(): um só ouvinte, resposta pedida pelo teste (true = aceitar, false = recusar; sem pedido = recusar) */

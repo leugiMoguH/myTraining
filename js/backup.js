@@ -1,5 +1,6 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { DEFAULT_DAYS } from './data.js';
+import { migrate, snapshot } from './migrate.js';
 import { DAYS } from './routine.js';
 import { syncNotifUI } from './notify.js';
 import { bodyFat } from './profile.js';
@@ -34,6 +35,8 @@ function importBackup(e){
       if(!isObj(incoming) || !isObj(incoming.sets) || !isObj(incoming.done))
         throw new Error('estrutura inválida');
       if(!confirm('Importar substitui o progresso atual. Continuar?')){ e.target.value=''; return; }
+      const snap=snapshot('antes de importar');
+      if(!snap.ok){ alert('Não foi possível guardar uma cópia do estado atual antes de importar: '+snap.error+'\nNada foi alterado.'); return; }
       setST({ day:'Segunda', sets:{}, done:{}, log:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], media:{}, routine:null, ...incoming });
       if(!ST.log || typeof ST.log!=='object') ST.log={};
       if(!ST.nutri || typeof ST.nutri!=='object') ST.nutri={profile:null};
@@ -48,6 +51,7 @@ function importBackup(e){
       if(ST.day!=='__nutri' && ST.day!=='__perfil' && !DAYS[ST.day]) ST.day='Segunda';
       if(p && typeof p.rest_sec==='number') setRest(p.rest_sec);
       save();
+      migrate();   /* ids, onb e meta também para backups antigos */
       closeSheet();
       render(ST.day);
       document.getElementById('restLabel').textContent=REST_SEC+'s';

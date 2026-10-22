@@ -1,5 +1,6 @@
 /* Descanso expirado (Chromium) — npm run test:timer */
 import { chromium } from 'playwright';
+import { skipOnboarding } from './_skip-onb.mjs';
 import { createServer } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { extname, join } from 'node:path';
@@ -18,6 +19,7 @@ const fail = [], errors = [];
 const check = (c, m) => { if (!c) fail.push(m); };
 const browser = await chromium.launch();
 const page = await (await browser.newContext({ viewport: { width: 412, height: 800 } })).newPage();
+await skipOnboarding(page);
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', e => errors.push(e.message));
 await page.goto(`http://localhost:${PORT}/index.html`, { waitUntil: 'networkidle' });

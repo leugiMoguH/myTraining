@@ -164,6 +164,8 @@ function thumbOf(ex){
   return src?`<img class="wo-thumb" src="${src}" alt="" onerror="this.style.display='none'">`:'';
 }
 
+/* sem histórico, as reps já vêm pré-preenchidas com o início da gama prescrita ("8-10" → 8); só gamas numéricas */
+const repsStart=r=>/^\d+(-\d+)?$/.test(String(r||''))?parseInt(r,10):'';
 let drawn=-1;   /* exercício desenhado por último */
 /* keep: repintar sem perder o que o utilizador escreveu em kg/reps, o foco nem a posição do scroll (pausa, regresso à app) */
 function woRender(keep){
@@ -207,7 +209,7 @@ function woRender(keep){
       <button class="wo-end" onclick="woFinish()">Terminar treino</button>
     </div>
     <div class="wo-dock">
-      ${totalSets?`<div class="wo-load">${field('wo-w',draft?draft.w:(last?last.w:''),'kg','kg','w','peso')}${field('wo-r',draft?draft.r:(last?last.r:''),'reps','reps','r','repetições')}</div>`:''}
+      ${totalSets?`<div class="wo-load">${field('wo-w',draft?draft.w:(last?last.w:''),'kg','kg','w','peso')}${field('wo-r',draft?draft.r:(last?last.r:repsStart(ex.r)),'reps','reps','r','repetições')}</div>`:''}
       ${main}
       <div class="wo-links">${links}</div>
     </div>`;

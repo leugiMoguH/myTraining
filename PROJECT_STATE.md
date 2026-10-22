@@ -2,7 +2,7 @@ Projeto: myTraining — cartão de exercício simplificado (piloto do orquestrad
 Plano: v1
 Atualizado: 2026-10-22
 Objetivo: Cartão de exercício mais simples, com o registo do treino igualmente rápido, avaliado pelo utilizador
-Próximo passo: nenhum; piloto encerrado e integrado
+Próximo passo: validação do proprietário da fatia 1 da V2 (acolhimento + plano + Hoje), em local, sem commit; depois aulas/troca por equivalência
 
 ## Sucesso
 - Cartão fechado mostra só o essencial para registar; o resto fica em «Mais»
@@ -33,6 +33,12 @@ Próximo passo: nenhum; piloto encerrado e integrado
 - 2026-10-21 · .agents/ e .claude/skills/ (graphify) e todolist_tommorow.md ficam fora de commits
 
 - 2026-10-22 · refinamento visual (Mais/Menos com ícone, hierarquia, espaçamentos) feito diretamente pelo CLAUDE no worktree, 0 chamadas Codex (3 de 5 usadas, 2 de reserva para a falha parcial) · pedido do utilizador; patch separado em ai-orchestration/orch/logs/impl/GYM1/claude_visual_r3.patch; testes smoke/superset/timer/browser/ux verdes
+
+- 2026-10-22 · V2 Fase 0 feita: auditoria, docs/V2_PROPOSTA.md, demo-v2/index.html (simulação), 1 chamada Codex só leitura · aguarda validação do proprietário; nada em produção
+
+- 2026-10-22 · avaliação Neon vs Supabase em docs/V2_ARQUITETURA_NEON_SUPABASE.md; recomendação Supabase (UE), Neon plano B; 1 chamada Codex só leitura; sem contas criadas; Fase 1 independente do fornecedor · aguarda decisão
+
+- 2026-10-22 · V2 fatia 1 implementada localmente (planner, plan, migrate, onboarding, notice; Hoje com cartão); 8 suites verdes; Codex 1 revisão só leitura (9 achados, 8 corrigidos, 1 teste fraco reforçado); implementação feita pelo Claude antes de a regra Codex-implementa existir em ~/.claude/CLAUDE.md · sem commit/push/deploy
 
 ## Estacionadas
 - Exportação Strava (dúvida sobre ficheiros na app Android)

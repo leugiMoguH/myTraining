@@ -14,6 +14,7 @@
      done:  { 'Segunda': '2026-09-08' },   treinos dados por concluídos
      swaps: { 'Segunda:2': {…} },    exercício original de uma troca "só esta semana"
      replaced: { 'Terça': '2026-09-09' },   dias substituídos por um treino personalizado
+     skip:  { 'Segunda': '2026-09-09' },   dias da semana anteriores à criação do plano (não contam como atraso)
    } */
 import { CUSTOM_DAY, dayNames, getDay, exercisesOf, routine } from './routine.js';
 import { liveDay, onSessionEnd } from './session.js';
@@ -23,7 +24,7 @@ import { ST, clearDayMarks, key, save, todayStr, getProgress } from './state.js'
 const WEEKDAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const SHORT = { Segunda: 'Seg', Terça: 'Ter', Quarta: 'Qua', Quinta: 'Qui', Sexta: 'Sex', Sábado: 'Sáb', Domingo: 'Dom' };
 
-const STATUS_ICON = { done: '✓', partial: '◐', todo: '·', rest: '😴', swapped: '🎯' };
+const STATUS_ICON = { done: '✓', partial: '◐', todo: '·', rest: '😴', swapped: '🎯', skipped: '·' };
 
 /* Semana ISO (começa à Segunda): '2026-W37'. Duas datas da mesma semana dão a
    mesma chave, e a chave muda sozinha na passagem de Domingo para Segunda. */
@@ -42,6 +43,7 @@ function sched() {
   if (!ST.sched.done || typeof ST.sched.done !== 'object') ST.sched.done = {};
   if (!ST.sched.replaced || typeof ST.sched.replaced !== 'object') ST.sched.replaced = {};
   if (!ST.sched.swaps || typeof ST.sched.swaps !== 'object') ST.sched.swaps = {};
+  if (!ST.sched.skip || typeof ST.sched.skip !== 'object') ST.sched.skip = {};
   return ST.sched;
 }
 
@@ -85,6 +87,7 @@ function dayStatus(day) {
   const { total, done } = getProgress(day);
   if (total > 0 && done >= total) return 'done';
   if (sched().replaced[day]) return 'swapped';
+  if (sched().skip[day] && done === 0) return 'skipped';   /* dia anterior à criação do plano: não é atraso */
   return done > 0 ? 'partial' : 'todo';
 }
 
@@ -132,7 +135,7 @@ function reopenDay(day) {
 function currentDay() {
   return dayNames().find(d => {
     const s = dayStatus(d);
-    return s !== 'rest' && s !== 'done' && s !== 'swapped';
+    return s !== 'rest' && s !== 'done' && s !== 'swapped' && s !== 'skipped';
   }) || null;
 }
 
@@ -158,7 +161,7 @@ function agenda() {
     allDone: cur === null,
     /* o treino pendente é de um dia que já passou */
     late: !!cur && order.indexOf(cur) < order.indexOf(hoje),
-    pending: days.filter(d => !['rest', 'done', 'swapped'].includes(d.status)).length,
+    pending: days.filter(d => !['rest', 'done', 'swapped', 'skipped'].includes(d.status)).length,
   };
 }
 

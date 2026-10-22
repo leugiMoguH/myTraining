@@ -2,6 +2,7 @@
 import { chartSVG } from './charts.js';
 import { calcTargets } from './nutrition.js';
 import { ST, fmtDateTime, fmtTime, nowISO, save, todayStr } from './state.js';
+import { planCardHTML } from './onboarding.js';
 import { muscleMapHTML, muscleMapWarm } from './muscle-map.js';
 import { volumeHTML } from './volume.js';
 
@@ -156,7 +157,7 @@ function renderProfile(content){
   content=content||document.getElementById('content');
   document.getElementById('hdrSub').textContent='Perfil';
   document.getElementById('progFill').style.width='0%';
-  content.innerHTML=`<div class="nutri-wrap">${profileDataHTML()}${measuresHTML()}${macrosSummaryHTML()}${muscleMapHTML()}${volumeHTML()}</div>`;
+  content.innerHTML=`<div class="nutri-wrap">${planCardHTML()}${profileDataHTML()}${measuresHTML()}${macrosSummaryHTML()}${muscleMapHTML()}${volumeHTML()}</div>`;
   muscleMapWarm();
 }
 

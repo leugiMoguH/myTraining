@@ -44,6 +44,10 @@ No build, no bundler, no framework. HTML/CSS estáticos + **ES modules** nativos
 | `session.js` | `ST.session`: máquina de estados do treino (NOT_STARTED/ACTIVE/PAUSED/COMPLETED/ABANDONED), tempo por timestamps, `reconcileSession` |
 | `nav.js` | barra inferior (Início · Evolução · **Treino** · Histórico · Opções; a Semana vive dentro do Histórico, ecrã `__hist`) e faixa "treino em curso" |
 | `backup.js` | ⚙ Definições, export/import JSON, exports CSV |
+| `planner.js` | motor de propostas **puro** (sem ST/DOM): 3 modelos (corpo inteiro, superior/inferior), padrões de movimento (`pat`), limitações, equipamento |
+| `plan.js` | aplica uma proposta à `ST.routine`, `swapDays` (reorganizar), `estimateMin`; `ST.prefs`, `ST.plan` |
+| `onboarding.js` | acolhimento retomável + proposta + reorganizar (overlay `#onbBg`) e o cartão «O meu plano» do Perfil; handlers `ob*` na ponte |
+| `migrate.js` · `ids.js` · `notice.js` | cópia **verificada** (`treino_v2_premigration` nunca substituída, `treino_v2_snap` a última antes de um plano novo), migração repetível, ids persistentes · avisos visíveis (`app-notice`) |
 
 **Camadas (z-index) e guiado:** conteúdo < barra geral 250 < banner de descanso 300 < guiado 500 < ficha/folhas 700. Com o guiado aberto, `body.guided` esconde a barra geral e o banner: **uma barra de cada vez**, e o descanso mostra-se dentro do guiado (`#woRest`, lê o relógio de `timer.js` via `onTimerChange`; só essa zona repinta, os campos kg×reps nunca). O botão central da barra faz **uma transição por toque** (iniciar/pausar/retomar) e não abre o guiado; a faixa "Abrir" abre-o. Nunca reescrever o `innerHTML` de um botão a cada tick (`syncNav` só toca quando o aspeto muda). Testes: `npm run test:ux` toca com ecrã tátil e verifica ponto de toque, sobreposição, scroll horizontal e contraste AA.
 
@@ -64,7 +68,7 @@ Se acrescentares um handler inline novo, acrescenta-o ao `bridge.js` e corre `np
 substituídos através de `setST()` (`state.js`) e `setRest()` (`timer.js`) — é o que o
 `importBackup` faz.
 
-**Testes** (correr os três antes de commit; `test:ux` = comportamento real com toque):
+**Testes** (correr os três antes de commit; mais `test:plan` e `test:onboarding` ao mexer no plano; `test:ux` = comportamento real com toque):
 - `npm run smoke` — DOM mínimo, avalia o grafo de módulos, percorre os ecrãs, valida
   imports↔exports e a ponte dos handlers. ~1 segundo, sem browser.
 - `npm run test:browser` — Chromium headless a 412px: serve o site, clica em separadores,
@@ -110,6 +114,8 @@ do GitHub Pages.
 
 **Slider** (`sliders.js`): estado por `id` em `SL`; `slNext`/`slPrev`/`slTo` chamam `slSync`.
 Swipe touch/rato ligado por slider depois do render, com limiar de 50px.
+
+**V2 (plano personalizado):** `ST.onb` (`done`, `step`, `draft`, `legacy`) — utilizador com histórico ou rotina própria fica `legacy` e nunca vê o acolhimento imposto; `ST.prefs` são as respostas (editáveis no Perfil → «O meu plano»); `ST.meta.schema` = 2. Dias/exercícios da rotina têm `id` (nunca regenerar; `setDayExercises` atribui aos novos). `save()` devolve `false` e emite `app-notice` se não gravar. Aplicar um plano (`applyPlan`) exige cópia verificada, recusa com treino em curso e **não toca** em `ST.log`/`ST.prog`/`ST.workouts`/medidas. `ST.sched.skip` marca dias do plano anteriores à sua criação (estado `skipped`, não é atraso). Testes: `npm run test:plan` (puro, sem browser) e `npm run test:onboarding` (novo + existente, 320/360/412); os testes antigos semeiam `onb.done` com `scripts/_skip-onb.mjs`.
 
 ## Catálogo de exercícios (exercises-dataset)
 

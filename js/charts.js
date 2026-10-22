@@ -48,7 +48,18 @@ const MUSCLES={
   "Arnold press":{p:["ombro"],s:["triceps"]},
   "Tríceps francês":{p:["triceps"],s:[]},
   "Rosca martelo":{p:["biceps"],s:["antebraco"]},
-  "Rosca polia":{p:["biceps"],s:[]}
+  "Rosca polia":{p:["biceps"],s:[]},
+  "Supino na máquina":{p:["peito"],s:["ombro","triceps"]},
+  "Supino com halteres":{p:["peito"],s:["ombro","triceps"]},
+  "Flexões":{p:["peito"],s:["ombro","triceps","abdominal"]},
+  "Flexões inclinadas":{p:["peito"],s:["ombro","triceps"]},
+  "Agachamento corporal":{p:["quadriceps","gluteos"],s:["isquios"]},
+  "Passada":{p:["quadriceps","gluteos"],s:["isquios"]},
+  "Ponte de glúteos":{p:["gluteos"],s:["isquios"]},
+  "Remada sentado":{p:["dorsais","trapezio"],s:["biceps","posterior"]},
+  "Remada invertida":{p:["dorsais"],s:["biceps","posterior"]},
+  "Superman":{p:["lombar"],s:["gluteos"]},
+  "Desenvolvimento na máquina":{p:["ombro"],s:["triceps"]}
 };
 function fillOf(id,P,S){ return P.indexOf(id)>=0?'#ef4444':(S.indexOf(id)>=0?'#f97316':'#2b2b3a'); }
 /* `fill` (opcional): id → cor, para mapas de calor; sem ele, primário/secundário como antes */

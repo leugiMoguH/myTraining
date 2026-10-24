@@ -2,6 +2,7 @@
 import { gifUrlFor } from './catalog.js';
 import { MUSCLES, bodySVG, muscleSlide, noImgSlide } from './charts.js';
 import { adaptCardHTML, quickButtonHTML } from './adapt-ui.js';
+import { histBtn } from './motiv-ui.js';
 import { classDayMarks, recentClassesHTML, todayClassesHTML, weekClassesHTML } from './classes-ui.js';
 import { customEntryHTML, renderCustom } from './custom.js';
 import { editorHTML, isEditing, stopEdit, toggleEdit } from './editor.js';
@@ -338,13 +339,17 @@ function renderWeek(content) {
 /* Histórico: a Semana (agenda) e os treinos terminados. O histórico completo vem depois. */
 function renderHistory(content) {
   renderWeek(content);
-  const rows = (ST.workouts || []).filter(w => w.state === 'COMPLETED' || w.state === 'ABANDONED').slice(-10).reverse().map(w => {
+  const guided = new Set((ST.workouts || []).map(w => w.id));
+  const manual = (ST.sessions || []).filter(s => s.id && !(s.sid && guided.has(s.sid)) && !(ST.workouts || []).some(w => w.day === 'Personalizado' && w.date === s.date && !s.sid) && /^\d{4}-\d{2}-\d{2}$/.test(s.date || ''))
+    .map(s => ({ id: s.id, state: 'COMPLETED', date: s.date, day: s.label || 'Treino personalizado', label: '', quick: s.kind === 'quick' ? (s.quick && s.quick.mode) || 'quick' : '', manual: true }));
+  const all = [...(ST.workouts || []).filter(w => w.state === 'COMPLETED' || w.state === 'ABANDONED'), ...manual].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const rows = all.slice(-10).reverse().map(w => {
     const t = statsOf(w);
     const extra = [t.paused >= 1000 ? `pausa ${fmtDur(t.paused)}` : '', t.unknown >= 1000 ? `sem registo ${fmtDur(t.unknown)}` : ''].filter(Boolean).join(' · ');
     return `<div class="wk-row"><div class="wk-row-main">
       <div class="wk-row-day">${esc(String(w.date || '').split('-').reverse().join('/'))} · ${esc(w.quick ? (w.quick === 'retoma' ? 'Retoma' : 'Treino rápido') : w.day)}</div>
-      <div class="wk-row-sub">${esc(w.label || '')} · ${fmtDur(t.duration)}${extra ? ' · ' + extra : ''}</div></div>
-      <div class="wk-row-st">${w.state === 'COMPLETED' ? (w.quick ? 'Concluído · reduzido' : 'Concluído') : 'Descartado'}</div></div>`;
+      <div class="wk-row-sub">${esc(w.label || '')}${w.manual ? 'sem relógio de treino' : ' · ' + fmtDur(t.duration)}${extra ? ' · ' + extra : ''}</div></div>
+      <div class="wk-row-st">${w.state === 'COMPLETED' ? (w.quick ? 'Concluído · reduzido' : 'Concluído') : 'Descartado'}</div>${w.state === 'COMPLETED' ? histBtn(w.id, 'Resumo') : ''}</div>`;
   }).join('');
   const box = document.createElement('div');
   box.className = 'full';

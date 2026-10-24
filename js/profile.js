@@ -8,6 +8,7 @@ import { prefsSummaryHTML } from './onboarding.js';
 import { exerciseListHTML } from './history.js';
 import { muscleMapHTML, muscleMapWarm } from './muscle-map.js';
 import { volumeHTML } from './volume.js';
+import { motivEvolutionHTML } from './motiv-ui.js';
 
 const DRAFT = Object.create(null);
 const PIDS=['p-sex','p-age','p-height','p-goal','p-activity'];
@@ -249,7 +250,7 @@ function renderEvolution(content){
   content=content||document.getElementById('content');
   document.getElementById('hdrSub').textContent='Evolução';
   document.getElementById('progFill').style.width='0%';
-  content.innerHTML=`<div class="nutri-wrap">${exerciseListHTML(8)}${measuresHTML()}${muscleMapHTML()}${volumeHTML()}</div>`;
+  content.innerHTML=`<div class="nutri-wrap">${motivEvolutionHTML()}${exerciseListHTML(8)}${measuresHTML()}${muscleMapHTML()}${volumeHTML()}</div>`;
   applyDraft(measureKey());
   muscleMapWarm();
 }

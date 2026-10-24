@@ -18,6 +18,7 @@ import { confirmDialog } from './dialog.js';
    Ao concluir, fica um registo em ST.sessions e as cargas ficam marcadas `c:1`
    em ST.log, para o histórico distinguir programado de personalizado. */
 import { finishQuick } from './adapt.js';
+import { uid } from './ids.js';
 import { all, isLoaded, loadCatalog, muscleIdsOf, toRoutineEntry } from './catalog.js';
 import { openCatalog } from './catalog-ui.js';
 import { MUSCLES } from './charts.js';
@@ -172,27 +173,32 @@ async function cuFinish(ask = false, sessionId = null) {
   /* só ocupa o lugar do treino de hoje se ainda for hoje (ecrã deixado aberto da véspera: não) */
   const replaced = c.date === todayStr() ? replaceCurrent() : null;
   const ex = c.ex.map(e => e.name).filter((_, i) => getSets(CUSTOM_DAY, i).length);
-  ST.sessions = [...ST.sessions, { date: c.date, kind: 'custom', label: c.label, muscles: c.muscles, ex, sets, replaced }].slice(-200);
+  const id = uid(), guided = liveDay() === CUSTOM_DAY, sid = guided ? ST.session.id : null;
+  ST.sessions = [...ST.sessions, { id, ...(sid ? { sid } : {}), date: c.date, kind: 'custom', label: c.label, muscles: c.muscles, ex, sets, replaced }].slice(-200);
   clearCustomProgress();
   ST.custom = { ...c, stage: 'done', sets, replaced };
-  save();
+  const saved = save();
   endSessionOf(CUSTOM_DAY, true);   /* a sessão guiada não fica a correr depois de concluir */
-  render('__pers'); return true;
+  render('__pers');
+  if (saved && !guided) document.dispatchEvent(new CustomEvent('training-done', { detail: { id } }));   /* sem sessão guiada: celebra pela entrada de ST.sessions */
+  return true;
 }
 
 /* Treino rápido/retoma: fecha o dia ORIGINAL como «reduzido» (só se a semana e o plano ainda são os mesmos, ver finishQuick),
    nunca ocupa o lugar de outro treino. O histórico fica sempre; se a gravação falhar, repõe-se tudo. */
 function finishQuickWorkout(c, sets) {
-  const prev = JSON.stringify(ST), sid = liveDay() === CUSTOM_DAY ? ST.session.id : null;   /* só a sessão viva deste treino; uma terminada não conta */
+  const prev = JSON.stringify(ST), guided = liveDay() === CUSTOM_DAY, sid = guided ? ST.session.id : null, id = uid();   /* só a sessão viva deste treino; uma terminada não conta */
   if (c.stage === 'done' || (sid && ST.sessions.some(s => s.sid === sid))) return false;   /* toque repetido: já ficou registado */
   const from = finishQuick(c);
   const ex = c.ex.map(e => e.name).filter((_, i) => getSets(CUSTOM_DAY, i).length);
-  ST.sessions = [...ST.sessions, { date: c.date, kind: 'quick', label: c.label, muscles: [], ex, sets, ...(sid ? { sid } : {}), quick: { ...c.quick, closed: from || null } }].slice(-200);
+  ST.sessions = [...ST.sessions, { id, date: c.date, kind: 'quick', label: c.label, muscles: [], ex, sets, ...(sid ? { sid } : {}), quick: { ...c.quick, closed: from || null } }].slice(-200);
   clearCustomProgress();
   ST.custom = { ...c, stage: 'done', sets, replaced: null, closedDay: from || null };
   if (!save()) { setST(JSON.parse(prev)); return false; }
   endSessionOf(CUSTOM_DAY, true);
-  render('__pers'); return true;
+  render('__pers');
+  if (!guided) document.dispatchEvent(new CustomEvent('training-done', { detail: { id } }));
+  return true;
 }
 
 const nameOf = c => (c && c.quick ? (c.quick.mode === 'retoma' ? '🌱 Retoma' : '⏱ Treino rápido') : '🎯 Treino personalizado');

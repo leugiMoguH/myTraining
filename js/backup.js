@@ -11,6 +11,7 @@ import { ST, est1RM, fmtTime, save, todayStr, setST } from './state.js';
 import { REST_SEC, setRest, timerDismiss } from './timer.js';
 import { render } from './ui.js';
 import { syncWakeUI } from './wake.js';
+import { ensureMotiv, validateMotivState } from './motiv.js';
 import { validateAdaptState } from './adapt.js';
 import { validateClassState } from './classes.js';
 
@@ -56,6 +57,7 @@ async function importBackup(e){
         throw new Error('estrutura interna invalida');
       if(!validateClassState(incoming.classes, incoming.classLog).ok) throw new Error('estrutura interna invalida');
       if (!validateAdaptState(incoming.adapt).ok) throw new Error('estrutura interna invalida');
+      if(incoming.motiv!==undefined&&!validateMotivState(incoming.motiv).ok) delete incoming.motiv;
       const civilDate = value => {
         if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
         const d = new Date(`${value}T12:00:00`);
@@ -94,6 +96,7 @@ async function importBackup(e){
       const migration=migrate();   /* ids, onb e meta também para backups antigos */
       if(migration.error || migration.saved===false || !save()) throw new Error(migration.error || 'Não foi possível guardar o backup.');
       } catch(err) { setST(previous); setRest(previousRest); save(); throw err; }
+      ensureMotiv();
       clearDrafts();
       timerDismiss();
       closeSheet();

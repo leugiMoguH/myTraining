@@ -5,6 +5,7 @@ import { setThemePref } from './theme.js';
    Regra: um handler novo usado num atributo inline tem de ser acrescentado aqui. */
 import { closeSheet, exportBackup, exportIntakeCSV, exportLoadCSV, exportMeasuresCSV, importBackup, openSheet } from './backup.js';
 import { adAccept, adAlt, adDismiss, adQuick, adUndo } from './adapt-ui.js';
+import { mvClose, mvDetails, mvOpen, mvWeek } from './motiv-ui.js';
 import { clClose, clConflict, clDelete, clKeep, clMark, clMoveStep, clMoveTo, clMoveWeek, clMovePerm, clPast, clPastSet, clPastSave, clOpen, clReopen, clReplace, clSave, clSet, clText } from './classes-ui.js';
 import { catAdd, catFilter, catInput, catPick, catScope, closeCatalog, openSwap, undoSwap } from './catalog-ui.js';
 import { cuAdd, cuBegin, cuDiscard, cuFinish, cuHome, cuRemove, cuSuggest, cuToggle, openCustom } from './custom.js';
@@ -29,6 +30,7 @@ import { closeWorkout, startWorkout, woDoSet, woFinish, woGo, woInfo, woPause, w
 
 Object.assign(window, {
   adAccept, adAlt, adDismiss, adQuick, adUndo,
+  mvClose, mvDetails, mvOpen, mvWeek,
   clClose, clConflict, clDelete, clKeep, clMark, clMoveStep, clMoveTo, clMoveWeek, clMovePerm, clPast, clPastSet, clPastSave, clOpen, clReopen, clReplace, clSave, clSet, clText,
   slideFail,
   planBack, planEdit, obDiscard,

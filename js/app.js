@@ -5,6 +5,8 @@ import './bridge.js';
 import { initNav } from './nav.js';
 import { expireCustom } from './custom.js';
 import { migrate } from './migrate.js';
+import { ensureMotiv } from './motiv.js';
+import { resumeCelebration } from './motiv-ui.js';
 import { initNotice } from './notice.js';
 import { maybeOpenOnboarding } from './onboarding.js';
 import { ensureWeek } from './schedule.js';
@@ -25,7 +27,9 @@ ensureWeek();
 
 /* ST.view guarda o ecrã; ST.day continua a ser um dia real da rotina. */
 const start = ST.view && String(ST.view).startsWith('__') && ST.view!=='__dia' ? ST.view : '__hoje';
+ensureMotiv();   /* baseline silencioso: o que já estava provado não gera celebrações */
 render(start);
+resumeCelebration();
 document.getElementById('restLabel').textContent = REST_SEC + 's';
 restoreTimer();
 

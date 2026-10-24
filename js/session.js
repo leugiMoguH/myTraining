@@ -34,6 +34,9 @@ function notifySession() { emit(); }
 /* quem guarda coisas só para a sessão (schedule.js: marcas e trocas que atravessaram a semana) limpa-as aqui */
 const ENDERS = [];
 function onSessionEnd(fn) { ENDERS.push(fn); }
+/* quem celebra um treino concluído (motiv-ui.js): só corre depois de a sessão COMPLETED estar gravada com sucesso */
+const DONERS = [];
+function onSessionDone(fn) { DONERS.push(fn); }
 
 /* Sessão guardada pela versão anterior (activeMs/resumedAt): converte-se sem perder o tempo. */
 function normalize(s) {
@@ -121,9 +124,10 @@ function finish(state, endAt) {
   const done = { ...s, state, endedAt: end, pausedMs: (s.pausedMs || 0) + (paused ? Math.max(0, end - s.pauseAt) : 0), pauseAt: 0 };
   ST.session = done;
   ST.workouts = [...(Array.isArray(ST.workouts) ? ST.workouts : []).filter(w => w.id !== done.id), done].slice(-MAX_KEPT);
-  save();
+  const saved = save();
   for (const fn of ENDERS) { try { fn(done); } catch (e) { console.error('session end', e); } }
   emit();
+  if (saved && state === COMPLETED) for (const fn of DONERS) { try { fn(done); } catch (e) { console.error('session done', e); } }
   return true;
 }
 const completeSession = endAt => finish(COMPLETED, endAt);
@@ -165,4 +169,4 @@ function fmtDur(ms) {
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export { NOT_STARTED, ACTIVE, PAUSED, COMPLETED, ABANDONED, IDLE_HINT_MS, CREDIT_CAP_MS, onSessionChange, onSessionEnd, notifySession, statsOf, currentSession, liveDay, sessionState, isLive, timeStats, durationMs, touchSession, idleMs, isIdle, startSession, pauseSession, resumeSession, completeSession, abandonSession, endSessionOf, dropSessionOf, setSessionPos, finishedToday, fmtDur };
+export { NOT_STARTED, ACTIVE, PAUSED, COMPLETED, ABANDONED, IDLE_HINT_MS, CREDIT_CAP_MS, onSessionChange, onSessionEnd, onSessionDone, notifySession, statsOf, currentSession, liveDay, sessionState, isLive, timeStats, durationMs, touchSession, idleMs, isIdle, startSession, pauseSession, resumeSession, completeSession, abandonSession, endSessionOf, dropSessionOf, setSessionPos, finishedToday, fmtDur };

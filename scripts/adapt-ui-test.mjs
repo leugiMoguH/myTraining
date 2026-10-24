@@ -93,6 +93,7 @@ async function run(theme, width) {
   await page.evaluate(() => window.cuBegin());
   await page.evaluate(async () => { const { ST } = await import('./js/state.js'); window.toggleSet('Personalizado', 0, 0, true); void ST; });
   await page.evaluate(() => window.cuFinish());
+  await page.locator('#mvBg.show').getByRole('button', { name: 'Concluir', exact: true }).tap();   /* celebração do treino rápido */
   assert.equal(await st(page, s => s.sessions.at(-1).kind), 'quick');
   const from = await st(page, s => s.custom.quick.from);
   assert.equal(await st(page, s => !!s.sched.quick[s.custom.quick.from]), true, 'dia reduzido marcado');

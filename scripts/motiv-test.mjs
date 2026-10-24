@@ -1,0 +1,126 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+process.env.TZ='Europe/Lisbon';
+const store=new Map();let quota=false;
+globalThis.window=globalThis;
+globalThis.document={getElementById:()=>null,querySelector:()=>null,querySelectorAll:()=>[],createElement:()=>({}),addEventListener(){},dispatchEvent(){},body:{},hidden:false,visibilityState:'hidden'};
+globalThis.localStorage={getItem:k=>store.get(k)||null,setItem(k,v){if(quota)throw Error('quota');store.set(k,String(v));},removeItem:k=>store.delete(k)};
+Object.defineProperty(globalThis,'navigator',{value:{vibrate(){}},configurable:true});
+globalThis.addEventListener=()=>{};
+await import('../js/routine.js');
+const S=await import('../js/state.js'), M=await import('../js/motiv.js'), C=await import('../js/classes.js'), A=await import('../js/adapt.js');
+const now='2026-10-21', week='2026-W43';
+const st=()=>S.ST;
+const names=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+function reset(){S.setST({day:'Segunda',sets:{},done:{},log:{},workouts:[],sessions:[],classes:[],classLog:{},routine:Object.fromEntries(names.map((d,i)=>[d,{id:'d'+i,label:i<3?'Treino':'Descanso',rest:i>=3,ex:i<3?[{name:'X',s:3}]:[]}]))});}
+function workout(id,date,extra={}){const startedAt=new Date(date+'T10:00:00').getTime();const w={id,date,day:'Segunda',label:'Força',state:'COMPLETED',startedAt,endedAt:startedAt+3600000,pausedMs:600000,...extra};st().workouts.push(w);return w;}
+function log(name,date,sets){(st().log[name]||=[]).push({date,sets});}
+const achieved=()=>M.earnedAchievements().map(a=>a.id);
+reset();M.ensureMotiv(now);assert.deepEqual(st().motiv,{v:1,seen:{},goals:{[week]:3},pending:null});
+workout('one',now);log('X',now,[{sid:'one',w:20,r:8}]);
+assert.deepEqual(M.sessionSummary('one').totals,{exercises:1,sets:1,reps:8,volume:160});
+assert.equal(M.sessionSummary('one').durationMs,3000000);assert.deepEqual(M.sessionSummary('one').prs,[]);
+assert.equal(M.sessionSummary('one').trainingNumber,1);
+assert.deepEqual(M.celebrate('one',now).achievements.map(a=>a.id),['primeiro-treino']);assert.equal(M.celebrate('one',now),null);
+assert.deepEqual(st().motiv.pending,{id:'one',ach:['primeiro-treino']});assert.equal(M.pendingCelebration().summary.id,'one');
+const saved=JSON.parse(JSON.stringify(st()));S.setST(saved);M.ensureMotiv(now);assert.equal(M.celebrate('one',now),null);assert.equal(M.pendingCelebration().achievements[0].id,'primeiro-treino');
+M.dismissPending();assert.equal(M.pendingCelebration(),null);assert.equal(M.celebrate('one',now),null);
+workout('two','2026-10-22',{quick:'quick'});const two=M.celebrate('two',now);assert.equal(two.achievements.length,0);assert.equal(two.summary.kind,'rapido');M.dismissPending();assert.equal(M.celebrate('two',now),null);
+assert.equal(M.weekSummary(now,now).trainings,1);assert.equal(M.weekSummary(now,now).reduced,1);
+workout('ab','2026-10-23',{state:'ABANDONED'});log('X','2026-10-23',[{sid:'ab',w:100,r:5}]);assert.equal(M.sessionSummary('ab'),null);assert.equal(M.celebrate('ab'),null);
+workout('back','2026-10-23',{quick:'retoma'});st().sessions.push({id:'custom',sid:'back',date:'2026-10-23',kind:'quick',quick:{mode:'retoma'}});
+assert.equal(M.sessionSummary('back').trainingNumber,3);assert.equal(M.weekSummary(now,now).reduced,2);assert.equal(M.sessionSummary('back').kind,'retoma');
+assert(achieved().includes('semana-completa'));
+console.log('OK primeiro treino, mínimo, duração, pending, reload, sessões reduzidas e abandono.');
+reset();log('X','2026-09-01',[{w:20,r:8}]);log('X','2026-09-02',[{w:20,r:8}]);log('X','2026-09-03',[{w:20,r:8}]);log('X','2026-09-04',[{w:20,r:8}]);log('X','2026-09-05',[{w:20,r:8}]);
+log('X','2026-09-06',[{sid:'lost',w:100,r:5}]);M.ensureMotiv(now);assert.deepEqual(achieved(),['primeiro-treino','cinco-treinos']);assert.equal(M.pendingCelebration(),null);
+assert.deepEqual(Object.keys(st().motiv.seen),['primeiro-treino','cinco-treinos']);assert.equal(M.lockedAchievements().length,6);
+workout('new',now);assert.equal(M.sessionSummary('new').trainingNumber,6);assert(M.sessionSummary('new').comeback);
+assert.deepEqual(M.celebrate('new',now).achievements.map(a=>a.id),['regresso']);
+console.log('OK baseline legado silencioso e nenhuma inferência por sid órfão.');
+reset();M.ensureMotiv(now);workout('old','2026-10-20');log('X','2026-10-20',[{sid:'old',w:100,r:12}]);
+M.ensureMotiv(now);workout('load',now);log('X',now,[{sid:'load',w:110,r:1}]);
+assert.deepEqual(M.sessionSummary('load').prs,[{name:'X',kind:'carga',w:110,r:1}]);
+assert.deepEqual(M.sessionSummary('load').improvements,[{name:'X',from:{w:100,r:12},to:{w:110,r:1}}]);
+log('Y','2026-10-20',[{w:100,r:1}]);log('Y',now,[{sid:'load',w:90,r:12}]);
+assert.deepEqual(M.sessionSummary('load').prs,[{name:'X',kind:'carga',w:110,r:1},{name:'Y',kind:'1rm',w:90,r:12}]);
+const event=M.celebrate('load',now);assert.deepEqual(event.achievements.map(a=>a.id),['primeiro-recorde','primeira-melhoria']);M.dismissPending();
+st().log.X[1].sets[0].w=80;st().log.Y[1].sets[0].w=50;
+assert(!achieved().includes('primeiro-recorde'));assert.equal(M.sessionSummary('load').prs.length,0);
+st().log.X[1].sets[0].w=120;assert.equal(M.celebrate('old',now),null);assert.equal(M.pendingCelebration(),null);
+reset();workout('a','2026-10-19');log('X','2026-10-19',[{w:100,r:5,sid:'a'}]);workout('b','2026-10-20');log('X','2026-10-20',[{w:80,r:5,sid:'b'}]);workout('c',now);log('X',now,[{w:90,r:5,sid:'c'}]);
+assert.deepEqual(M.sessionSummary('c').prs,[]);assert.deepEqual(M.sessionSummary('c').improvements,[{name:'X',from:{w:80,r:5},to:{w:90,r:5}}]);
+console.log('OK recordes independentes, melhorias sem recorde e correção retroativa.');
+reset();const morning=workout('am',now), evening=workout('pm',now,{startedAt:morning.startedAt+7200000,endedAt:morning.endedAt+7200000});
+log('X',now,[{sid:'am',w:20,r:5,ts:morning.startedAt+1000},{sid:'pm',w:25,r:5,ts:evening.startedAt+1000}]);
+assert.deepEqual(M.sessionSummary('am').prs,[]);assert.deepEqual(M.sessionSummary('pm').prs,[{name:'X',kind:'carga',w:25,r:5},{name:'X',kind:'1rm',w:25,r:5}]);assert.equal(M.sessionSummary('pm').trainingNumber,1);
+delete st().log.X[0].sets[0].ts;assert.deepEqual(M.sessionSummary('pm').prs,[]);
+assert.equal(M.weekSummary(now,now).trainings,1);
+reset();st().sessions.push({id:'manual',date:now,kind:'custom',label:'Meu treino',ex:['X','Y'],sets:4});log('X',now,[{w:50,r:8}]);
+assert.deepEqual(M.sessionSummary('manual').totals,{exercises:2,sets:4,reps:0,volume:null});assert.equal(M.sessionSummary('manual').durationMs,null);assert.deepEqual(M.sessionSummary('manual').prs,[]);
+console.log('OK duas sessões no mesmo dia, timestamps e personalizado manual sem sid.');
+// ISO strings match addSetLog; keep the numeric timestamp tests above.
+reset();M.ensureMotiv(now);
+const isoMorning=workout('iso-am',now), isoEvening=workout('iso-pm',now,{startedAt:isoMorning.startedAt+7200000,endedAt:isoMorning.endedAt+7200000});
+log('X',now,[{sid:'iso-am',w:20,r:5,ts:new Date(isoMorning.startedAt+1000).toISOString()},{sid:'iso-pm',w:25,r:5,ts:new Date(isoEvening.startedAt+1000).toISOString()}]);
+assert.deepEqual(M.sessionSummary('iso-am').prs,[]);
+assert.deepEqual(M.sessionSummary('iso-pm').prs,[{name:'X',kind:'carga',w:25,r:5},{name:'X',kind:'1rm',w:25,r:5}]);
+assert.deepEqual(M.sessionSummary('iso-pm').improvements,[{name:'X',from:{w:20,r:5},to:{w:25,r:5}}]);
+assert.deepEqual(M.celebrate('iso-pm',now).achievements.map(a=>a.id),['primeiro-recorde','primeira-melhoria']);
+// Older session stored last: select by timestamp, not array order or best load.
+reset();
+const early=workout('early',now), recent=workout('recent',now,{startedAt:early.startedAt+7200000}), latest=workout('latest',now,{startedAt:early.startedAt+14400000,endedAt:early.endedAt+14400000});
+log('X',now,[{sid:'recent',w:20,r:5,ts:new Date(recent.startedAt+1000).toISOString()},{sid:'early',w:30,r:5,ts:new Date(early.startedAt+1000).toISOString()},{sid:'latest',w:25,r:5,ts:new Date(latest.startedAt+1000).toISOString()}]);
+for(const w of st().workouts){w.startedAt=new Date(w.startedAt).toISOString();w.endedAt=new Date(w.endedAt).toISOString();}
+assert.deepEqual(M.sessionSummary('latest').prs,[]);
+assert.deepEqual(M.sessionSummary('latest').improvements,[{name:'X',from:{w:20,r:5},to:{w:25,r:5}}]);
+assert.equal(M.sessionSummary('latest').durationMs,3000000);
+console.log('OK ISO timestamps: records, improvement and latest prior session.');
+// Snapshot W2 without restarting; a failed save must roll back the whole transaction.
+reset();M.ensureMotiv('2026-10-21');
+workout('w2-a','2026-10-26');workout('w2-b','2026-10-27');workout('w2-c','2026-10-28');
+const rolloverBefore=structuredClone(st()), rolloverStored=store.get(S.STORE_KEY), rolloverMotiv=st().motiv;
+quota=true;assert.equal(M.celebrate('w2-c','2026-10-28'),null);quota=false;
+assert.deepEqual(st(),rolloverBefore);assert.equal(st().motiv,rolloverMotiv);assert.equal(store.get(S.STORE_KEY),rolloverStored);
+assert.equal(st().motiv.goals['2026-W44'],undefined);
+const rollover=M.celebrate('w2-c',now);
+assert.equal(st().motiv.goals['2026-W44'],3);assert.equal(st().motiv.goals[week],3);
+assert(rollover.achievements.some(a=>a.id==='semana-completa'));
+assert.deepEqual(st().motiv.pending.ach,['semana-completa']);
+assert.equal(JSON.parse(store.get(S.STORE_KEY)).motiv.goals['2026-W44'],3);
+console.log('OK week rollover: atomic goal and achievement, rollback and retry.');
+reset();workout('a','2026-10-19');workout('b','2026-10-20');workout('c',now);assert(!achieved().includes('semana-completa'));
+M.ensureMotiv(now);assert(achieved().includes('semana-completa'));st().routine.Segunda.rest=true;assert.equal(M.weekSummary(now,now).goal,3);
+assert.equal(M.weekSummary('2026-10-12',now).goal,null);assert(M.weekSummary('2026-10-12',now).empty);assert(!/falh|atras|falta|devias/i.test(M.weekSummary('2026-10-12',now).message));
+const cls=C.addClass({name:'Yoga',kind:'yoga',day:'Quarta',time:'10:00',min:45,intensity:1,weekly:true},now).cls;
+assert(C.markClass(cls.id,now,'done',{now}).ok);assert.equal(M.weekSummary(now,now).classes,1);assert.equal(M.weekSummary(now,now).classMin,45);assert(achieved().includes('primeira-aula'));
+reset();M.ensureMotiv(now);const c2=C.addClass({name:'Yoga',kind:'yoga',day:'Quarta',time:'10:00',min:45,intensity:1,weekly:true},now).cls;C.markClass(c2.id,now,'done',{now});assert(!achieved().includes('semana-completa'));
+M.ensureMotiv('2027-01-03');assert.equal(M.weekSummary('2027-01-03','2027-01-03').start,'2026-12-28');assert.equal(st().motiv.goals['2026-W53'],3);M.ensureMotiv('2027-01-04');assert.equal(st().motiv.goals['2027-W01'],3);
+for(const [before,after] of [['2026-03-22','2026-04-05'],['2026-10-18','2026-11-01']]) {reset();workout('a',before);workout('b',after);assert.equal(M.sessionSummary('b').comeback,true);assert.equal(M.earnedAchievements().find(a=>a.id==='regresso').date,after);}
+reset();workout('a','2026-03-23');workout('b','2026-04-05');assert.equal(M.sessionSummary('b').comeback,false);
+console.log('OK snapshot, aulas, semanas vazias/incompletas, ano ISO e DST Lisboa.');
+reset();quota=true;M.ensureMotiv(now);assert.equal(st().motiv,undefined);quota=false;M.ensureMotiv(now);workout('a',now);const prev=JSON.stringify(st());quota=true;assert.equal(M.celebrate('a',now),null);assert.equal(JSON.stringify(st()),prev);quota=false;assert(M.celebrate('a',now));
+const pending=JSON.stringify(st().motiv);quota=true;M.dismissPending();assert.equal(JSON.stringify(st().motiv),pending);quota=false;M.dismissPending();
+assert(M.validateMotivState(st().motiv).ok);for(const bad of [null,[],{...st().motiv,shown:{}},{...st().motiv,seen:{fake:now}},{...st().motiv,goals:{bad:3}},{...st().motiv,pending:{id:'x',ach:['fake']}}])assert(!M.validateMotivState(bad).ok);
+console.log('OK quota: baseline, celebração e dismiss transacionais; validação estrita.');
+// Run the real backup importer, replacing presentation dependencies only.
+const source=readFileSync(new URL('../js/backup.js',import.meta.url),'utf8');
+const body=source.slice(source.indexOf('async function importBackup('),source.indexOf('/* ── EXPORTAÇÃO CSV'));
+const messages=[];
+const deps={get ST(){return S.ST;},setST:S.setST,save:S.save,ensureMotiv:M.ensureMotiv,validateMotivState:M.validateMotivState,validateClassState:C.validateClassState,validateAdaptState:A.validateAdaptState,REST_SEC:60,setRest(){},snapshot:()=>({ok:true}),migrate:()=>({saved:true}),document:{getElementById:()=>({classList:{contains:()=>false}})},confirmDialog:async()=>true,clearDrafts(){},timerDismiss(){},closeSheet(){},render(){},show:m=>messages.push(m),DEFAULT_DAYS:{},DAYS:{Segunda:{}}};
+const load=Function('deps',`with(deps){let importOperation=0;${body};return importBackup;}`)(deps);
+const exported=JSON.parse(JSON.stringify({app:'treino',v:2,state:st()}));
+for(let i=0;i<2;i++){const file={text:async()=>JSON.stringify(exported)};await load({target:{files:[file],value:'x'}});assert.equal(messages.at(-1),'Backup importado ✓');assert.equal(st().workouts.length,1);assert.equal(M.celebrate('a',now),null);assert.equal(M.pendingCelebration(),null);}
+exported.state.motiv={v:999};const file={text:async()=>JSON.stringify(exported)};await load({target:{files:[file],value:'x'}});assert.equal(messages.at(-1),'Backup importado ✓');assert(M.validateMotivState(st().motiv).ok);assert.equal(M.celebrate('a',now),null);
+console.log('OK import/export real, reimportação e motiv inválido ignorado; nenhuma celebração retroativa.');
+console.log('OK motiv.');
+// A new completion absorbs unrelated retroactive facts silently.
+reset();workout('baseline','2026-10-19');log('X','2026-10-19',[{sid:'baseline',w:30,r:5}]);M.ensureMotiv(now);
+workout('retro','2026-10-20');log('X','2026-10-20',[{sid:'retro',w:35,r:5}]);workout('fresh',now);
+const fresh=M.celebrate('fresh',now);assert.deepEqual(fresh.achievements.map(a=>a.id),['semana-completa']);assert(st().motiv.seen['primeiro-recorde']);M.dismissPending();
+st().workouts=st().workouts.filter(w=>w.id!=='retro');delete st().log.X[1];st().log.X=st().log.X.filter(Boolean);assert(!achieved().includes('primeiro-recorde'));
+reset();
+for(const [id,date] of [['a','2026-10-01'],['b','2026-10-02'],['c','2026-10-03'],['d','2026-10-04'],['e','2026-10-05'],['f','2026-10-06'],['g','2026-10-07'],['h','2026-10-08'],['i','2026-10-09'],['j','2026-10-10']])workout(id,date);
+assert.deepEqual(M.earnedAchievements().map(a=>[a.id,a.date]),[['primeiro-treino','2026-10-01'],['cinco-treinos','2026-10-05'],['dez-treinos','2026-10-10']]);
+const deterministic=M.sessionSummary('j');assert.equal(M.messageFor(deterministic),M.messageFor(JSON.parse(JSON.stringify(deterministic))));
+console.log('OK marcos 5/10, mensagens determinísticas e correção retroativa silenciosa.');

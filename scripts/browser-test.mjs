@@ -108,6 +108,8 @@ const openToday = async loc => {
   if (await t.count() && await loc.evaluate(e => !!e.closest('#todayList')).catch(() => false)) await t.click();
 };
 const click = async sel => {
+  /* a celebração do treino concluído tapa a app até «Concluir»: fecha-se antes de qualquer outro toque */
+  if (!sel.startsWith('#mvBg') && await page.locator('#mvBg.show').count()) await page.locator('#mvBg.show').getByRole('button', { name: 'Concluir', exact: true }).click({ timeout: T });
   const loc = page.locator(sel).first();
   await openToday(loc);
   await loc.evaluate(e => e.scrollIntoView({ block: 'center', behavior: 'instant' })).catch(() => {});
@@ -245,6 +247,7 @@ await step('treino: desfazer serie', async () => {
 });
 const url = `http://localhost:${PORT}/index.html`;
 const visible = sel => page.locator(sel).count().then(n => n > 0);
+const dismissCel = async () => { try { await page.locator('#mvBg.show').waitFor({ timeout: 1500 }); await page.locator('#mvBg.show').getByRole('button', { name: 'Concluir', exact: true }).click(); } catch (_) {} };   /* celebração do treino concluído */
 const tdn = () => page.evaluate(() => { const st = JSON.parse(localStorage.getItem('treino_v2')); return { done: JSON.stringify((st.sched || {}).done || {}), workouts: (st.workouts || []).length, sets: Object.values(st.log || {}).flat().filter(e => e.sets).reduce((n, e) => n + e.sets.length, 0) }; });
 const antes = await tdn();
 
@@ -311,6 +314,7 @@ await step('treino: terminar pede confirmacao e nao conclui o dia', async () => 
   if ((await stSession()).state !== 'ACTIVE') throw new Error('terminar sem confirmar');
   dialogQueue.push(true);
   await click('.wo-end');
+  await dismissCel();
   if ((await stSession()).state !== 'COMPLETED') throw new Error('devia ficar COMPLETED');
   if (await visible('#woBg.show')) throw new Error('vista devia fechar');
   const d = await tdn();
@@ -358,6 +362,7 @@ await step('sessao esquecida (sem sinal ha 3h): faixa com opcoes explicitas, nad
   await page.screenshot({ path: join(SHOTS, 'faixa-sem-atividade.png') });
   dialogQueue.push(true);
   await click('#navEnd');
+  await dismissCel();
   const f = await stSession();
   if (f.state !== 'COMPLETED' || f.endedAt !== visto) throw new Error(`devia encerrar na ultima atividade (${f.endedAt} vs ${visto})`);
 });
@@ -381,6 +386,7 @@ await step('sessao de semana anterior: marcas guardadas ate o utilizador termina
   if ((await page.locator('.wo-dots i.on').count()) !== 2) throw new Error('as 2 series marcadas deviam estar la');
   dialogQueue.push(true);
   await click('.wo-end');
+  await dismissCel();
   const z = await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('treino_v2')).sets));
   if (z.includes('Segunda:0')) throw new Error('as marcas da sessao antiga deviam sair ao terminar');
 });
@@ -395,6 +401,7 @@ await step('meia-noite: series ficam na data de inicio, numa so entrada', async 
   if (r.out.length !== 1 || r.out[0].date !== r.ontem || r.out[0].k !== 2 || !r.out[0].sid) throw new Error(`series partidas ou sem sessao: ${JSON.stringify(r)}`);
   dialogQueue.push(true);
   await click('.wo-end');
+  await dismissCel();
   if ((await stSession()).state !== 'COMPLETED') throw new Error('devia concluir');
 });
 await step('plano alterado com sessao pendente: nada se perde, decide o utilizador', async () => {
@@ -409,6 +416,7 @@ await step('plano alterado com sessao pendente: nada se perde, decide o utilizad
   if ((await stSession()).state !== 'COMPLETED') throw new Error('encerrar explicitamente devia concluir');
 });
 await step('teclado: a barra so se esconde com teclado', async () => {
+  await dismissCel();
   await page.evaluate(() => window.goDay('Segunda'));
   const inp = page.locator('.load-in').first(); await openToday(inp); await inp.focus(); await page.waitForTimeout(100);
   if (!(await page.locator('#bnav').isVisible())) throw new Error('campo em foco sem teclado nao devia esconder a barra');
@@ -699,7 +707,8 @@ await step('personalizado: concluir', async () => {
   await page.screenshot({ path: join(SHOTS, 'personalizado-concluido.png'), fullPage: true });
 });
 await step('personalizado: Hoje volta ao plano normal', async () => {
-  await click('text=Voltar a Hoje');
+  await dismissCel();   /* a celebração do personalizado concluído já leva ao Hoje */
+  if (await page.locator('text=Voltar a Hoje').count()) await click('text=Voltar a Hoje');
   await page.waitForSelector('.today-top .hero, .today-top .sched-note, .rest-card', { timeout: T });
   if (!(await page.locator('button.cu-entry').count())) throw new Error('o botao do personalizado nao voltou');
   if (!(await page.locator('.wk-chip.s-swapped').count())) throw new Error('a tira da semana nao mostra o dia substituido');

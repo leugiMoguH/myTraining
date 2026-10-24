@@ -52,7 +52,7 @@ const reset=async()=>page.evaluate(()=>{
   const {M}=window;
   if(document.getElementById('woBg').classList.contains('show'))M.workout.closeWorkout();
   M.timer.timerDismiss(); M.state.setST(JSON.parse(JSON.stringify(window.base))); M.state.save();
-  for(const id of ['infoBg','sheetBg','onbBg']) document.getElementById(id)?.classList.remove('show');
+  for(const id of ['infoBg','sheetBg','onbBg','mvBg']) document.getElementById(id)?.classList.remove('show');
   document.querySelectorAll('[inert]').forEach(e=>e.inert=false);
   window.render('__hoje');
 });
@@ -206,7 +206,7 @@ try {
   await test('SW v32 em cache abre modal offline',async()=>{
     await page.evaluate(async()=>{await navigator.serviceWorker.ready;});
     await page.reload({waitUntil:'networkidle'});await page.evaluate(async()=>{window.M={dialog:await import('./js/dialog.js')};});
-    assert((await page.evaluate(()=>caches.keys())).includes('treino-v39'));
+    assert((await page.evaluate(()=>caches.keys())).includes('treino-v40'));
     await context.setOffline(true);await open();await choose('Confirmar');assert.equal(await result(),true);await context.setOffline(false);
   });
   assert.deepEqual(errors,[]);

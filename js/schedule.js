@@ -159,6 +159,9 @@ function agenda() {
     current: cur,
     restToday: isRest(hoje),
     allDone: cur === null,
+    /* semana "fechada" sem nada feito (plano novo a meio/fim da semana): não é uma conquista */
+    nothingDone: cur === null && !days.some(d => d.status === 'done' || d.status === 'swapped'),
+    nextPlanned: (days.find(d => d.status === 'skipped') || {}).day || null,
     /* o treino pendente é de um dia que já passou */
     late: !!cur && order.indexOf(cur) < order.indexOf(hoje),
     pending: days.filter(d => !['rest', 'done', 'swapped', 'skipped'].includes(d.status)).length,

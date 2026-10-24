@@ -21,6 +21,7 @@
     "test:plan": "node scripts/plan-test.mjs",
     "test:onboarding": "node scripts/onboarding-test.mjs",
     "test:sw-update": "node scripts/sw-update-test.mjs",
+    "test:hoje-semana": "node scripts/hoje-semana-test.mjs",
     "test:data": "node scripts/history-test.mjs && node scripts/muscle-test.mjs"
   },
   "devDependencies": {

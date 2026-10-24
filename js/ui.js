@@ -189,13 +189,17 @@ function bannerHTML(a) {
 
 /* Nada para treinar hoje: ou é dia de descanso, ou a semana já está fechada. */
 function restCardHTML(a) {
+  const next = a.nextPlanned && DAYS[a.nextPlanned];
+  const [emoji, title, sub] = !a.allDone
+    ? ['😴', 'Dia de descanso', 'Recupera. Dormir e comer é onde o músculo cresce.']
+    : !a.nothingDone
+      ? ['🎉', 'Semana concluída', 'Todos os treinos do plano estão feitos. O progresso faz reset na Segunda.']
+      : ['📅', 'Sem treinos até à próxima semana', next ? `O primeiro treino do plano é na semana que vem: ${a.nextPlanned} · ${esc(next.label)}.` : 'Não há treinos planeados. Podes criar um treino personalizado ou editar o plano.'];
   return `
     <div class="rest-card">
-      <div class="rest-emoji">${a.allDone?'🎉':'😴'}</div>
-      <div class="rest-title">${a.allDone?'Semana concluída':'Dia de descanso'}</div>
-      <div class="rest-sub">${a.allDone
-        ? 'Todos os treinos do plano estão feitos. O progresso faz reset na Segunda.'
-        : 'Recupera. Dormir e comer é onde o músculo cresce.'}</div>
+      <div class="rest-emoji">${emoji}</div>
+      <div class="rest-title">${title}</div>
+      <div class="rest-sub">${sub}</div>
     </div>`;
 }
 
@@ -255,8 +259,8 @@ function renderToday(content) {
     box.className = 'full';
     box.innerHTML = restCardHTML(a) + (a.current ? heroHTML(a) : '') + customEntryHTML();
     content.appendChild(box);
-    document.getElementById('hdrSub').textContent = a.allDone ? 'Semana concluída' : 'Descanso';
-    document.getElementById('progFill').style.width = a.allDone ? '100%' : '0';
+    document.getElementById('hdrSub').textContent = a.allDone ? (a.nothingDone ? 'Sem treinos esta semana' : 'Semana concluída') : 'Descanso';
+    document.getElementById('progFill').style.width = a.allDone && !a.nothingDone ? '100%' : '0';
     return;
   }
 

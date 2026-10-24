@@ -1,3 +1,4 @@
+import { openOverlay, closeOverlay } from './overlay.js';
 /* Ecrã de pesquisa do catálogo: escolher um dos 1324 exercícios e juntá-lo a um
    dia (modo `add`) ou pôr no lugar de outro (modo `swap` — máquina ocupada,
    ombro a doer, ginásio sem o aparelho). */
@@ -14,7 +15,7 @@ const CAT = { day: null, i: null, mode: 'add', perm: false, q: '', b: '', e: '',
 function open(day) {
   CAT.day = day;
   CAT.q = ''; CAT.b = ''; CAT.e = '';
-  document.getElementById('catBg').classList.add('show');
+  openOverlay(document.getElementById('catBg'), { initial: '#catQ', onClose: closeCatalog });
   const input = document.getElementById('catQ');
   if (input) input.value = '';
   paint('<div class="cat-msg">A carregar o catálogo…</div>');
@@ -46,7 +47,19 @@ function primaryIds(ex) {
 /* "Só esta semana" é o caso normal: a máquina volta a estar livre para a semana. */
 function catScope(perm) { CAT.perm = !!perm; renderFilters(); }
 
-function closeCatalog() { document.getElementById('catBg').classList.remove('show'); }
+function closeCatalog() { closeOverlay(document.getElementById('catBg')); }
+
+/* O render substitui a origem; escolher o destino depois de todos os renders. */
+function focusResult() {
+  const root = document.querySelector('#woBg.show') || document.getElementById('content');
+  const i = CAT.mode === 'add' ? exercisesOf(CAT.day).length - 1 : CAT.i;
+  const targets = [root.querySelector('#wo-w'), root.querySelector(`#card-${i} .card-title`), ...root.querySelectorAll('button, input, [tabindex]')];
+  const target = targets.find(e => e && !e.disabled && !e.closest('[inert]') && e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden');
+  if (target) {
+    if (target.classList.contains('card-title')) target.tabIndex = -1;
+    target.focus({ preventScroll: true });
+  }
+}
 
 function paint(html) {
   const el = document.getElementById('catList');
@@ -134,6 +147,7 @@ function catAdd(id) {
   if (!addExercise(CAT.day, toRoutineEntry(ex))) return;
   closeCatalog();
   render(CAT.day);
+  focusResult();
 }
 
 /* Aplica a troca. Só esta semana → guarda o original, que o reset de Segunda
@@ -148,6 +162,7 @@ function catPick(id) {
   closeCatalog();
   render(CAT.day);
   window.dispatchEvent(new Event('routine-changed'));   /* o guiado, se aberto, repinta */
+  focusResult();
 }
 
 /* Desfaz uma troca temporária antes do fim da semana. */

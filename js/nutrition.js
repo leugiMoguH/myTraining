@@ -1,3 +1,4 @@
+import { openOverlay, closeOverlay } from './overlay.js';
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { chartSVG } from './charts.js';
 import { fieldError } from './inline-error.js';
@@ -266,23 +267,30 @@ function scanBarcode(){
   }
   return startScan();
 }
-let scanStream=null, scanRAF=null;
+let scanStream=null, scanRAF=null, scanToken=0;
 async function startScan(){
-  document.getElementById('scanBg').classList.add('show');
+  stopScan();
+  const token=++scanToken;
+  openOverlay(document.getElementById('scanBg'), { initial: '.scan-close', onClose: stopScan });
   try{
-    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    if(token!==scanToken){ stream.getTracks().forEach(t=>t.stop()); return; }
+    scanStream=stream;
     const v=document.getElementById('scanVid'); v.srcObject=scanStream; await v.play();
+    if(token!==scanToken) return;
     const det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});
     const loop=async()=>{
-      if(!scanStream) return;
-      try{ const codes=await det.detect(v); if(codes&&codes.length){ const code=codes[0].rawValue; stopScan(); offLookup(code); return; } }catch(_){}
-      scanRAF=requestAnimationFrame(loop);
+      if(token!==scanToken || !scanStream) return;
+      try{ const codes=await det.detect(v); if(token!==scanToken) return; if(codes&&codes.length){ const code=codes[0].rawValue; stopScan(); offLookup(code); return; } }catch(_){}
+      if(token===scanToken) scanRAF=requestAnimationFrame(loop);
     };
     loop();
-  }catch(e){ stopScan(); manualBarcode('Câmara indisponível. Introduz o código de barras ou preenche manualmente.'); }
+  }catch(e){ if(token!==scanToken) return; stopScan(); manualBarcode('Câmara indisponível. Introduz o código de barras ou preenche manualmente.'); }
 }
 function stopScan(){
-  const ov=document.getElementById('scanBg'); if(ov) ov.classList.remove('show');
+  ++scanToken;
+  const ov=document.getElementById('scanBg'); if(ov) closeOverlay(ov);
+  const video=document.getElementById('scanVid'); if(video) video.srcObject=null;
   if(scanRAF){ cancelAnimationFrame(scanRAF); scanRAF=null; }
   if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
 }

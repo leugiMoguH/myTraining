@@ -2,13 +2,15 @@
 import { maybeNotify } from './notify.js';
 
 /* ═══════════════════════ TIMER ══════════════════════ */
-let REST_SEC = parseInt(localStorage.getItem('rest_sec') || '60');
+/* storage indisponível (modo privado, bloqueado): a app arranca na mesma, com os valores em memória */
+const keep = (k, v) => { try { localStorage.setItem(k, v); } catch (_) { /* sem persistência */ } };
+let REST_SEC = (() => { try { return parseInt(localStorage.getItem('rest_sec') || '60'); } catch (_) { return 60; } })();
 /* ESM: ver nota em state.js/setST. Usado pelo importBackup. */
-function setRest(n) { REST_SEC = Math.max(15, Math.min(300, Math.round(n))); localStorage.setItem('rest_sec', REST_SEC); }
+function setRest(n) { REST_SEC = Math.max(15, Math.min(300, Math.round(n))); keep('rest_sec', REST_SEC); }
 
 function adjustRest(d) {
   REST_SEC = Math.max(15, Math.min(300, REST_SEC + d));
-  localStorage.setItem('rest_sec', REST_SEC);
+  keep('rest_sec', REST_SEC);
   document.getElementById('restLabel').textContent = REST_SEC + 's';
   document.querySelectorAll('.rest-lbl').forEach(s => s.textContent = REST_SEC + 's');
 }

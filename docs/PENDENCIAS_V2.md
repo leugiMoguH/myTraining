@@ -36,3 +36,10 @@ As exclusões por limitação (`avoid` em `js/planner.js`) são **conservadoras 
 - Rascunhos: dados pessoais e medidas ficam em memória durante a navegação (perdem-se ao recarregar a página); a edição das preferências (acolhimento) persiste em `ST.onb.draft` + `ST.onb.editing` (retomar/descartar).
 - Alterar preferências cria nova proposta; só muda o plano ao confirmar (não há gravação direta de preferências).
 - Codex: plano e diff revistos (4 achados do diff corrigidos). Limitações: Evolução continua longa (mapa/volume no fim); ícones são emojis (convenção da app); sem teste em telemóvel físico.
+
+## Bloco 8 e 9 (2026-10-24) — acessibilidade e validação final, publicados (SW treino-v37)
+- Feito: semântica (chips, pontos, linhas da semana → button), `js/overlay.js` (foco, inert por contagem, Tab preso, Esc só na camada de cima) em Definições, ficha, catálogo e scanner (câmara parada, também se a resposta chegar tarde); rascunhos persistentes (`treino_drafts`); contraste AA (`--on-accent`); backup recusa estrutura corrompida; app arranca com localStorage indisponível; `onerror` do GIF corrigido (aspas). Testes: `test:a11y`, `test:drafts`, `test:journeys`.
+- Decisão: sem Esc no acolhimento (equivaleria a «Sair» num fluxo retomável); o guiado não fecha com Esc.
+- Por validar (não verificável localmente): telemóvel físico, leitor de ecrã real (anúncios, ordem de leitura), Safari/iOS (splash, barra de estado, data nativa). Não há declaração de conformidade WCAG integral.
+- Aberto (menor): fechar duas folhas fora de ordem (ex.: Definições→catálogo, fechar Definições primeiro) pode deixar o foco em body; não alcançável pela UI atual.
+- Aberto (menor): nomes de exercício com apóstrofo no `onerror` do GIF (`esc()` → `'` decodificado no atributo).

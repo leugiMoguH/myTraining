@@ -9,6 +9,7 @@
     "android:add": "npm run build:www && npx cap add android",
     "android:sync": "npm run build:www && npx cap sync android",
     "android:open": "npx cap open android",
+    "test:journeys": "node scripts/journeys-test.mjs",
     "test:browser": "node scripts/browser-test.mjs",
     "test:theme": "node scripts/theme-test.mjs",
     "test:dialogs": "node scripts/dialog-test.mjs",

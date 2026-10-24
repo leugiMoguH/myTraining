@@ -57,7 +57,7 @@ function refreshCard(day,i) {
    pode ter 8 cartões e não vale a pena puxar todos de uma vez. */
 function gifSlide(ex){
   return `<div class="slide"><img class="cat-gif" src="${gifUrlFor(ex.catalogId,ex.m)}" alt="${esc(ex.name)}" loading="lazy"
-    onerror="this.closest('.slide').innerHTML='<div class=\'no-img\'><span>💪</span><span>${esc(ex.name)}</span></div>'"></div>`;
+    onerror="this.closest('.slide').innerHTML='<div class=\\'no-img\\'><span>💪</span><span>${esc(ex.name)}</span></div>'"></div>`;
 }
 
 function buildCard(day,ex,i) {

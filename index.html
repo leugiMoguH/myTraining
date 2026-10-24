@@ -1243,7 +1243,7 @@ button:active:not(:disabled) { opacity: .75; }
 <div id="notice" class="notice" role="status" aria-live="polite"></div>
 
 <!-- CATÁLOGO (pesquisa dos 1324 exercícios) -->
-<div id="catBg" class="cat-bg">
+<div id="catBg" class="cat-bg" role="dialog" aria-modal="true" aria-label="Catálogo de exercícios">
   <div class="cat-hdr">
     <input id="catQ" class="cat-q" type="search" placeholder="Pesquisar (em inglês): squat, curl, row…"
            autocomplete="off" oninput="catInput(this.value)">
@@ -1258,7 +1258,7 @@ button:active:not(:disabled) { opacity: .75; }
 </div>
 
 <!-- SCANNER CÓDIGO DE BARRAS -->
-<div id="scanBg" class="scan-bg">
+<div id="scanBg" class="scan-bg" role="dialog" aria-modal="true" aria-label="Ler código de barras">
   <video id="scanVid" class="scan-vid" playsinline muted></video>
   <div class="scan-frame"></div>
   <div class="scan-hint">Aponta a câmara ao código de barras</div>

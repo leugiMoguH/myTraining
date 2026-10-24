@@ -42,6 +42,16 @@ async function importBackup(e){
       const isObj=o=>!!o && typeof o==='object' && !Array.isArray(o);
       if(!isObj(incoming) || !isObj(incoming.sets) || !isObj(incoming.done))
         throw new Error('estrutura inválida');
+      // Campos ausentes continuam compativeis com copias antigas; tipos presentes devem ser validos.
+      const optional=(key,valid)=>incoming[key]===undefined || valid(incoming[key]);
+      const records=a=>Array.isArray(a) && a.every(isObj);
+      const validLog=o=>isObj(o) && Object.values(o).every(a=>records(a) && a.every(e=>e.sets===undefined || records(e.sets)));
+      if(!Object.values(incoming.sets).every(Array.isArray) ||
+         !optional('log',validLog) || !optional('workouts',records) || !optional('measures',records) ||
+         !optional('sessions',records) || !optional('intake',records) ||
+         !['profile','prefs','media','nutri'].every(k=>optional(k,isObj)) ||
+         !optional('routine',o=>o===null || isObj(o) && Object.values(o).every(d=>isObj(d) && records(d.ex))))
+        throw new Error('estrutura interna invalida');
       // Recusar enquanto o guiado está aberto evita referências WO/descanso antigas.
       if(guided()){ show('Sai do treino guiado antes de importar uma cópia.', 'info'); return; }
       if(!await confirmDialog({title:'Importar backup', message:'Importar substitui o progresso atual. Continuar?', danger:true, confirmLabel:'Importar'})) return;

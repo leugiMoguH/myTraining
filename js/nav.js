@@ -14,7 +14,7 @@ import { closeWorkout, openWorkout, refreshWorkout, startWorkout } from './worko
 
 const SIDE = [
   { id: '__hoje',   icon: '🏠', label: 'Início' },
-  { id: '__perfil', icon: '📈', label: 'Evolução' },
+  { id: '__perfil', icon: '📈', label: 'Evolução' },   /* id antigo = ecrã Evolução; Perfil = '__eu', Plano = '__plano' (via Opções) */
   { id: 'main' },
   { id: '__hist',   icon: '📅', label: 'Histórico' },
   { id: 'opts',     icon: '⚙️', label: 'Opções' },
@@ -147,8 +147,8 @@ function syncNav() {
     main.setAttribute('aria-label', f.label === 'Treino' ? 'Escolher treino' : `${f.label} treino`);
     main.innerHTML = `<span class="nb-i" aria-hidden="true">${f.icon}</span><span class="nb-l">${f.label}</span>`;
   }
-  /* o ecrã atual: um dia concreto conta como Histórico (vem da Semana); a Nutrição vive nas Opções */
-  const at = ST.view === '__dia' || ST.view === '__semana' || ST.view === '__ex' ? '__hist' : ST.view === '__pers' ? '__hoje' : ST.view;
+  /* o ecrã atual: um dia concreto conta como Histórico (vem da Semana); Plano, Perfil e Nutrição vivem nas Opções */
+  const at = ST.view === '__dia' || ST.view === '__semana' ? '__hist' : ST.view === '__ex' ? '__perfil' : ST.view === '__pers' ? '__hoje' : ['__plano', '__eu', '__nutri'].includes(ST.view) ? 'opts' : ST.view;
   document.querySelectorAll('.nb[data-day]').forEach(b => {
     const on = b.dataset.day === at;
     b.classList.toggle('active', on);

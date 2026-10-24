@@ -183,7 +183,7 @@ function nutriPlanHTML(food){
     <div class="ntar"><span class="ntar-v">${t.water}L</span><span class="ntar-l">água</span></div>
   </div>
   <div class="nmacros">Hidratos ~${t.carbG}g · Gordura ~${t.fatG}g</div>`; })()
-  : `<div class="nnote">⚠ Completa o <b>Perfil</b> (idade, altura, peso) para veres as metas. <button class="linklike" onclick="render('__perfil')">Ir ao Perfil 👤</button></div>`;
+  : `<div class="nnote">⚠ Completa o <b>Perfil</b> (idade, altura) e regista o peso em <b>Evolução</b> para veres as metas. <button class="linklike" onclick="render('__eu')">Ir ao Perfil 👤</button> · <button class="linklike" onclick="render('__perfil')">Registar peso 📈</button></div>`;
   return `
   <div class="nplan-hdr">
     <div><div class="day-hdr-name">🥗 Nutrição</div><div class="day-hdr-sub">${food.meals||4} refeições${goalTxt?` · ${goalTxt}`:''}</div></div>

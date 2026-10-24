@@ -39,6 +39,8 @@ const state = page => page.evaluate(() => JSON.parse(localStorage.getItem('trein
 const shown = (page, sel) => page.locator(sel).isVisible();
 const shot = (page, n) => page.screenshot({ path: join(SHOTS, `onb-${n}.png`) });
 const tap = async (page, text) => { await page.locator('#onbBg').getByRole('button', { name: text }).first().tap(); await settleDialog(page); };
+/* caminho real do utilizador: Opções → Plano (a folha fecha-se ao escolher) */
+const goPlano = async page => { await page.locator('#bnav').getByText('Opções').tap(); await page.locator('.sheet-item', { hasText: 'Plano' }).tap(); await page.locator('.ob-plan').waitFor(); };
 
 /* ═══ 1. UTILIZADOR NOVO ═══════════════════════════════════════════════════ */
 {
@@ -112,9 +114,9 @@ const tap = async (page, text) => { await page.locator('#onbBg').getByRole('butt
 
   /* Perfil: rever e reorganizar sem repetir o acolhimento */
   await page.evaluate(() => { if (document.getElementById('woBg').classList.contains('show')) window.closeWorkout(); });
-  await page.locator('#bnav').getByText('Evolução').tap();
-  check(/O meu plano/.test(await page.locator('#content').innerText()), 'novo: Perfil sem o cartão do plano');
-  await shot(page, '7-perfil');
+  await goPlano(page);
+  check(/rotina da semana/i.test(await page.locator('#content').innerText()) && /todos os dados/.test(await page.locator('#content').innerText()), 'novo: Plano sem a rotina nem o âmbito da cópia');
+  await shot(page, '7-plano');
   await page.getByRole('button', { name: /Reorganizar a semana/ }).tap();
   check(await shown(page, '#onbBg.show') && /Reorganizar/.test(await page.locator('#onbBody h1').innerText()), 'novo: reorganizar não abriu');
   /* há treino em curso: o dia dele não pode mover-se; o resto troca-se à vontade (inclusive para um dia de descanso) */
@@ -156,7 +158,7 @@ const tap = async (page, text) => { await page.locator('#onbBg').getByRole('butt
   check(/Leg press|Segunda|Semana/.test(await page.locator('#content').innerText()), 'existente: Histórico vazio');
 
   /* plano novo opcional, com cópia e reposição */
-  await page.locator('#bnav').getByText('Evolução').tap();
+  await goPlano(page);
   const routineBefore = JSON.stringify(st.routine);
   await shot(page, '10-existente-perfil');
   await page.getByRole('button', { name: /Criar plano novo/ }).tap();
@@ -167,7 +169,7 @@ const tap = async (page, text) => { await page.locator('#onbBg').getByRole('butt
   check(st.routine.Segunda.label !== 'Pernas & Ombros' && st.plan, 'existente: a rotina não mudou');
   const snap = await page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2_snap')));
   check(snap && JSON.stringify(snap.state.routine) === routineBefore, 'existente: a cópia anterior ao plano não é a rotina antiga');
-  await page.locator('#bnav').getByText('Evolução').tap();
+  await goPlano(page);
   await page.getByRole('button', { name: /Repor o estado anterior/ }).tap(); await settleDialog(page);
   await page.waitForTimeout(200);
   st = await state(page);

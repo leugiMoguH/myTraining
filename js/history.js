@@ -9,7 +9,7 @@ import { addSet, checkDate, deleteEntry, deleteSet, editSet, moveEntry } from '.
 import { ST, esc, save, todayStr } from './state.js';
 import { render } from './ui.js';
 
-const HX = { metric: 'carga', period: '6m', edit: null, date: null, adding: false };
+const HX = { metric: 'carga', period: '6m', edit: null, date: null, adding: false, from: '__perfil' };   /* from = ecrã de onde se abriu (volta para lá) */
 const PERIODS = { '3m': ['3 meses', 92], '6m': ['6 meses', 183], all: ['Tudo', 0] };
 const fmtD = d => String(d).split('-').reverse().join('/');
 const num = v => String(Math.round(v * 100) / 100).replace('.', ',');
@@ -30,19 +30,21 @@ document.addEventListener('pr', e => {
 });
 
 /* ── navegação ─────────────────────────────────────────────────────────────────────────────────── */
-function hxOpen(name) { Object.assign(HX, { edit: null, date: null, adding: false }); ST.hx = String(name); render('__ex'); window.scrollTo(0, 0); }
-function hxBack() { render('__hist'); }
+function hxOpen(name) { Object.assign(HX, { edit: null, date: null, adding: false, from: ST.view === '__dia' ? ST.day : ST.view === '__ex' ? HX.from : ST.view }); ST.hx = String(name); render('__ex'); window.scrollTo(0, 0); }
+function hxBack() { render(HX.from || '__perfil'); }
 function hxMetric(m) { if (METRICS[m]) { HX.metric = m; render('__ex'); } }
 function hxPeriod(p) { if (PERIODS[p]) { HX.period = p; render('__ex'); } }
 
 /* ── lista de exercícios no Histórico ───────────────────────────────────────────────────────────── */
-function exerciseListHTML() {
-  const list = exercisesWithLog();
-  if (!list.length) return '';
-  return `<div class="cu-title">Evolução por exercício</div><div class="week-list">${list.map(x => `
+const rowHTML = x => `
     <button class="wk-row hx-row" data-n="${esc(x.name)}" onclick="hxOpen(this.dataset.n)">
       <div class="wk-row-main"><div class="wk-row-day">${esc(x.name)}</div>
-      <div class="wk-row-sub">${x.n} ${x.n === 1 ? 'sessão' : 'sessões'} · última ${fmtD(x.last)}</div></div><div class="wk-row-st">›</div></button>`).join('')}</div>`;
+      <div class="wk-row-sub">${x.n} ${x.n === 1 ? 'sessão' : 'sessões'} · última ${fmtD(x.last)}</div></div><div class="wk-row-st">›</div></button>`;
+function exerciseListHTML(limit = Infinity) {
+  const list = exercisesWithLog();
+  if (!list.length) return '<div class="nsec-title">Cargas e recordes por exercício</div><div class="ndisc">Ainda não há cargas registadas. Aparecem aqui assim que registares a primeira.</div>';
+  const rest = list.slice(limit);
+  return `<div class="nsec-title">Cargas e recordes por exercício</div><div class="week-list ev-list">${list.slice(0, limit).map(rowHTML).join('')}</div>${rest.length ? `<details class="ev-more"><summary>Ver todos os exercícios (${list.length})</summary><div class="week-list ev-list">${rest.map(rowHTML).join('')}</div></details>` : ''}`;
 }
 
 /* ── ecrã do exercício ──────────────────────────────────────────────────────────────────────────── */
@@ -124,7 +126,7 @@ function renderExercise(content) {
   content.innerHTML = '';
   const box = document.createElement('div');
   box.className = 'full hx';
-  box.innerHTML = `<button class="reset-btn btn-ghost hx-back" onclick="hxBack()">‹ Histórico</button>
+  box.innerHTML = `<button class="reset-btn btn-ghost hx-back" onclick="hxBack()">‹ Voltar</button>
     <div class="cu-title hx-name">${esc(name || '')}</div>
     ${sessions.length ? recordsHTML(sessions) : ''}
     ${sessions.length ? adviceHTML(name) : ''}

@@ -13,6 +13,7 @@ import { progInc, progScheme, saveLoad, toggleChart } from './loads.js';
 import { addMedia, delMedia } from './media.js';
 import { enableNotif } from './notify.js';
 import { addIntakeUI, cancelNutri, delIntake, editNutri, fillIntake, saveNutri, scanBarcode, stopScan } from './nutrition.js';
+import { planBack, planEdit } from './plan-screen.js';
 import { cancelMeasureEdit, delMeasure, editMeasure, saveMeasure, saveProfile, setMetric } from './profile.js';
 import { slNext, slPrev, slTo } from './sliders.js';
 import { esc, markDone, resetDay, toggleSet } from './state.js';
@@ -21,10 +22,11 @@ import { hxAddOpen, hxAddSave, hxBack, hxCancel, hxDelDay, hxDelSet, hxEditDate,
 import { goDay, render, toggleDayDone, toggleTodayList } from './ui.js';
 import { toggleWake } from './wake.js';
 import { heroStart } from './nav.js';
-import { obApply, obBack, obClose, obDay, obEquip, obLimit, obName, obNext, obOpen, obPick, obSet, obSkip, obUndoPlan } from './onboarding.js';
+import { obDiscard, obApply, obBack, obClose, obDay, obEquip, obLimit, obName, obNext, obOpen, obPick, obSet, obSkip, obUndoPlan } from './onboarding.js';
 import { closeWorkout, startWorkout, woDoSet, woFinish, woGo, woInfo, woPause, woStep, woSwap, woUndo } from './workout.js';
 
 Object.assign(window, {
+  planBack, planEdit, obDiscard,
   setThemePref,
   addIntakeUI,
   addMedia,

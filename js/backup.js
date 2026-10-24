@@ -5,7 +5,7 @@ import { DEFAULT_DAYS } from './data.js';
 import { migrate, snapshot } from './migrate.js';
 import { DAYS } from './routine.js';
 import { syncNotifUI } from './notify.js';
-import { bodyFat } from './profile.js';
+import { bodyFat, clearDrafts } from './profile.js';
 import { ST, est1RM, fmtTime, save, todayStr, setST } from './state.js';
 import { REST_SEC, setRest, timerDismiss } from './timer.js';
 import { render } from './ui.js';
@@ -65,6 +65,7 @@ async function importBackup(e){
       const migration=migrate();   /* ids, onb e meta também para backups antigos */
       if(migration.error || migration.saved===false || !save()) throw new Error(migration.error || 'Não foi possível guardar o backup.');
       } catch(err) { setST(previous); setRest(previousRest); save(); throw err; }
+      clearDrafts();
       timerDismiss();
       closeSheet();
       render(ST.day);

@@ -30,3 +30,9 @@ As exclusões por limitação (`avoid` em `js/planner.js`) são **conservadoras 
 ## Roadmap
 - Smartwatch: `docs/SMARTWATCH_VIABILIDADE.md`.
 - Strava: `docs/STRAVA_VIABILIDADE.md` (prova só local; nada enviado). Próximo passo: o dono verifica no Mi Fitness (envio de musculação ao Strava, FC, Health Connect).
+
+## Bloco 6 — Plano, Perfil e Evolução (2026-10-24)
+- Evolução (`__perfil`, aba): exercícios com recordes (8 + «ver todos»), medidas (registo e histórico recolhidos), mapa muscular, volume. Plano (`__plano`) e Perfil (`__eu`) via Opções; atalho no Hoje. SW `treino-v35`. Testes: `test:b6`.
+- Rascunhos: dados pessoais e medidas ficam em memória durante a navegação (perdem-se ao recarregar a página); a edição das preferências (acolhimento) persiste em `ST.onb.draft` + `ST.onb.editing` (retomar/descartar).
+- Alterar preferências cria nova proposta; só muda o plano ao confirmar (não há gravação direta de preferências).
+- Codex: plano e diff revistos (4 achados do diff corrigidos). Limitações: Evolução continua longa (mapa/volume no fim); ícones são emojis (convenção da app); sem teste em telemóvel físico.

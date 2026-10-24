@@ -42,10 +42,11 @@ No build, no bundler, no framework. HTML/CSS estáticos + **ES modules** nativos
 | `profile.js` | perfil, medidas, % gordura, macros |
 | `workout.js` | **ecrã** de treino guiado (barra Sair·tempo·Pausar / corpo / dock com kg×reps e a ação principal); descanso em `#woRest` |
 | `session.js` | `ST.session`: máquina de estados do treino (NOT_STARTED/ACTIVE/PAUSED/COMPLETED/ABANDONED), tempo por timestamps, `reconcileSession` |
-| `nav.js` | barra inferior (Início · Evolução · **Treino** · Histórico · Opções; a Semana vive dentro do Histórico, ecrã `__hist`) e faixa "treino em curso" |
+| `nav.js` | barra inferior (Início · Evolução · **Treino** · Histórico · Opções; a Semana vive dentro do Histórico, ecrã `__hist`) e faixa "treino em curso". **Ids de vista:** `__perfil` = ecrã **Evolução** (id antigo mantido de propósito), `__eu` = **Perfil** (dados pessoais + preferências de treino), `__plano` = **Plano**; Plano/Perfil/Nutrição abrem-se por Opções (e atalho «Ver o plano» no Hoje) e assinalam a aba Opções |
 | `backup.js` | ⚙ Definições, export/import JSON, exports CSV |
 | `planner.js` | motor de propostas **puro** (sem ST/DOM): 3 modelos (corpo inteiro, superior/inferior), padrões de movimento (`pat`), limitações, equipamento |
 | `plan.js` | aplica uma proposta à `ST.routine`, `swapDays` (reorganizar), `estimateMin`; `ST.prefs`, `ST.plan` |
+| `plan-screen.js` | ecrã **Plano** (`__plano`): rotina da semana por dia (consultar, ✎ editar via `BACK` em `ui.js`), gestão do plano e cópia de **todos** os dados |
 | `onboarding.js` | acolhimento retomável + proposta + reorganizar (overlay `#onbBg`) e o cartão «O meu plano» do Perfil; handlers `ob*` na ponte |
 | `migrate.js` · `ids.js` · `notice.js` | cópia **verificada** (`treino_v2_premigration` nunca substituída, `treino_v2_snap` a última antes de um plano novo), migração repetível, ids persistentes · avisos visíveis (`app-notice`) |
 

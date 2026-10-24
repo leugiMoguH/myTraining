@@ -4,10 +4,25 @@ import { fieldError } from './inline-error.js';
 import { chartSVG } from './charts.js';
 import { calcTargets } from './nutrition.js';
 import { ST, fmtDateTime, fmtTime, nowISO, save, todayStr } from './state.js';
-import { planCardHTML } from './onboarding.js';
+import { prefsSummaryHTML } from './onboarding.js';
+import { exerciseListHTML } from './history.js';
 import { muscleMapHTML, muscleMapWarm } from './muscle-map.js';
 import { volumeHTML } from './volume.js';
 
+/* Rascunhos dos formulários (dados pessoais, medida nova, medida em edição): guardados em memória ao escrever e repostos
+   quando o ecrã volta a desenhar-se. Cada formulário tem a sua chave (data-draft); guardar/cancelar só limpa a sua. */
+const DRAFT = {};
+document.addEventListener('input', e => {
+  const t = e.target, f = t && t.closest && t.closest('[data-draft]');
+  if (f && t.id) (DRAFT[f.dataset.draft] = DRAFT[f.dataset.draft] || {})[t.id] = t.value;
+});
+const hasDraft = key => !!DRAFT[key] && Object.keys(DRAFT[key]).length > 0;
+function applyDraft(key) { Object.entries(DRAFT[key] || {}).forEach(([id, v]) => { const el = document.getElementById(id); if (el) el.value = v; }); }
+const clearDraft = key => { delete DRAFT[key]; };
+const clearDrafts = () => { Object.keys(DRAFT).forEach(k => delete DRAFT[k]); };
+
+/* Três ecrãs com os dados deste módulo (ids de vista): '__perfil' = Evolução (a aba; id antigo, mantém-se para não
+   mudar o ecrã de quem tinha a app aberta), '__eu' = Perfil (dados pessoais e preferências), '__plano' = Plano. */
 /* ═══════════════════════ PERFIL ═════════════════════ */
 function getProfile(){ return ST.profile||{}; }
 function bodyMetrics(){ const p=getProfile(); return { sex:p.sex||'m', age:+p.age||0, height:+p.height||0, goal:p.goal||'manter', activity:p.activity||'mod', weight:latestWeight() }; }
@@ -60,15 +75,15 @@ function measuresDashboard(){
 function profileDataHTML(){
   const p=getProfile(), sel=(v,o)=>v===o?' selected':'';
   return `
-  <div class="nplan-hdr"><div><div class="day-hdr-name">👤 Perfil</div><div class="day-hdr-sub">Dados base (fonte para a Nutrição)</div></div></div>
-  <div class="nform">
+  <div class="nplan-hdr"><div><div class="day-hdr-name">👤 Dados pessoais</div><div class="day-hdr-sub">Fonte para as metas de Nutrição</div></div></div>
+  <div class="nform" data-draft="profile">
     <div class="nrow">
       <label class="nfield"><span>Sexo</span><select id="p-sex"><option value="m"${sel(p.sex||'m','m')}>Masculino</option><option value="f"${sel(p.sex,'f')}>Feminino</option></select></label>
       <label class="nfield"><span>Idade</span><input id="p-age" type="number" min="10" max="100" inputmode="numeric" value="${p.age||''}"></label>
       <label class="nfield"><span>Altura (cm) *</span><input id="p-height" type="number" min="120" max="230" inputmode="numeric" value="${p.height||''}"></label>
     </div>
     <div class="nrow">
-      <label class="nfield"><span>Objetivo</span><select id="p-goal"><option value="perder"${sel(p.goal,'perder')}>Perder gordura</option><option value="manter"${sel(p.goal||'manter','manter')}>Manter</option><option value="ganhar"${sel(p.goal,'ganhar')}>Ganhar músculo</option></select></label>
+      <label class="nfield"><span>Objetivo alimentar</span><select id="p-goal"><option value="perder"${sel(p.goal,'perder')}>Perder gordura</option><option value="manter"${sel(p.goal||'manter','manter')}>Manter</option><option value="ganhar"${sel(p.goal,'ganhar')}>Ganhar músculo</option></select></label>
       <label class="nfield"><span>Atividade (fora do treino)</span><select id="p-activity"><option value="sed"${sel(p.activity,'sed')}>Sedentário</option><option value="leve"${sel(p.activity,'leve')}>Leve</option><option value="mod"${sel(p.activity||'mod','mod')}>Moderado</option><option value="alto"${sel(p.activity,'alto')}>Alto</option></select></label>
     </div>
     <button class="nbtn" onclick="saveProfile()">Guardar dados</button>
@@ -79,17 +94,15 @@ function saveProfile(){
   const height=parseFloat(v('p-height'));
   if(!(height>0)){ fieldError('p-height','A altura é obrigatória.'); return; }
   ST.profile={ sex:v('p-sex'), age:parseInt(v('p-age'),10)||0, height, goal:v('p-goal'), activity:v('p-activity') };
-  save(); renderProfile();
+  clearDraft('profile'); save(); renderProfile();
 }
 
-function measuresHTML(){
+function measureFormHTML(){
   const editing=MEASURE_EDIT_DATE;
   const src=editing ? (ST.measures||[]).find(e=>e.date===editing) : latestMeasure();
-  const g=f=> src&&src[f]!=null?src[f]:'', bf=src?bodyFat(src):null;
+  const g=f=> src&&src[f]!=null?src[f]:'';
   const theDate=editing||todayStr();
-  return `
-  <div class="nsec-title">Medidas${editing?` · <span style="color:var(--accent)">a editar ${editing}</span>`:''}${bf!=null?` · <span style="color:var(--accent2)">${bf}% gordura (calc.)</span>`:''}</div>
-  <div class="nform">
+  return `<div class="nform" data-draft="measure:${editing||'new'}">
     <label class="nfield"><span>Data</span><input id="m-date" type="date" max="${todayStr()}" value="${theDate}"></label>
     <div class="mgrid">
       <label class="nfield"><span>Peso (kg) *</span><input id="m-weight" type="number" step="0.1" inputmode="decimal" value="${g('weight')}"></label>
@@ -102,8 +115,17 @@ function measuresHTML(){
     </div>
     <button class="nbtn" onclick="saveMeasure()">${editing?'Guardar alterações':'Registar medidas de hoje'}</button>
     ${editing?`<button class="reset-btn" onclick="cancelMeasureEdit()">✕ Cancelar edição</button>`:''}
-  </div>
-  ${ (ST.measures||[]).length ? measuresDashboard()+measuresHistoryHTML() : '<div class="ndisc">Regista o peso (e cintura+pescoço para calcular a % de gordura) para veres a evolução.</div>' }`;
+  </div>`;
+}
+/* Evolução das medidas: gráfico primeiro; registar e o histórico completo ficam em secções que se abrem (abertas se há edição/rascunho) */
+function measuresHTML(){
+  const editing=MEASURE_EDIT_DATE, src=editing ? (ST.measures||[]).find(e=>e.date===editing) : latestMeasure();
+  const bf=src?bodyFat(src):null, has=(ST.measures||[]).length>0;
+  const formOpen=!!editing||hasDraft('measure:new');
+  return `<div class="nsec-title">Medidas corporais${editing?` · <span style="color:var(--accent)">a editar ${editing}</span>`:''}${bf!=null?` · <span style="color:var(--accent2)">${bf}% gordura (calc.)</span>`:''}</div>
+  ${has ? measuresDashboard() : '<div class="ndisc">Regista o peso (e cintura+pescoço para calcular a % de gordura) para veres a evolução.</div>'}
+  <details class="ev-more" id="m-form"${formOpen?' open':''}><summary>${editing?'Editar registo':'＋ Registar medidas'}</summary>${measureFormHTML()}</details>
+  ${has ? `<details class="ev-more" id="m-hist"${editing?' open':''}><summary>Histórico de medidas (${(ST.measures||[]).length})</summary>${measuresHistoryHTML()}</details>` : ''}`;
 }
 function saveMeasure(){
   const num=id=>{ const el=document.getElementById(id); const x=el?parseFloat(el.value):NaN; return x>0?x:undefined; };
@@ -120,24 +142,24 @@ function saveMeasure(){
   if(idx>=0) arr[idx]=Object.assign({},arr[idx],entry); else arr.push(entry);
   arr.sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
   ST.measures=arr;
-  MEASURE_EDIT_DATE=null;
-  save(); renderProfile();
+  clearDraft('measure:'+(MEASURE_EDIT_DATE||'new')); MEASURE_EDIT_DATE=null;
+  save(); renderEvolution();
 }
-function editMeasure(date){ MEASURE_EDIT_DATE=date; renderProfile(); }
-function cancelMeasureEdit(){ MEASURE_EDIT_DATE=null; renderProfile(); }
+function editMeasure(date){ MEASURE_EDIT_DATE=date; renderEvolution(); }
+function cancelMeasureEdit(){ clearDraft('measure:'+MEASURE_EDIT_DATE); MEASURE_EDIT_DATE=null; renderEvolution(); }
 async function delMeasure(date){
   const entry=()=>JSON.stringify((ST.measures||[]).find(e=>e.date===date));
   const before=entry(); if(!before) return;
   if(!await confirmDialog({title:'Apagar medidas', confirmLabel:'Apagar', message:'Apagar este registo de medidas?', danger:true})) return;
   if(before!==entry()) return;
   ST.measures=(ST.measures||[]).filter(e=>e.date!==date);
-  if(MEASURE_EDIT_DATE===date) MEASURE_EDIT_DATE=null;
-  save(); renderProfile();
+  if(MEASURE_EDIT_DATE===date){ clearDraft('measure:'+date); MEASURE_EDIT_DATE=null; }
+  save(); renderEvolution();
 }
 function measuresHistoryHTML(){
   const arr=(ST.measures||[]).slice().sort((a,b)=>a.date<b.date?1:-1);
   if(!arr.length) return '';
-  return `<div class="nsec-title">Histórico de medidas</div><div class="ilist">`+arr.map(e=>{
+  return `<div class="ilist">`+arr.map(e=>{
     const bf=bodyFat(e), parts=[`${e.weight}kg`];
     if(bf!=null) parts.push(`${bf}% gord.`);
     ['waist','neck','hip','chest','arm','thigh'].forEach(f=>{ if(e[f]!=null) parts.push(`${METRIC_DEF[f][0]} ${e[f]}`); });
@@ -147,7 +169,7 @@ function measuresHistoryHTML(){
 
 function macrosSummaryHTML(){
   const b=bodyMetrics();
-  if(!(b.age>0 && b.height>0 && b.weight>0)) return `<div class="nsec-title">Macros &amp; metas</div><div class="ndisc">Preenche idade + altura e regista o peso para calcular as metas.</div>`;
+  if(!(b.age>0 && b.height>0 && b.weight>0)) return `<div class="nsec-title">Macros &amp; metas</div><div class="ndisc">Preenche idade + altura aqui e regista o peso em Evolução para calcular as metas.</div>`;
   const t=calcTargets(b), goalTxt={perder:'perder gordura',manter:'manter',ganhar:'ganhar músculo'}[b.goal]||b.goal;
   return `<div class="nsec-title">Macros &amp; metas</div>
   <div class="ntargets">
@@ -156,14 +178,29 @@ function macrosSummaryHTML(){
     <div class="ntar"><span class="ntar-v">${t.water}L</span><span class="ntar-l">água</span></div>
   </div>
   <div class="nmacros">Hidratos ~${t.carbG}g · Gordura ~${t.fatG}g · objetivo: ${goalTxt}</div>
-  <div class="ndisc">As sugestões de refeições estão na tab 🥗 Nutrição.</div>`;
+  <button class="reset-btn btn-secondary" onclick="render('__nutri')">🥗 Abrir Nutrição</button>`;
 }
+const backHTML=`<button class="reset-btn btn-ghost hx-back" onclick="render('__hoje')">‹ Início</button>`;
+/* só o formulário que está desenhado: medida nova OU a que se está a editar (nunca a nova por cima de um registo antigo) */
+const measureKey=()=>'measure:'+(MEASURE_EDIT_DATE||'new');
+
+/* Perfil ('__eu'): quem és (dados pessoais, preferências de treino) e as metas que daí saem */
 function renderProfile(content){
   content=content||document.getElementById('content');
   document.getElementById('hdrSub').textContent='Perfil';
   document.getElementById('progFill').style.width='0%';
-  content.innerHTML=`<div class="nutri-wrap">${planCardHTML()}${profileDataHTML()}${measuresHTML()}${macrosSummaryHTML()}${muscleMapHTML()}${volumeHTML()}</div>`;
+  content.innerHTML=`<div class="nutri-wrap">${backHTML}${prefsSummaryHTML()}${profileDataHTML()}${macrosSummaryHTML()}</div>`;
+  applyDraft('profile');
+}
+
+/* Evolução ('__perfil', a aba): só acompanhamento — exercícios, recordes, medidas, músculos, volume */
+function renderEvolution(content){
+  content=content||document.getElementById('content');
+  document.getElementById('hdrSub').textContent='Evolução';
+  document.getElementById('progFill').style.width='0%';
+  content.innerHTML=`<div class="nutri-wrap">${exerciseListHTML(8)}${measuresHTML()}${muscleMapHTML()}${volumeHTML()}</div>`;
+  applyDraft(measureKey());
   muscleMapWarm();
 }
 
-export { getProfile, bodyMetrics, profileComplete, latestMeasure, latestWeight, bodyFat, METRIC_DEF, MEASURE_METRIC, MEASURE_EDIT_DATE, measureSeries, metricChartHTML, setMetric, measuresDashboard, profileDataHTML, saveProfile, measuresHTML, saveMeasure, editMeasure, cancelMeasureEdit, delMeasure, measuresHistoryHTML, macrosSummaryHTML, renderProfile };
+export { clearDrafts, renderEvolution, getProfile, bodyMetrics, profileComplete, latestMeasure, latestWeight, bodyFat, METRIC_DEF, MEASURE_METRIC, MEASURE_EDIT_DATE, measureSeries, metricChartHTML, setMetric, measuresDashboard, profileDataHTML, saveProfile, measuresHTML, saveMeasure, editMeasure, cancelMeasureEdit, delMeasure, measuresHistoryHTML, macrosSummaryHTML, renderProfile };

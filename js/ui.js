@@ -2,17 +2,18 @@
 import { gifUrlFor } from './catalog.js';
 import { MUSCLES, bodySVG, muscleSlide, noImgSlide } from './charts.js';
 import { customEntryHTML, renderCustom } from './custom.js';
-import { editorHTML, isEditing, toggleEdit } from './editor.js';
+import { editorHTML, isEditing, stopEdit, toggleEdit } from './editor.js';
 import { CUSTOM_DAY, DAYS } from './routine.js';
 import { openInfo } from './guide.js';
 import { saveLoad, toggleChart } from './loads.js';
 import { DEMOS, demoSlide, mediaSlide } from './media.js';
 import { renderNutri } from './nutrition.js';
 import { estimateMin, getPrefs } from './plan.js';
-import { renderProfile } from './profile.js';
+import { renderEvolution, renderProfile } from './profile.js';
+import { renderPlan } from './plan-screen.js';
 import { slInit, slNext, slPrev, slTo } from './sliders.js';
 import { agenda, completeDay, dayStatus, reopenDay, swapOriginal } from './schedule.js';
-import { exerciseListHTML, renderExercise } from './history.js';
+import { renderExercise } from './history.js';
 import { ST, esc, getLog, getProgress, getSets, key, markDone, resetDay, save, toggleSet } from './state.js';
 import { REST_SEC, timerStart } from './timer.js';
 import { syncNav } from './nav.js';
@@ -20,6 +21,9 @@ import { fmtDur, liveDay, statsOf } from './session.js';
 import { startWorkout } from './workout.js';
 
 /* ═══════════════════════ RENDER ═════════════════════ */
+/* Regresso ao ecrã de onde se abriu um dia (ex.: Editar a partir do Plano). Só vive enquanto se fica nesse dia. */
+let BACK = null;
+function setBack(view, label, day) { BACK = { view, label, day }; }
 function refreshProgress() {
   /* no treino personalizado o dia ativo não é ST.day (que continua a ser um dia real) */
   const day=ST.view==='__pers' ? CUSTOM_DAY : ST.day;
@@ -262,7 +266,7 @@ function renderToday(content) {
 
   const head = document.createElement('div');
   head.className = 'full';
-  head.innerHTML = weekStripHTML(a);
+  head.innerHTML = weekStripHTML(a) + `<div class="today-plan"><button class="linklike" onclick="render('__plano')">📋 Ver o plano ›</button></div>`;
   content.appendChild(head);
 
   /* dia de descanso e sem atrasos, ou semana fechada → não há treino a mostrar */
@@ -334,8 +338,8 @@ function renderHistory(content) {
   content.appendChild(box);
   const ex = document.createElement('div');
   ex.className = 'full';
-  ex.innerHTML = exerciseListHTML();
-  if (ex.innerHTML) content.appendChild(ex);
+  ex.innerHTML = `<button class="ev-link" onclick="render('__perfil')"><div class="wk-row-main"><div class="wk-row-day">📈 Evolução por exercício</div><div class="wk-row-sub">Cargas, recordes, gráficos e medidas</div></div><div class="wk-row-st">›</div></button>`;
+  content.appendChild(ex);
 }
 
 /* Um dia concreto. `standalone` a falso = está embutido no ecrã "Hoje". */
@@ -346,7 +350,7 @@ function renderDay(content, day, standalone = true) {
     /* a tira da semana anda sempre com o utilizador: é a navegação entre dias */
     const strip = document.createElement('div');
     strip.className = 'full';
-    strip.innerHTML = weekStripHTML(agenda());
+    strip.innerHTML = (BACK && BACK.day === day ? `<button class="reset-btn btn-ghost hx-back" onclick="planBack()">‹ ${esc(BACK.label)}</button>` : '') + weekStripHTML(agenda());
     content.appendChild(strip);
   }
   if (!DAYS[day]) return;
@@ -415,6 +419,7 @@ function render(target) {
   if (!isView && ST.view === '__hoje' && target === ST.day) target = '__hoje';
   /* o treino personalizado tem ecrã próprio: ST.day nunca pode ser ele */
   if (target === CUSTOM_DAY || (!isView && ST.view === '__pers' && target === ST.day)) target = '__pers';
+  if (BACK && (isView || target !== BACK.day)) { if (isEditing(BACK.day)) stopEdit(); BACK = null; }   /* sair do dia aberto a partir do Plano desliga também a edição */
   ST.view = String(target).startsWith('__') ? target : '__dia';
   if (ST.view === '__dia') ST.day = target;
   save();
@@ -422,7 +427,9 @@ function render(target) {
   syncNav();
 
   if (target === '__nutri') { renderNutri(content); return; }
-  if (target === '__perfil'){ renderProfile(content); return; }
+  if (target === '__perfil'){ renderEvolution(content); return; }   /* a aba «Evolução» (id antigo) */
+  if (target === '__eu')    { renderProfile(content); return; }     /* Perfil: dados pessoais e preferências */
+  if (target === '__plano') { renderPlan(content); return; }
   if (target === '__hist')  { renderHistory(content); return; }
   if (target === '__ex')    { renderExercise(content); return; }
   if (target === '__hoje')  { renderToday(content); return; }
@@ -430,4 +437,4 @@ function render(target) {
   renderDay(content, target);
 }
 
-export { refreshProgress, refreshCard, buildCard, gifSlide, render, renderDay, renderToday, renderWeek, renderHistory, goDay, toggleDayDone, toggleTodayList };
+export { setBack, refreshProgress, refreshCard, buildCard, gifSlide, render, renderDay, renderToday, renderWeek, renderHistory, goDay, toggleDayDone, toggleTodayList };

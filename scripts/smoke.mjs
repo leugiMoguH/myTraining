@@ -52,7 +52,7 @@ try {
 
 /* ── 3. percorrer os ecrãs principais: apanha erros dentro dos render ────── */
 const { DAYS } = await import(new URL('routine.js', JS));
-const screens = ['__hoje', '__semana', '__hist', ...Object.keys(DAYS), '__perfil', '__nutri'];
+const screens = ['__hoje', '__semana', '__hist', ...Object.keys(DAYS), '__perfil', '__eu', '__plano', '__nutri'];
 for (const s of screens) {
   try { globalThis.render(s); } catch (e) { fail.push(`render('${s}') rebentou: ${e.message}`); }
 }

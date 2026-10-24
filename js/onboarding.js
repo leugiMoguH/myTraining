@@ -7,11 +7,16 @@ import { applyPlan, estimateMin, getPrefs, hasPlan, isTraining, swapDays } from 
 import { ensureOnb, isExistingUser, restoreSnapshot, snapshotInfo } from './migrate.js';
 import { EQUIPS, GOAL_TEXT, LIMITS, MINS, WEEK, normalizePrefs, proposePlan } from './planner.js';
 import { ST, esc, save } from './state.js';
+import { clearDrafts } from './profile.js';
 import { render } from './ui.js';
 
 const el = id => document.getElementById(id);
 const SHORT = { Segunda: 'Seg', Terça: 'Ter', Quarta: 'Qua', Quinta: 'Qui', Sexta: 'Sex', Sábado: 'Sáb', Domingo: 'Dom' };
 const STEPS = 4;
+const EXP_L = { inicio: 'A começar', regresso: 'A regressar', regular: 'Já treino' };
+const PLACE_L = { gym: 'Ginásio', casa: 'Em casa', ambos: 'Ambos' };
+const EQUIP_L = { maq: 'Máquinas', livres: 'Pesos livres', corpo: 'Peso corporal' };
+const LIMIT_L = { joelhos: 'Joelhos', costas: 'Costas', ombros: 'Ombros', ancas: 'Ancas', punhos: 'Punhos', cotovelos: 'Cotovelos', pescoco: 'Pescoço' };
 let SCREEN = 'steps';   /* steps | proposal | reorg */
 let PICK = null;        /* reorganizar: 1.º dia escolhido */
 let MSG = '';           /* erro/aviso visível no ecrã */
@@ -45,14 +50,13 @@ function stepHTML(n, d) {
   }
   if (n === 2) {
     return `<h1>Como treinas?</h1>
-      <h2>Experiência</h2><div class="ob-row">${chip("obSet('exp','inicio')", d.exp === 'inicio', 'A começar')}${chip("obSet('exp','regresso')", d.exp === 'regresso', 'A regressar')}${chip("obSet('exp','regular')", d.exp === 'regular', 'Já treino')}</div>
-      <h2>Onde</h2><div class="ob-row">${chip("obSet('place','gym')", d.place === 'gym', 'Ginásio')}${chip("obSet('place','casa')", d.place === 'casa', 'Em casa')}${chip("obSet('place','ambos')", d.place === 'ambos', 'Ambos')}</div>
-      <h2 id="ob-eq">Preferes <small>(podes escolher mais do que uma)</small></h2><div class="ob-row" role="group" aria-labelledby="ob-eq" aria-describedby="ob-eq-err">${[['maq', 'Máquinas'], ['livres', 'Pesos livres'], ['corpo', 'Peso corporal']].map(e => chip(`obEquip('${e[0]}')`, d.equip.includes(e[0]), e[1], true)).join('')}</div>${fieldErr('ob-eq')}
+      <h2>Experiência</h2><div class="ob-row">${Object.keys(EXP_L).map(k => chip(`obSet('exp','${k}')`, d.exp === k, EXP_L[k])).join('')}</div>
+      <h2>Onde</h2><div class="ob-row">${Object.keys(PLACE_L).map(k => chip(`obSet('place','${k}')`, d.place === k, PLACE_L[k])).join('')}</div>
+      <h2 id="ob-eq">Preferes <small>(podes escolher mais do que uma)</small></h2><div class="ob-row" role="group" aria-labelledby="ob-eq" aria-describedby="ob-eq-err">${EQUIPS.map(e => chip(`obEquip('${e}')`, d.equip.includes(e), EQUIP_L[e], true)).join('')}</div>${fieldErr('ob-eq')}
       ${d.place === 'casa' && !d.equip.includes('livres') ? '<p class="ob-p">Em casa, sem pesos livres, usamos exercícios com o peso do corpo. Tens halteres? Marca «Pesos livres».</p>' : ''}`;
   }
-  const L = [['joelhos', 'Joelhos'], ['costas', 'Costas'], ['ombros', 'Ombros'], ['ancas', 'Ancas'], ['punhos', 'Punhos'], ['cotovelos', 'Cotovelos'], ['pescoco', 'Pescoço']];
   return `<h1>Algo a evitar?</h1><p class="ob-p">Opcional. Evitamos exercícios que sobrecarreguem essas zonas. Não pedimos diagnósticos.</p>
-    <div class="ob-row" role="group" aria-label="Zonas a evitar">${chip("obLimit('none')", !d.limits.length, 'Nenhuma', true)}${L.map(l => chip(`obLimit('${l[0]}')`, d.limits.includes(l[0]), l[1], true)).join('')}</div>
+    <div class="ob-row" role="group" aria-label="Zonas a evitar">${chip("obLimit('none')", !d.limits.length, 'Nenhuma', true)}${LIMITS.map(l => chip(`obLimit('${l}')`, d.limits.includes(l), LIMIT_L[l], true)).join('')}</div>
     <h2>Como te chamamos? <small>(opcional)</small></h2>
     <input class="ob-input" type="text" maxlength="30" autocomplete="given-name" placeholder="Nome" value="${esc(d.name)}" oninput="obName(this.value)" aria-label="Nome">
     <div class="sched-note">🔒 Fica guardado neste dispositivo. Podes exportar ou apagar tudo em Opções.</div>`;
@@ -124,11 +128,15 @@ function close() {
 }
 
 /* Entrada: 'auto' (1.ª utilização), 'edit' (Perfil), 'reorg'. */
-function obOpen(mode) {
+function obOpen(mode, at) {
   ensureOnb();
   MSG = ''; PICK = null;
   if (mode === 'reorg') { SCREEN = 'reorg'; open(); return; }
-  if (mode === 'edit') { ST.onb = { ...ST.onb, step: 0, draft: getPrefs() || draft() }; save(); }
+  if (mode === 'edit') {
+    /* retomar: com alterações por aplicar mantém o rascunho e o passo; senão começa das preferências guardadas */
+    if (!ST.onb.editing || at != null) ST.onb = { ...ST.onb, editing: true, step: Math.min(Math.max(+at || 0, 0), STEPS - 1), draft: ST.onb.editing ? draft() : getPrefs() || draft() };
+    save();
+  }
   SCREEN = 'steps';
   open();
 }
@@ -173,6 +181,7 @@ function obBack() {
 }
 /* Sem acolhimento: não obriga. 1.ª utilização → marca como feito e mantém a rotina que existe. */
 function obSkip() {
+  if (ST.onb.editing) { ST.onb = { ...ST.onb, editing: false, step: 0, draft: {} }; save(); }   /* Cancelar descarta as alterações por aplicar */
   if (!hasPlan() && !isExistingUser()) { ST.onb = { ...ST.onb, done: true, skipped: true, draft: {} }; save(); }
   close(); render('__hoje');
 }
@@ -184,6 +193,7 @@ async function obApply() {
   if(before!==signature()) return;
   const r = applyPlan(proposePlan(draft()), { reason: replacing ? 'antes de aplicar plano novo' : 'plano inicial' });
   if (!r.ok) { MSG = r.error; paint(); return; }
+  ST.onb = { ...ST.onb, editing: false }; save();
   close(); render('__hoje');
   document.dispatchEvent(new CustomEvent('app-notice', { detail: { msg: 'Plano criado ✓ Já podes começar o treino de hoje.', kind: 'ok' } }));
 }
@@ -205,10 +215,14 @@ async function obUndoPlan() {
   if(raw!==localStorage.getItem('treino_v2_snap') || document.getElementById('woBg').classList.contains('show')) return;
   const r = restoreSnapshot('snap');
   if (!r.ok) { show(r.error || 'Não foi possível repor.', 'error'); return; }
-  render('__perfil');
+  clearDrafts();
+  render('__plano');
 }
 
-/* ── cartão "O meu plano" (Perfil) ──────────────── */
+/* ── Plano (gestão) e Perfil (preferências): um só sítio para cada coisa ───────────── */
+const fmtAt = at => esc(new Date(at).toLocaleString('pt-PT'));
+
+/* Ecrã Plano: criar/rever, reorganizar, cópia de todos os dados, repor. */
 function planCardHTML() {
   const p = getPrefs(), info = snapshotInfo();
   const days = WEEK.filter(isTraining);
@@ -216,14 +230,42 @@ function planCardHTML() {
     ? `${days.length} treinos por semana · ${days.map(d => SHORT[d]).join(', ')}${p && hasPlan() ? ` · objetivo: ${GOAL_TEXT[p.goal]}` : ''}`
     : 'Sem treinos na semana.';
   const intro = hasPlan() ? '' : '<p class="ob-p">Tens o teu plano. Podes criar um novo a partir de algumas perguntas — o histórico não se perde.</p>';
-  const bak = info ? `<p class="ob-p">Cópia de segurança de ${esc(new Date(info.at).toLocaleString('pt-PT'))}${info.counts.log || info.counts.workouts ? ` (${info.counts.log} exercícios com histórico, ${info.counts.workouts} treinos)` : ''}.</p>` : '';
-  return `<div class="ob-plan"><div class="nplan-hdr"><div><div class="day-hdr-name">📋 O meu plano</div><div class="day-hdr-sub">${esc(resume)}</div></div></div>${intro}
+  const bak = info ? `<p class="ob-p">Cópia de segurança automática de ${fmtAt(info.at)}${info.counts.log || info.counts.workouts ? ` (${info.counts.log} exercícios com histórico, ${info.counts.workouts} treinos)` : ''}.</p>` : '';
+  return `<div class="ob-plan"><div class="nplan-hdr"><div><div class="day-hdr-name">📋 Plano</div><div class="day-hdr-sub">${esc(resume)}</div></div></div>${intro}
     <div class="ob-plan-btns">
       <button class="reset-btn btn-secondary" onclick="obOpen('edit')">✎ ${hasPlan() ? 'Rever objetivos e plano' : 'Criar plano novo'}</button>
       <button class="reset-btn btn-secondary" onclick="obOpen('reorg')">↔ Reorganizar a semana</button>
-      <button class="reset-btn btn-ghost" onclick="exportBackup()">⬇ Guardar cópia em ficheiro</button>
       ${info ? '<button class="reset-btn btn-ghost" onclick="obUndoPlan()">↩ Repor o estado anterior</button>' : ''}
-    </div>${bak}</div>`;
+    </div>${bak}
+    <div class="ob-plan-save"><button class="reset-btn btn-ghost" onclick="exportBackup()">⬇ Guardar cópia de todos os dados (ficheiro)</button>
+    <small>Inclui plano, histórico, medidas, perfil e nutrição — não só o plano.</small></div></div>`;
 }
 
-export { obOpen, maybeOpenOnboarding, planCardHTML, obSet, obEquip, obDay, obLimit, obName, obNext, obBack, obSkip, obApply, obClose, obPick, obUndoPlan };
+/* Ecrã Perfil: as respostas do acolhimento, lidas de ST.prefs. Editar abre o mesmo acolhimento (passo certo). */
+function prefsSummaryHTML() {
+  const p = getPrefs();
+  if (!p || !hasPlan()) return `<div class="ob-plan"><div class="nplan-hdr"><div><div class="day-hdr-name">🎯 Preferências de treino</div><div class="day-hdr-sub">Ainda não respondeste às perguntas do plano.</div></div></div>
+    <div class="ob-plan-btns"><button class="reset-btn btn-secondary" onclick="obOpen('edit')">Responder agora</button></div></div>`;
+  const equip = p.equip.map(e => EQUIP_L[e]).join(', ');
+  const rows = [
+    ['Objetivo de treino', GOAL_TEXT[p.goal][0].toUpperCase() + GOAL_TEXT[p.goal].slice(1), 0],
+    ['Disponibilidade', `${p.days.map(d => SHORT[d]).join(', ')} · até ${p.mins} min`, 1],
+    ['Experiência', EXP_L[p.exp], 2],
+    ['Onde e com quê', `${PLACE_L[p.place]} · ${equip}`, 2],
+    ['Zonas a evitar', p.limits.length ? p.limits.map(l => LIMIT_L[l]).join(', ') : 'Nenhuma', 3],
+  ];
+  if (p.name) rows.push(['Nome', p.name, 3]);
+  const editing = !!(ST.onb && ST.onb.editing);
+  return `<div class="ob-plan"><div class="nplan-hdr"><div><div class="day-hdr-name">🎯 Preferências de treino</div><div class="day-hdr-sub">Guardadas neste dispositivo</div></div></div>
+    <dl class="pf-list">${rows.map(r => `<div class="pf-row"><dt>${r[0]}</dt><dd>${esc(r[1])}</dd><button class="reset-btn btn-ghost" onclick="obOpen('edit',${r[2]})" aria-label="Alterar: ${r[0]}">Alterar</button></div>`).join('')}</dl>
+    ${editing ? `<div class="sched-note">Tens alterações por concluir. <button class="linklike" onclick="obOpen('edit')">Continuar</button> · <button class="linklike" onclick="obDiscard()">Descartar</button></div>` : ''}
+    <div class="ndisc">Alterar preferências cria uma nova proposta de plano; só muda o plano depois de a confirmares. O histórico não se perde.</div></div>`;
+}
+
+/* descarta as alterações por aplicar (rascunho do acolhimento em edição) */
+function obDiscard() {
+  ST.onb = { ...ST.onb, editing: false, step: 0, draft: {} }; save();
+  render(ST.view && ST.view.startsWith('__') ? ST.view : '__hoje');
+}
+
+export { obOpen, maybeOpenOnboarding, planCardHTML, prefsSummaryHTML, obDiscard, obSet, obEquip, obDay, obLimit, obName, obNext, obBack, obSkip, obApply, obClose, obPick, obUndoPlan };

@@ -366,10 +366,10 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
   await page.reload({ waitUntil: 'networkidle' });
   const txt = async sel => (await page.locator(sel).first().innerText()).replace(/\n/g, ' ');
 
-  /* Histórico → lista → exercício */
-  await tap(page, '.nb[data-day="__hist"]');
-  check(await page.locator('.hx-row', { hasText: NAME }).count() === 1, 'Histórico devia listar o exercício com registos');
-  check(await noHScroll(page), 'Histórico: scroll horizontal');
+  /* Evolução → lista → exercício */
+  await tap(page, '.nb[data-day="__perfil"]');
+  check(await page.locator('.hx-row', { hasText: NAME }).count() === 1, 'Evolução devia listar o exercício com registos');
+  check(await noHScroll(page), 'Evolução: scroll horizontal');
   await tap(page, `.hx-row[data-n="${NAME}"]`);
   check(await page.locator('.hx-name', { hasText: NAME }).count() === 1, 'o ecrã do exercício não abriu');
   let body = await txt('.hx');

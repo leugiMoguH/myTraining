@@ -11,6 +11,7 @@ import { ST, est1RM, fmtTime, save, todayStr, setST } from './state.js';
 import { REST_SEC, setRest, timerDismiss } from './timer.js';
 import { render } from './ui.js';
 import { syncWakeUI } from './wake.js';
+import { validateAdaptState } from './adapt.js';
 import { validateClassState } from './classes.js';
 
 /* ═══════════════ DEFINIÇÕES / BACKUP ════════════════ */
@@ -54,6 +55,21 @@ async function importBackup(e){
          !optional('routine',o=>o===null || isObj(o) && Object.values(o).every(d=>isObj(d) && records(d.ex))))
         throw new Error('estrutura interna invalida');
       if(!validateClassState(incoming.classes, incoming.classLog).ok) throw new Error('estrutura interna invalida');
+      if (!validateAdaptState(incoming.adapt).ok) throw new Error('estrutura interna invalida');
+      const civilDate = value => {
+        if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+        const d = new Date(`${value}T12:00:00`);
+        return !isNaN(d) && d.getFullYear() === +value.slice(0, 4) && d.getMonth() + 1 === +value.slice(5, 7) && d.getDate() === +value.slice(8, 10);
+      };
+      const safe = value => typeof value === 'string' && /^[A-Za-z0-9_À-ÿ -]{1,64}$/.test(value);
+      const quick = incoming.custom?.quick;
+      if (incoming.sched?.quick !== undefined && (!isObj(incoming.sched.quick) ||
+          Object.entries(incoming.sched.quick).some(([day, date]) => !safe(day) || !civilDate(date)))) throw new Error('estrutura interna invalida');
+      if (quick !== undefined && (!isObj(quick) || !safe(quick.from) || !['quick', 'retoma'].includes(quick.mode) ||
+          !/^[A-Za-z0-9_-]{1,64}$/.test(quick.dayId || '') || !(quick.planId === '' || /^[A-Za-z0-9_-]{1,64}$/.test(quick.planId || '')) ||
+          !/^\d{4}-W\d{2}$/.test(quick.wk || '') || !civilDate(quick.date) ||
+          !['plannedEx', 'plannedSets', 'estMin'].every(k => Number.isFinite(quick[k]) && quick[k] >= 0))) throw new Error('estrutura interna invalida');
+      if (incoming.session?.quick !== undefined && !['quick', 'retoma'].includes(incoming.session.quick)) throw new Error('estrutura interna invalida');
       // Recusar enquanto o guiado está aberto evita referências WO/descanso antigas.
       if(guided()){ show('Sai do treino guiado antes de importar uma cópia.', 'info'); return; }
       if(!await confirmDialog({title:'Importar backup', message:'Importar substitui o progresso atual. Continuar?', danger:true, confirmLabel:'Importar'})) return;
@@ -115,7 +131,7 @@ function exportIntakeCSV(){
 }
 function exportLoadCSV(){
   const rows=[['exercicio','data','hora','peso_kg','reps','rm_estimado','tipo']];
-  Object.keys(ST.log||{}).forEach(name=>{ (ST.log[name]||[]).forEach(e=>rows.push([name, e.date, e.ts?fmtTime(e.ts):'', e.w, e.r, est1RM(e.w,e.r), e.c?'personalizado':'programado'])); });
+  Object.keys(ST.log||{}).forEach(name=>{ (ST.log[name]||[]).forEach(e=>rows.push([name, e.date, e.ts?fmtTime(e.ts):'', e.w, e.r, est1RM(e.w,e.r), e.q?'reduzido':e.c?'personalizado':'programado'])); });
   if(rows.length<2){ show('Sem cargas para exportar.', 'info'); return; }
   csvDownload(`cargas-${todayStr()}.csv`, rows); closeSheet();
 }

@@ -60,7 +60,8 @@ const source=readFileSync(new URL('../js/backup.js',import.meta.url),'utf8');
 const body=source.slice(source.indexOf('async function importBackup('),source.indexOf('/* ── EXPORTAÇÃO CSV'));
 const messages=[];
 let accepted=0;
-const deps={get ST(){return S.ST;},REST_SEC:60,setST:S.setST,validateClassState:C.validateClassState,
+const A=await import('../js/adapt.js');
+const deps={validateAdaptState:A.validateAdaptState,get ST(){return S.ST;},REST_SEC:60,setST:S.setST,validateClassState:C.validateClassState,
  document:{getElementById:()=>({classList:{contains:()=>false},textContent:''})},
  confirmDialog:async()=>{accepted++;return true;},snapshot:()=>({ok:true}),setRest(){},migrate:()=>({saved:true}),save:S.save,
  clearDrafts(){},timerDismiss(){},closeSheet(){},render(){},show:m=>messages.push(m),DEFAULT_DAYS:{Segunda:{ex:[]}},DAYS:{Segunda:{},Quarta:{}}};
@@ -70,3 +71,15 @@ const original=copy();await load({...st(),classes:[{id:'bad'}]});assert.equal(co
 const backup=JSON.parse(copy());await load(backup);assert.deepEqual(st().classes,backup.classes);assert.deepEqual(st().classLog,backup.classLog);await load(backup);assert.deepEqual(st().classes,backup.classes);assert.deepEqual(st().classLog,backup.classLog);
 await load({day:'Segunda',sets:{},done:{}});assert.deepEqual(st().classes,[]);assert.deepEqual(st().classLog,{});
 console.log('OK importBackup real: inválido recusado sem alteração/confirmação; antigo aceite; reimportação sem duplicados.');
+
+reset();
+const pastId=C.addClass(base,now).cls.id;
+const untouched=JSON.stringify([st().sched,st().log,st().workouts]);
+assert(C.setPastStatus(pastId,'2026-10-14','done',now).ok);
+assert(C.setPastStatus(pastId,'2026-10-14','planned',now).ok);
+assert.equal(st().classLog[`${pastId}@2026-10-14`].changes.length,2);
+assert.equal(st().classLog[`${pastId}@2026-10-14`].snap.name,'Yoga');
+assert.equal(JSON.stringify([st().sched,st().log,st().workouts]),untouched);
+assert.equal(C.setPastStatus(pastId,now,'done',now).ok,false);
+assert(C.validateClassState(st().classes,st().classLog).ok);
+console.log('OK correções passadas: retroativo, snapshot, changes e agenda intacta.');

@@ -163,7 +163,7 @@ try {
   const { ST } = await import(new URL('state.js', JS));
 
   const sessoes = (...pares) => pares.map(([w, r], i) => ({ date: `2026-01-0${i + 1}`, w, r }));
-  const caso = (nome, log, ex, prog) => { ST.log = { ...ST.log, [nome]: log }; return P.evaluate(nome, ex, prog); };
+  const caso = (nome, log, ex, prog) => { ST.log = { ...ST.log, [nome]: log }; return P.evaluate(nome, ex, prog, new Date('2026-01-10T12:00:00')); };
   const supino = { name: 'x', r: '8-12', mus: { p: ['peito'], s: [] } };
   const agacha = { name: 'y', r: '8-12', mus: { p: ['quadriceps'], s: [] } };
   const check = (cond, msg) => { if (!cond) fail.push(`progressão: ${msg}`); };
@@ -227,7 +227,7 @@ try {
   /* sem `prog` passado à mão, vale o que o utilizador escolheu em ST.prog */
   ST.log = { ...ST.log, p15: sessoes([60, 12]) };
   ST.prog = { p15: { scheme: 'greyskull', inc: 10 } };
-  const guardado = P.evaluate('p15', supino);
+  const guardado = P.evaluate('p15', supino, undefined, new Date('2026-01-10T12:00:00'));
   check(guardado.w === 70, `ST.prog ignorado: esperado 70kg, deu ${guardado.w}`);
   ST.prog = {};
 
@@ -537,9 +537,9 @@ for (const f of files)
   const PG = await import(new URL('progression.js', JS));
   const gs = [{ w: 60, r: 5, k: 'a' }, { w: 60, r: 5, k: 'b' }, { w: 60, r: 12, k: 'c' }];
   ST.log = { GS: [{ date: '2020-01-01', w: 60, r: 5, sets: gs }] };
-  const ev = PG.evaluate('GS', { name: 'GS', r: '5' }, { GS: { scheme: 'greyskull', inc: 2.5 } });
+  const ev = PG.evaluate('GS', { name: 'GS', r: '5' }, { GS: { scheme: 'greyskull', inc: 2.5 } }, new Date('2020-01-02T12:00:00'));
   check(ev.kind === 'up' && ev.w === 65, `Greyskull com 12 reps na última devia dar salto duplo (veio ${ev.kind} ${ev.w})`);
-  const ev2 = PG.evaluate('GS', { name: 'GS', r: '5' }, { GS: { scheme: 'linear', inc: 2.5 } });
+  const ev2 = PG.evaluate('GS', { name: 'GS', r: '5' }, { GS: { scheme: 'linear', inc: 2.5 } }, new Date('2020-01-02T12:00:00'));
   check(ev2.kind === 'up' && ev2.w === 62.5, 'noutros esquemas conta a série representativa (w/r)');
   ST.log = { Remo: [{ date: '2020-01-01', w: 40, r: 10 }] };    /* entrada antiga, sem sets */
   addSetLog('Remo', 42, 8);

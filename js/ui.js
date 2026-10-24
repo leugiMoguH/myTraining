@@ -1,6 +1,7 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { gifUrlFor } from './catalog.js';
 import { MUSCLES, bodySVG, muscleSlide, noImgSlide } from './charts.js';
+import { adaptCardHTML, quickButtonHTML } from './adapt-ui.js';
 import { classDayMarks, recentClassesHTML, todayClassesHTML, weekClassesHTML } from './classes-ui.js';
 import { customEntryHTML, renderCustom } from './custom.js';
 import { editorHTML, isEditing, stopEdit, toggleEdit } from './editor.js';
@@ -199,9 +200,9 @@ function weekStripHTML(a) {
   const marks = classDayMarks();
   return `<div class="week-strip">${a.days.map(d=>`
     <button class="wk-chip s-${d.status}${d.isToday?' today':''}${d.isCurrent?' current':''}"
-            data-day="${d.day}" onclick="goDay('${d.day}')" title="${esc(d.label)}${marks.has(d.day) ? ' · com aula' : ''}">
+            data-day="${d.day}" onclick="goDay('${d.day}')" title="${esc(d.label)}${marks.has(d.day) ? ' · com aula' : ''}${d.movedTo ? ` · passa para ${d.movedTo}` : ''}">
       <span class="wk-d">${d.short}${marks.has(d.day) ? '<i class="wk-c" aria-hidden="true"></i>' : ''}</span>
-      <span class="wk-i">${d.icon}</span>
+      <span class="wk-i">${d.movedTo ? '↪' : d.icon}</span>
     </button>`).join('')}</div>`;
 }
 
@@ -242,7 +243,7 @@ function heroHTML(a) {
     <div class="hero-k">${esc(kicker)}</div><div class="hero-t">${esc(d.label)}</div>
     <div class="hero-s">${mins ? `~${mins} min · ` : ''}${d.ex.length} exercícios</div>
     <div class="hero-ex">${preview}</div>
-    <button class="start-wo btn-primary" onclick="heroStart('${a.current}')">${live ? '▶ Continuar treino' : '▶ Começar treino'}</button>${why}</div>`;
+    <button class="start-wo btn-primary" onclick="heroStart('${a.current}')">${live ? '▶ Continuar treino' : '▶ Começar treino'}</button>${quickButtonHTML(a.current)}${why}</div>`;
 }
 
 /* Lista de exercícios do Hoje: recolhida por omissão; abre sozinha com treino em curso, séries marcadas ou edição.
@@ -280,7 +281,7 @@ function renderToday(content) {
   if (a.allDone || (a.restToday && !a.late)) {
     const box = document.createElement('div');
     box.className = 'full';
-    box.innerHTML = restCardHTML(a) + todayClassesHTML() + (a.current ? heroHTML(a) : '') + customEntryHTML();
+    box.innerHTML = restCardHTML(a) + adaptCardHTML() + todayClassesHTML() + (a.current ? heroHTML(a) : '') + customEntryHTML();
     content.appendChild(box);
     document.getElementById('hdrSub').textContent = a.allDone ? (a.nothingDone ? 'Sem treinos esta semana' : 'Semana concluída') : 'Descanso';
     document.getElementById('progFill').style.width = a.allDone && !a.nothingDone ? '100%' : '0';
@@ -293,7 +294,7 @@ function renderToday(content) {
   /* estado do dia (atraso/descanso) logo a seguir ao calendário, depois a ação principal e a lista recolhível */
   const cls = document.createElement('div');
   cls.className = 'full';
-  cls.innerHTML = todayClassesHTML();
+  cls.innerHTML = adaptCardHTML() + todayClassesHTML();
   if (cls.innerHTML) content.appendChild(cls);
   const note = document.createElement('div');
   note.className = 'full today-top';
@@ -322,9 +323,9 @@ function renderWeek(content) {
       return `<button type="button" class="wk-row s-${d.status}" data-day="${d.day}" onclick="goDay('${d.day}')">
         <div class="wk-row-main">
           <div class="wk-row-day">${d.icon} ${d.day}${d.isToday?' <span class="wk-today">hoje</span>':''}</div>
-          <div class="wk-row-sub">${esc(d.label)}${total?` · ${done}/${total}`:''}</div>
+          <div class="wk-row-sub">${esc(d.label)}${total?` · ${done}/${total}`:''}${d.movedFrom && d.movedFrom.length ? ` · treino de ${d.movedFrom.map(esc).join(', ')} (movido)` : ''}</div>
         </div>
-        <div class="wk-row-st">${LBL[d.status]}</div>
+        <div class="wk-row-st">${d.movedTo ? `Passa para ${esc(d.movedTo)}` : d.status==='done' && ST.sched && ST.sched.quick && ST.sched.quick[d.day] ? 'Feito · reduzido' : LBL[d.status]}</div>
       </button>`;
     }).join('')}</div>
     ${weekClassesHTML()}
@@ -341,9 +342,9 @@ function renderHistory(content) {
     const t = statsOf(w);
     const extra = [t.paused >= 1000 ? `pausa ${fmtDur(t.paused)}` : '', t.unknown >= 1000 ? `sem registo ${fmtDur(t.unknown)}` : ''].filter(Boolean).join(' · ');
     return `<div class="wk-row"><div class="wk-row-main">
-      <div class="wk-row-day">${esc(String(w.date || '').split('-').reverse().join('/'))} · ${esc(w.day)}</div>
+      <div class="wk-row-day">${esc(String(w.date || '').split('-').reverse().join('/'))} · ${esc(w.quick ? (w.quick === 'retoma' ? 'Retoma' : 'Treino rápido') : w.day)}</div>
       <div class="wk-row-sub">${esc(w.label || '')} · ${fmtDur(t.duration)}${extra ? ' · ' + extra : ''}</div></div>
-      <div class="wk-row-st">${w.state === 'COMPLETED' ? 'Concluído' : 'Descartado'}</div></div>`;
+      <div class="wk-row-st">${w.state === 'COMPLETED' ? (w.quick ? 'Concluído · reduzido' : 'Concluído') : 'Descartado'}</div></div>`;
   }).join('');
   const box = document.createElement('div');
   box.className = 'full';

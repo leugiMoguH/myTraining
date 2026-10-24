@@ -1,7 +1,7 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { chartSVG } from './charts.js';
 import { CUSTOM_DAY } from './routine.js';
-import { SCHEMES, configOf, evaluate, progHint } from './progression.js';
+import { SCHEMES, configOf, evaluate, explain, progHint } from './progression.js';
 import { ST, esc, est1RM, fmtDateTime, getLog, logSet, setProg } from './state.js';
 
 /* ═══════════════ CARGA / PROGRESSÃO (UI) ════════════ */
@@ -70,7 +70,7 @@ function loadChart(name,i){
       ${last.ts?`<span class="lc-when">últ. ${fmtDateTime(last.ts)}</span>`:''}
     </div>
     <button class="reset-btn hx-link" data-n="${esc(name)}" onclick="hxOpen(this.dataset.n)">Histórico detalhado ›</button>
-    ${progHint(name)?`<div class="lc-next">${progHint(name)} <span class="lc-next-s">— progressão sugerida</span></div>`:''}
+    ${progHint(name)?`<div class="lc-next">${progHint(name)} <span class="lc-next-s">— ${esc(explain(name).change)} (${esc(explain(name).basis)})</span></div>`:''}
     ${progPanel(name,i)}`;
 }
 

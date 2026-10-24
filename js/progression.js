@@ -77,6 +77,7 @@ function repsOf(entry, cfg) {
 
 /* Sessões seguidas, ao peso atual, em que não se atingiu o alvo. */
 function countStalls(log, cfg) {
+  log = log.filter(e => !e.q);
   const target = targetReps(cfg);
   if (target == null || !log.length) return 0;
   const w = log[log.length - 1].w;
@@ -91,7 +92,7 @@ function countStalls(log, cfg) {
 
 /* O cálculo todo num sítio só. Não muda estado nenhum — dá-se-lhe o histórico,
    devolve o que fazer a seguir. */
-function evaluate(name, exercise, prog) {
+function evaluate(name, exercise, prog, now = new Date()) {
   const cfg = configOf(name, exercise, prog);
   const log = getLog(name);
   const target = targetReps(cfg);
@@ -102,13 +103,23 @@ function evaluate(name, exercise, prog) {
   const last = log[log.length - 1];
   const stalls = countStalls(log, cfg);
 
-  if (stalls >= STALLS_TO_DELOAD) {
+  if (!last.q && stalls >= STALLS_TO_DELOAD) {
     const w = roundKg(last.w * (1 - DELOAD_PCT));
     return {
       kind: 'deload', cfg, stalls, w, r: cfg.range.lo, target,
       msg: `${stalls} sessões sem chegar a ${target} reps. Baixa 10% e volta a subir.`,
     };
   }
+
+  const civilDay = d => {
+    const date = new Date(d);
+    return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  };
+  const gap = Math.floor((civilDay(now) - civilDay(`${last.date}T12:00:00`)) / 86400000);
+  if (gap >= 14) return { kind: 'return', cfg, stalls, w: last.w, r: last.r,
+    msg: `Passaram ${gap} dias: repete ${last.w} kg × ${last.r} antes de subir` };
+  if (last.q) return { kind: 'hold', cfg, stalls, w: last.w, r: last.r,
+    msg: `Sessão reduzida: repete ${last.w} kg antes de subir` };
 
   const lastReps = repsOf(last, cfg);
   if (lastReps >= target) {
@@ -134,7 +145,7 @@ function nextTarget(name, exercise, prog) {
   return r.w > 0 ? { w: r.w, r: r.r } : null;
 }
 
-const ICON = { up: '⬆', hold: '🎯', deload: '⬇', first: '💡', none: '⏱' };
+const ICON = { return: '↩', up: '⬆', hold: '🎯', deload: '⬇', first: '💡', none: '⏱' };
 
 function progHint(name, exercise, prog) {
   const e = evaluate(name, exercise, prog);
@@ -142,7 +153,17 @@ function progHint(name, exercise, prog) {
   return `${ICON[e.kind]} Próximo: <b>${e.w}</b>kg × ${e.r}`;
 }
 
-export {
+function explain(name, exercise, prog, now = new Date()) {
+  const result = evaluate(name, exercise, prog, now);
+  const log = getLog(name);
+  const last = log[log.length - 1];
+  const basis = last
+    ? `último registo: ${last.w} kg × ${last.r} reps (${last.date.slice(8, 10)}/${last.date.slice(5, 7)})`
+    : 'Ainda sem histórico suficiente: regista 2 sessões…';
+  return { kind: result.kind, change: result.msg, basis, conservative: !last || ['return', 'hold', 'deload'].includes(result.kind) };
+}
+
+export { explain,
   SCHEMES, DEFAULT_SCHEME, STALLS_TO_DELOAD, DELOAD_PCT,
   parseRange, incrementFor, configOf, targetReps, countStalls,
   evaluate, nextTarget, progHint, roundKg,

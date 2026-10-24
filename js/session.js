@@ -81,10 +81,11 @@ function touchSession(now = Date.now(), credit = true) {
 function idleMs(now = Date.now()) { const s = cur(); return s && isLive() ? Math.max(0, now - (s.seenAt || s.startedAt)) : 0; }
 function isIdle(now = Date.now()) { return idleMs(now) > IDLE_HINT_MS; }
 
-function startSession(day, label) {
+/* `extra` junta campos à sessão (ex.: { quick: 'retoma' } para o histórico distinguir treino reduzido) */
+function startSession(day, label, extra) {
   if (isLive()) return false;                 /* nunca duas sessões ao mesmo tempo */
   const now = Date.now();
-  ST.session = { id: `${now}-${Math.random().toString(36).slice(2, 6)}`, day, label: label || '', state: ACTIVE, date: todayStr(), startedAt: now, seenAt: now, confirmedMs: 0, pausedMs: 0, pauseAt: 0, endedAt: 0, pos: 0 };
+  ST.session = { id: `${now}-${Math.random().toString(36).slice(2, 6)}`, day, label: label || '', state: ACTIVE, date: todayStr(), startedAt: now, seenAt: now, confirmedMs: 0, pausedMs: 0, pauseAt: 0, endedAt: 0, pos: 0, ...(extra || {}) };
   save(); emit();
   return true;
 }

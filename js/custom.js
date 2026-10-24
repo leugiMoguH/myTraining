@@ -17,6 +17,7 @@ import { confirmDialog } from './dialog.js';
    As séries marcadas ficam em ST.sets / ST.done com a chave 'Personalizado:i'.
    Ao concluir, fica um registo em ST.sessions e as cargas ficam marcadas `c:1`
    em ST.log, para o histórico distinguir programado de personalizado. */
+import { finishQuick } from './adapt.js';
 import { all, isLoaded, loadCatalog, muscleIdsOf, toRoutineEntry } from './catalog.js';
 import { openCatalog } from './catalog-ui.js';
 import { MUSCLES } from './charts.js';
@@ -25,7 +26,7 @@ import { groupSummary, muscleStats } from './muscles.js';
 import { EQUIPMENT, GROUPS, keyOf, recency, suggest } from './suggest.js';
 import { replaceCurrent, slotToReplace } from './schedule.js';
 import { endSessionOf, liveDay } from './session.js';
-import { ST, esc, getLog, getSets, save, todayStr } from './state.js';
+import { ST, esc, getLog, getSets, save, setST, todayStr } from './state.js';
 import { buildCard, refreshProgress, render } from './ui.js';
 
 /* Escolha em curso no ecrã de músculos. Não se guarda: abandonar não deixa rasto. */
@@ -167,6 +168,7 @@ async function cuFinish(ask = false, sessionId = null) {
     if(empty) return cuDiscard(true);
   }
   const sets=count();
+  if(c.quick) return finishQuickWorkout(c, sets);
   /* só ocupa o lugar do treino de hoje se ainda for hoje (ecrã deixado aberto da véspera: não) */
   const replaced = c.date === todayStr() ? replaceCurrent() : null;
   const ex = c.ex.map(e => e.name).filter((_, i) => getSets(CUSTOM_DAY, i).length);
@@ -177,6 +179,23 @@ async function cuFinish(ask = false, sessionId = null) {
   endSessionOf(CUSTOM_DAY, true);   /* a sessão guiada não fica a correr depois de concluir */
   render('__pers'); return true;
 }
+
+/* Treino rápido/retoma: fecha o dia ORIGINAL como «reduzido» (só se a semana e o plano ainda são os mesmos, ver finishQuick),
+   nunca ocupa o lugar de outro treino. O histórico fica sempre; se a gravação falhar, repõe-se tudo. */
+function finishQuickWorkout(c, sets) {
+  const prev = JSON.stringify(ST), sid = liveDay() === CUSTOM_DAY ? ST.session.id : null;   /* só a sessão viva deste treino; uma terminada não conta */
+  if (c.stage === 'done' || (sid && ST.sessions.some(s => s.sid === sid))) return false;   /* toque repetido: já ficou registado */
+  const from = finishQuick(c);
+  const ex = c.ex.map(e => e.name).filter((_, i) => getSets(CUSTOM_DAY, i).length);
+  ST.sessions = [...ST.sessions, { date: c.date, kind: 'quick', label: c.label, muscles: [], ex, sets, ...(sid ? { sid } : {}), quick: { ...c.quick, closed: from || null } }].slice(-200);
+  clearCustomProgress();
+  ST.custom = { ...c, stage: 'done', sets, replaced: null, closedDay: from || null };
+  if (!save()) { setST(JSON.parse(prev)); return false; }
+  endSessionOf(CUSTOM_DAY, true);
+  render('__pers'); return true;
+}
+
+const nameOf = c => (c && c.quick ? (c.quick.mode === 'retoma' ? '🌱 Retoma' : '⏱ Treino rápido') : '🎯 Treino personalizado');
 
 /* ── ecrãs ────────────────────────────────────────────────────────────────── */
 
@@ -196,9 +215,10 @@ function setHeader(sub, pct = 0) {
 }
 
 function headHTML(sub, buttons = '') {
+  const title = nameOf(ST.custom);
   return `<div class="day-hdr">
     <div class="day-hdr-text">
-      <div class="day-hdr-name">🎯 Treino personalizado</div>
+      <div class="day-hdr-name">${title}</div>
       <div class="day-hdr-sub">${sub}</div>
     </div>
     <div class="day-hdr-btns">${buttons}</div>
@@ -247,7 +267,8 @@ function labelOf(ex) {
 }
 
 /* Antes de começar: que treino programado este vai ocupar (informação, não decisão). */
-function slotNote() {
+function slotNote(c) {
+  if (c && c.quick) return `Ao concluir, o treino de <b>${esc(c.quick.from)}</b> fica feito (reduzido) se ainda for desta semana. Só ficam registadas as séries que fizeres.`;
   const slot = slotToReplace();
   return slot
     ? `Ao concluir, ocupa o lugar de <b>${esc(slot)}</b> (não conta como feito). O plano não é alterado.`
@@ -255,7 +276,7 @@ function slotNote() {
 }
 
 function renderReview(content, c) {
-  setHeader('Treino personalizado · a rever');
+  setHeader(`${nameOf(c).replace(/^\S+ /, '')} · a rever`);
   const rows = c.ex.map((ex, i) => `
     <div class="cu-row">
       <span class="cu-n">${i + 1}</span>
@@ -272,7 +293,7 @@ function renderReview(content, c) {
       <button class="reset-btn btn-ghost" onclick="cuAdd()">＋ Exercício</button>
       <button class="reset-btn btn-ghost" onclick="cuDiscard()">✕ Cancelar</button>
     </div>
-    <div class="cu-note">${slotNote()}</div>
+    <div class="cu-note">${slotNote(c)}</div>
   </div>`;
 }
 
@@ -290,12 +311,12 @@ function renderActive(content, c) {
 }
 
 function renderDone(content, c) {
-  setHeader('Treino personalizado · concluído', 100);
+  setHeader(`${nameOf(c).replace(/^\S+ /, '')} · concluído`, 100);
   content.innerHTML = `<div class="full"><div class="rest-card">
     <div class="rest-emoji">🎉</div>
-    <div class="rest-title">Treino personalizado concluído</div>
+    <div class="rest-title">${c.quick ? (c.quick.mode === 'retoma' ? 'Retoma concluída' : 'Treino rápido concluído') : 'Treino personalizado concluído'}</div>
     <div class="rest-sub">${esc(c.label)} · ${c.ex.length} exercício${c.ex.length === 1 ? '' : 's'} · ${c.sets || 0} séries.
-      Ficou no histórico como personalizado. ${c.replaced
+      ${c.quick ? `Ficou no histórico como treino reduzido. ${c.closedDay ? `O treino de <b>${esc(c.closedDay)}</b> conta como feito (reduzido).` : 'Não alterou o calendário.'}` : 'Ficou no histórico como personalizado. '}${c.quick ? '' : c.replaced
         ? `Ocupou o lugar de <b>${esc(c.replaced)}</b>; o resto da semana segue igual.`
         : 'Não ocupou nenhum treino do plano.'}</div>
     <button class="start-wo btn-primary" onclick="cuHome()">← Voltar a Hoje</button>

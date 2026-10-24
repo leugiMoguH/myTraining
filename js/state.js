@@ -71,7 +71,7 @@ function logSet(name,w,r,custom,day){
   const last=had[had.length-1], sid=liveSid(day) || (last && last.sid);
   const sets=[...had.slice(0,-1), {w,r,ts:nowISO(), ...(last && last.k ? {k:last.k} : {}), ...(sid ? {sid} : {}), ...(last && last.rir!=null && last.w===w && last.r===r ? {rir:last.rir} : {})}];
   const bs=bestSet(sets), pr=newPR(name,w,r,t);
-  putEntry(name,{...(old||{}), date:t, ts:nowISO(), w:bs.w, r:bs.r, sets, ...(custom?{c:1}:{})});
+  putEntry(name,{...(old||{}), date:t, ts:nowISO(), w:bs.w, r:bs.r, sets, ...(custom==='q'?{q:1,c:undefined}:custom?{c:1}:{})});
   save();
   announcePR(name,w,r,pr);
   return true;
@@ -105,7 +105,7 @@ function addSetLog(name,w,r,custom,slot,day){
   /* a mesma série (slot) registada duas vezes substitui, nunca duplica */
   const sets=[...(slot ? base.filter(x=>x.k!==slot) : base), {w,r,ts:nowISO(), ...(slot?{k:slot}:{}), ...(sid?{sid}:{})}];
   const b=bestSet(sets), pr=newPR(name,w,r,t);
-  putEntry(name,{...(old||{}), date:t, ts:nowISO(), w:b.w, r:b.r, sets, ...(custom?{c:1}:{})});
+  putEntry(name,{...(old||{}), date:t, ts:nowISO(), w:b.w, r:b.r, sets, ...(custom==='q'?{q:1,c:undefined}:custom?{c:1}:{})});
   save();
   announcePR(name,w,r,pr);
   return true;

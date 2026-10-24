@@ -33,7 +33,7 @@ async function startWorkout(day){
     if(await confirmDialog({title:'Treino em curso', confirmLabel:'Retomar', message:`Já tens o treino de ${live.day} em curso. Retomá-lo?`})) { const now=currentSession(); if(now?.id===id && DAYS[now.day]?.ex.length) openWorkout(now.day, now.pos); }
     return;
   }
-  if(!live) startSession(day,DAYS[day].label);   /* só um toque do utilizador inicia a sessão */
+  if(!live) startSession(day,DAYS[day].label, day===CUSTOM_DAY && ST.custom?.quick ? {quick:ST.custom.quick.mode} : undefined);   /* só um toque do utilizador inicia a sessão */
   openWorkout(day, isLive() && currentSession().day===day ? currentSession().pos : 0);
 }
 /* abre o ecrã guiado sem tocar no estado da sessão (também usada para retomar após refresh) */
@@ -77,7 +77,7 @@ function woDoSet(){
   const si=Array.from({length:total},(_,j)=>j).find(j=>!sets.includes(j));
   if(si===undefined) return;
   const w=el('wo-w').value, r=el('wo-r').value;
-  if(!addSetLog(ex.name,w,r,WO.day===CUSTOM_DAY,`${WO.day}:${si}`,WO.day)){
+  if(!addSetLog(ex.name,w,r,WO.day===CUSTOM_DAY?(ST.custom?.quick?'q':true):false,`${WO.day}:${si}`,WO.day)){
     /* sem alertas: o campo em falta fica marcado e em foco */
     const bad=[['wo-w',parseFloat(w)],['wo-r',parseInt(r,10)]].filter(([,v])=>!(v>0)).map(([id])=>el(id));   /* mesma regra de addSetLog */
     bad.forEach(i=>i.classList.add('bad')); if(bad[0]) bad[0].focus();

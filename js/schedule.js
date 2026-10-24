@@ -38,6 +38,27 @@ function weekKey(date) {
   return `${t.getFullYear()}-W${String(week).padStart(2, '0')}`;
 }
 
+/* A identidade impede que uma reorganização permanente reutilize um move antigo. */
+function moveOf(day, now = new Date()) {
+  return Object.values(ST.adapt?.moves || {}).find(m =>
+    m.day === day && m.wk === weekKey(now) &&
+    m.dayId === getDay(day)?.id && m.planId === (ST.plan?.id || '') &&
+    liveDay() !== day) || null;
+}
+
+function movedIn(day, now = new Date()) {
+  return dayNames().filter(d => moveOf(d, now)?.to === day);
+}
+
+function plannedIdx(day, now = new Date()) {
+  return dayNames().indexOf(moveOf(day, now)?.to || day);
+}
+
+function effectiveTrainingOn(weekday, now = new Date()) {
+  return dayNames().find(d => ['todo', 'partial'].includes(dayStatus(d)) &&
+    plannedIdx(d, now) === dayNames().indexOf(weekday)) || null;
+}
+
 function sched() {
   if (!ST.sched || typeof ST.sched !== 'object') ST.sched = { week: weekKey(), done: {}, swaps: {}, replaced: {} };
   if (!ST.sched.done || typeof ST.sched.done !== 'object') ST.sched.done = {};
@@ -49,8 +70,8 @@ function sched() {
 
 /* Nome do dia de hoje tal como está na rotina. Se a rotina não tiver esse dia
    (só pode acontecer com dados manipulados), cai no primeiro dia que existir. */
-function todayName() {
-  const n = WEEKDAYS[new Date().getDay()];
+function todayName(now = new Date()) {
+  const n = WEEKDAYS[new Date(now).getDay()];
   return getDay(n) ? n : (dayNames()[0] || n);
 }
 
@@ -102,7 +123,7 @@ function slotToReplace() {
   if ([...Object.values(s.done), ...Object.values(s.replaced)].includes(todayStr())) return null;
   const cur = currentDay();
   const order = dayNames();
-  return cur && order.indexOf(cur) <= order.indexOf(todayName()) ? cur : null;
+  return cur && plannedIdx(cur) <= order.indexOf(todayName()) ? cur : null;
 }
 
 function replaceCurrent() {
@@ -123,6 +144,9 @@ function completeDay(day) {
 /* Reabrir também desfaz uma substituição por personalizado. */
 function reopenDay(day) {
   const done = { ...sched().done }, replaced = { ...sched().replaced };
+  const quick = { ...sched().quick };
+  delete quick[day];
+  ST.sched = { ...sched(), quick };
   delete done[day];
   delete replaced[day];
   sched().done = done;
@@ -132,19 +156,21 @@ function reopenDay(day) {
 }
 
 /* O treino a fazer agora: primeiro dia de treino da semana ainda não concluído. */
-function currentDay() {
-  return dayNames().find(d => {
+function currentDay(now = new Date()) {
+  return dayNames().slice().sort((a, b) => plannedIdx(a, now) - plannedIdx(b, now)).find(d => {
     const s = dayStatus(d);
     return s !== 'rest' && s !== 'done' && s !== 'swapped' && s !== 'skipped';
   }) || null;
 }
 
 /* Tudo o que o ecrã "Hoje" precisa, calculado num sítio só. */
-function agenda() {
-  const hoje = todayName();
-  const cur = currentDay();
+function agenda(now = new Date()) {
+  const hoje = todayName(now);
+  const cur = currentDay(now);
   const days = dayNames().map(day => ({
     day,
+    movedTo: moveOf(day, now)?.to || null,
+    movedFrom: movedIn(day, now),
     short: shortName(day),
     label: (getDay(day) || {}).label || '',
     status: dayStatus(day),
@@ -157,13 +183,13 @@ function agenda() {
     days,
     today: hoje,
     current: cur,
-    restToday: isRest(hoje),
+    restToday: isRest(hoje) && !effectiveTrainingOn(hoje, now),
     allDone: cur === null,
     /* semana "fechada" sem nada feito (plano novo a meio/fim da semana): não é uma conquista */
     nothingDone: cur === null && !days.some(d => d.status === 'done' || d.status === 'swapped'),
     nextPlanned: (days.find(d => d.status === 'skipped') || {}).day || null,
     /* o treino pendente é de um dia que já passou */
-    late: !!cur && order.indexOf(cur) < order.indexOf(hoje),
+    late: !!cur && plannedIdx(cur, now) < order.indexOf(hoje),
     pending: days.filter(d => !['rest', 'done', 'swapped', 'skipped'].includes(d.status)).length,
   };
 }
@@ -215,8 +241,8 @@ function restoreSwaps(onlyDay) {
 /* Chamado no arranque. Devolve true se limpou uma semana antiga.
    Na primeira execução só regista a semana atual — não apaga progresso que já
    existia antes desta funcionalidade. */
-function ensureWeek() {
-  const wk = weekKey();
+function ensureWeek(now = new Date()) {
+  const wk = weekKey(now);
   const first = !ST.sched;
   const s = sched();
   if (first || !s.week) { s.week = wk; save(); return false; }
@@ -232,7 +258,7 @@ function ensureWeek() {
   restoreSwaps();
   ST.sets = pick(ST.sets);
   ST.done = pick(ST.done);
-  ST.sched = { week: wk, done: {}, swaps: keptSwaps, replaced: {} };
+  ST.sched = { week: wk, done: {}, quick: {}, swaps: keptSwaps, replaced: {} };
   save();
   return true;
 }
@@ -248,7 +274,7 @@ onSessionEnd(s => {
 
 export {
   WEEKDAYS, SHORT, STATUS_ICON,
-  weekKey, todayName, shortName,
+  weekKey, todayName, shortName, moveOf, movedIn, plannedIdx, effectiveTrainingOn,
   isRest, setRest, dayStatus, currentDay, agenda, slotToReplace, replaceCurrent,
   completeDay, reopenDay,
   rememberSwap, swapOriginal, forgetSwap, restoreSwaps,

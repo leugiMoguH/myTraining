@@ -1,3 +1,4 @@
+import { closeOverlay, openOverlay } from './overlay.js';
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { instructionOf, loadInstructions } from './catalog.js';
 import { addMedia } from './media.js';
@@ -68,16 +69,8 @@ function openInfo(name,catalogId){
   } else {
     body.innerHTML=`<div class="info-x-name">${esc(name)}</div><p class="ndisc">Sem ficha técnica para este exercício.</p>`;
   }
-  opener=document.activeElement;
-  document.getElementById('infoBg').classList.add('show');
-  const x=document.querySelector('.info-close'); if(x) x.focus();
+  openOverlay(document.getElementById('infoBg'),{initial:'.info-close',onClose:closeInfo});
 }
-/* devolve o foco a quem abriu; Esc fecha (teclado/leitor de ecrã) */
-let opener=null;
-function closeInfo(){
-  document.getElementById('infoBg').classList.remove('show');
-  if(opener && opener.focus){ opener.focus(); } opener=null;
-}
-document.addEventListener('keydown',e=>{ if(e.key==='Escape' && document.getElementById('infoBg').classList.contains('show')) closeInfo(); });
+function closeInfo(){ closeOverlay(document.getElementById('infoBg')); }
 
 export { GUIDE, openInfo, closeInfo };

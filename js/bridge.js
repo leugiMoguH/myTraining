@@ -14,7 +14,7 @@ import { addMedia, delMedia } from './media.js';
 import { enableNotif } from './notify.js';
 import { addIntakeUI, cancelNutri, delIntake, editNutri, fillIntake, saveNutri, scanBarcode, stopScan } from './nutrition.js';
 import { planBack, planEdit } from './plan-screen.js';
-import { cancelMeasureEdit, delMeasure, editMeasure, saveMeasure, saveProfile, setMetric } from './profile.js';
+import { discardDraft, cancelMeasureEdit, delMeasure, editMeasure, saveMeasure, saveProfile, setMetric } from './profile.js';
 import { slNext, slPrev, slTo } from './sliders.js';
 import { esc, markDone, resetDay, toggleSet } from './state.js';
 import { adjustRest, timerAdd, timerDismiss, timerStart } from './timer.js';
@@ -31,7 +31,7 @@ Object.assign(window, {
   addIntakeUI,
   addMedia,
   adjustRest,
-  cancelMeasureEdit,
+  discardDraft, cancelMeasureEdit,
   cancelNutri,
   catAdd,
   catFilter,

@@ -9,17 +9,53 @@ import { exerciseListHTML } from './history.js';
 import { muscleMapHTML, muscleMapWarm } from './muscle-map.js';
 import { volumeHTML } from './volume.js';
 
-/* Rascunhos dos formulários (dados pessoais, medida nova, medida em edição): guardados em memória ao escrever e repostos
-   quando o ecrã volta a desenhar-se. Cada formulário tem a sua chave (data-draft); guardar/cancelar só limpa a sua. */
-const DRAFT = {};
-document.addEventListener('input', e => {
-  const t = e.target, f = t && t.closest && t.closest('[data-draft]');
-  if (f && t.id) (DRAFT[f.dataset.draft] = DRAFT[f.dataset.draft] || {})[t.id] = t.value;
+const DRAFT = Object.create(null);
+const PIDS=['p-sex','p-age','p-height','p-goal','p-activity'];
+const MIDS=['m-date','m-weight','m-waist','m-neck','m-hip','m-chest','m-arm','m-thigh'];
+const idsFor=k=>k==='profile'?PIDS:/^measure:(new|\d{4}-\d{2}-\d{2})$/.test(k)?MIDS:null;
+function baseFields(k){
+  const p=ST.profile||{};
+  if(k==='profile') return Object.fromEntries(PIDS.map((id,i)=>[id,String([p.sex||'m',p.age||'',p.height||'',p.goal||'manter',p.activity||'mod'][i])]));
+  const date=k.slice(8), e=(ST.measures||[]).find(e=>e.date===date);
+  if(date!=='new'&&!e) return null;
+  const fields=Object.fromEntries(MIDS.map(id=>[id,String(id==='m-date'?(e?.date||todayStr()):(date==='new'?'':e?.[id.slice(2)]??''))]));
+  if(date==='new') fields['m-existing']=JSON.stringify((ST.measures||[]).map(e=>JSON.stringify(e)));
+  return fields;
+}
+function persistDrafts(){try{if(Object.keys(DRAFT).length)localStorage.setItem('treino_drafts',JSON.stringify({v:1,forms:DRAFT}));else localStorage.removeItem('treino_drafts');}catch(_){}}
+let loaded=false;
+function validateDrafts(){
+  if(!loaded){loaded=true;try{
+    const raw=localStorage.getItem('treino_drafts');
+    if(raw){const d=JSON.parse(raw),obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
+      if(!obj(d)||d.v!==1||!obj(d.forms))throw Error();
+      for(const [k,v] of Object.entries(d.forms)){
+        const ids=idsFor(k);if(!ids||!obj(v)||typeof v.base!=='string'||!obj(v.fields))throw Error();
+        const base=JSON.parse(v.base);
+        if(!obj(base)||Object.keys(base).length!==ids.length+(k==='measure:new'&&typeof base['m-existing']==='string'?1:0)||ids.some(id=>typeof base[id]!=='string')||Object.keys(base).some(id=>!ids.includes(id)&&!(k==='measure:new'&&id==='m-existing'))||Object.entries(v.fields).some(([id,x])=>!ids.includes(id)||typeof x!=='string'))throw Error();
+        if(k==='measure:new'&&base['m-existing']!==undefined){const entries=JSON.parse(base['m-existing']);if(!Array.isArray(entries)||entries.some(e=>typeof e!=='string'))throw Error();}
+      }Object.assign(DRAFT,d.forms);
+    }
+  }catch(_){}}
+  for(const [k,d] of Object.entries(DRAFT)){
+    const base=baseFields(k);
+    if(!base||(k==='measure:new'&&(ST.measures||[]).some(e=>e.date===(d.fields['m-date']||JSON.parse(d.base)['m-date'])&&!JSON.parse(JSON.parse(d.base)['m-existing']||'[]').includes(JSON.stringify(e))))||(k!=='measure:new'&&JSON.stringify(base)!==d.base)||Object.entries(d.fields).every(([id,v])=>v===JSON.parse(d.base)[id]))delete DRAFT[k];
+  }persistDrafts();
+}
+const hasDraft=k=>!!DRAFT[k];
+function syncDiscard(f){const b=f.querySelector('[data-discard]');if(b)b.hidden=!hasDraft(f.dataset.draft);}
+document.addEventListener('input',e=>{
+  const t=e.target,f=t?.closest?.('[data-draft]'),k=f?.dataset.draft;
+  if(!f||!idsFor(k)?.includes(t.id))return;
+  validateDrafts();const d=DRAFT[k]||{base:JSON.stringify(baseFields(k)),fields:{}};
+  for(const id of idsFor(k)){const el=f.querySelector('#'+id);if(el)d.fields[id]=el.value;}
+  DRAFT[k]=d;if(Object.entries(d.fields).every(([id,v])=>v===JSON.parse(d.base)[id]))delete DRAFT[k];
+  persistDrafts();syncDiscard(f);
 });
-const hasDraft = key => !!DRAFT[key] && Object.keys(DRAFT[key]).length > 0;
-function applyDraft(key) { Object.entries(DRAFT[key] || {}).forEach(([id, v]) => { const el = document.getElementById(id); if (el) el.value = v; }); }
-const clearDraft = key => { delete DRAFT[key]; };
-const clearDrafts = () => { Object.keys(DRAFT).forEach(k => delete DRAFT[k]); };
+function applyDraft(k){const f=document.querySelector('[data-draft="'+k+'"]');if(!f)return;for(const [id,v]of Object.entries(DRAFT[k]?.fields||{})){const el=f.querySelector('#'+id);if(el)el.value=v;}syncDiscard(f);}
+const clearDraft=k=>{delete DRAFT[k];persistDrafts();};
+const clearDrafts=()=>{loaded=true;Object.keys(DRAFT).forEach(k=>delete DRAFT[k]);MEASURE_EDIT_DATE=null;persistDrafts();};
+function discardDraft(k){clearDraft(k);if(k==='profile')renderProfile();else{MEASURE_EDIT_DATE=null;renderEvolution();}}
 
 /* Três ecrãs com os dados deste módulo (ids de vista): '__perfil' = Evolução (a aba; id antigo, mantém-se para não
    mudar o ecrã de quem tinha a app aberta), '__eu' = Perfil (dados pessoais e preferências), '__plano' = Plano. */
@@ -62,12 +98,12 @@ function metricChartHTML(field){
 function setMetric(m){
   MEASURE_METRIC=m;
   const host=document.getElementById('mchart'); if(host) host.innerHTML=metricChartHTML(m);
-  document.querySelectorAll('#mchips .m-chip').forEach(c=>c.classList.toggle('prim',c.dataset.m===m));
+  document.querySelectorAll('#mchips .m-chip').forEach(c=>{ const on=c.dataset.m===m; c.classList.toggle('prim',on); c.setAttribute('aria-pressed',on); });
 }
 function measuresDashboard(){
   const avail=Object.keys(METRIC_DEF).filter(f=>measureSeries(f).length>0);
   if(avail.indexOf(MEASURE_METRIC)<0) MEASURE_METRIC=avail[0]||'weight';
-  const chips=avail.map(f=>`<span class="m-chip${f===MEASURE_METRIC?' prim':''}" data-m="${f}" onclick="setMetric('${f}')">${METRIC_DEF[f][0]}</span>`).join('');
+  const chips=avail.map(f=>`<button type="button" class="m-chip${f===MEASURE_METRIC?' prim':''}" data-m="${f}" aria-pressed="${f===MEASURE_METRIC}" onclick="setMetric('${f}')">${METRIC_DEF[f][0]}</button>`).join('');
   const last=latestMeasure();
   return `<div id="mchips" class="m-legend" style="justify-content:flex-start">${chips}</div><div class="lc" id="mchart">${metricChartHTML(MEASURE_METRIC)}</div>${last&&last.ts?`<div class="ndisc">Último registo: ${fmtDateTime(last.ts)}</div>`:''}`;
 }
@@ -87,19 +123,22 @@ function profileDataHTML(){
       <label class="nfield"><span>Atividade (fora do treino)</span><select id="p-activity"><option value="sed"${sel(p.activity,'sed')}>Sedentário</option><option value="leve"${sel(p.activity,'leve')}>Leve</option><option value="mod"${sel(p.activity||'mod','mod')}>Moderado</option><option value="alto"${sel(p.activity,'alto')}>Alto</option></select></label>
     </div>
     <button class="nbtn" onclick="saveProfile()">Guardar dados</button>
+    <button type="button" class="reset-btn" data-discard hidden onclick="discardDraft('profile')">Descartar rascunho</button>
   </div>`;
 }
 function saveProfile(){
   const v=id=>{ const el=document.getElementById(id); return el?el.value:''; };
   const height=parseFloat(v('p-height'));
   if(!(height>0)){ fieldError('p-height','A altura é obrigatória.'); return; }
+  const previous=ST.profile;
   ST.profile={ sex:v('p-sex'), age:parseInt(v('p-age'),10)||0, height, goal:v('p-goal'), activity:v('p-activity') };
-  clearDraft('profile'); save(); renderProfile();
+  if(!save()){ST.profile=previous;return;}
+  clearDraft('profile'); renderProfile();
 }
 
 function measureFormHTML(){
   const editing=MEASURE_EDIT_DATE;
-  const src=editing ? (ST.measures||[]).find(e=>e.date===editing) : latestMeasure();
+  const src=editing ? (ST.measures||[]).find(e=>e.date===editing) : null;
   const g=f=> src&&src[f]!=null?src[f]:'';
   const theDate=editing||todayStr();
   return `<div class="nform" data-draft="measure:${editing||'new'}">
@@ -114,6 +153,7 @@ function measureFormHTML(){
       <label class="nfield"><span>Coxa (cm)</span><input id="m-thigh" type="number" step="0.1" inputmode="decimal" value="${g('thigh')}"></label>
     </div>
     <button class="nbtn" onclick="saveMeasure()">${editing?'Guardar alterações':'Registar medidas de hoje'}</button>
+    ${!editing?`<button type="button" class="reset-btn" data-discard hidden onclick="discardDraft('measure:new')">Descartar rascunho</button>`:''}
     ${editing?`<button class="reset-btn" onclick="cancelMeasureEdit()">✕ Cancelar edição</button>`:''}
   </div>`;
 }
@@ -127,7 +167,7 @@ function measuresHTML(){
   <details class="ev-more" id="m-form"${formOpen?' open':''}><summary>${editing?'Editar registo':'＋ Registar medidas'}</summary>${measureFormHTML()}</details>
   ${has ? `<details class="ev-more" id="m-hist"${editing?' open':''}><summary>Histórico de medidas (${(ST.measures||[]).length})</summary>${measuresHistoryHTML()}</details>` : ''}`;
 }
-function saveMeasure(){
+async function saveMeasure(){
   const num=id=>{ const el=document.getElementById(id); const x=el?parseFloat(el.value):NaN; return x>0?x:undefined; };
   const weight=num('m-weight');
   if(!(weight>0)){ fieldError('m-weight','O peso é obrigatório para registar medidas.'); return; }
@@ -136,14 +176,21 @@ function saveMeasure(){
   if(date>todayStr()) date=todayStr();
   const entry={ date, ts:nowISO(), weight };
   ['waist','neck','hip','chest','arm','thigh'].forEach(f=>{ const x=num('m-'+f); if(x!==undefined) entry[f]=x; });
+  if(!MEASURE_EDIT_DATE&&(ST.measures||[]).some(e=>e.date===date)){
+    const before=JSON.stringify((ST.measures||[]).find(e=>e.date===date));
+    if(!await confirmDialog({title:'Substituir medidas', confirmLabel:'Substituir', message:'Já existe um registo de medidas nesta data. Substituir?', danger:true})) return;
+    if(MEASURE_EDIT_DATE||before!==JSON.stringify((ST.measures||[]).find(e=>e.date===date))) return;
+  }
   let arr=(ST.measures||[]).slice();
   if(MEASURE_EDIT_DATE && MEASURE_EDIT_DATE!==date) arr=arr.filter(e=>e.date!==MEASURE_EDIT_DATE); // data mudou → remove antigo
   const idx=arr.findIndex(e=>e.date===date);
   if(idx>=0) arr[idx]=Object.assign({},arr[idx],entry); else arr.push(entry);
   arr.sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
+  const previous=ST.measures;
   ST.measures=arr;
+  if(!save()){ST.measures=previous;return;}
   clearDraft('measure:'+(MEASURE_EDIT_DATE||'new')); MEASURE_EDIT_DATE=null;
-  save(); renderEvolution();
+  renderEvolution();
 }
 function editMeasure(date){ MEASURE_EDIT_DATE=date; renderEvolution(); }
 function cancelMeasureEdit(){ clearDraft('measure:'+MEASURE_EDIT_DATE); MEASURE_EDIT_DATE=null; renderEvolution(); }
@@ -153,7 +200,8 @@ async function delMeasure(date){
   if(!await confirmDialog({title:'Apagar medidas', confirmLabel:'Apagar', message:'Apagar este registo de medidas?', danger:true})) return;
   if(before!==entry()) return;
   ST.measures=(ST.measures||[]).filter(e=>e.date!==date);
-  if(MEASURE_EDIT_DATE===date){ clearDraft('measure:'+date); MEASURE_EDIT_DATE=null; }
+  clearDraft('measure:'+date);
+  if(MEASURE_EDIT_DATE===date) MEASURE_EDIT_DATE=null;
   save(); renderEvolution();
 }
 function measuresHistoryHTML(){
@@ -186,6 +234,7 @@ const measureKey=()=>'measure:'+(MEASURE_EDIT_DATE||'new');
 
 /* Perfil ('__eu'): quem és (dados pessoais, preferências de treino) e as metas que daí saem */
 function renderProfile(content){
+  validateDrafts();
   content=content||document.getElementById('content');
   document.getElementById('hdrSub').textContent='Perfil';
   document.getElementById('progFill').style.width='0%';
@@ -195,6 +244,8 @@ function renderProfile(content){
 
 /* Evolução ('__perfil', a aba): só acompanhamento — exercícios, recordes, medidas, músculos, volume */
 function renderEvolution(content){
+  validateDrafts();
+  if(!MEASURE_EDIT_DATE&&!hasDraft('measure:new')) MEASURE_EDIT_DATE=Object.keys(DRAFT).find(k=>k.startsWith('measure:'))?.slice(8)||null;
   content=content||document.getElementById('content');
   document.getElementById('hdrSub').textContent='Evolução';
   document.getElementById('progFill').style.width='0%';
@@ -203,4 +254,4 @@ function renderEvolution(content){
   muscleMapWarm();
 }
 
-export { clearDrafts, renderEvolution, getProfile, bodyMetrics, profileComplete, latestMeasure, latestWeight, bodyFat, METRIC_DEF, MEASURE_METRIC, MEASURE_EDIT_DATE, measureSeries, metricChartHTML, setMetric, measuresDashboard, profileDataHTML, saveProfile, measuresHTML, saveMeasure, editMeasure, cancelMeasureEdit, delMeasure, measuresHistoryHTML, macrosSummaryHTML, renderProfile };
+export { discardDraft, clearDrafts, renderEvolution, getProfile, bodyMetrics, profileComplete, latestMeasure, latestWeight, bodyFat, METRIC_DEF, MEASURE_METRIC, MEASURE_EDIT_DATE, measureSeries, metricChartHTML, setMetric, measuresDashboard, profileDataHTML, saveProfile, measuresHTML, saveMeasure, editMeasure, cancelMeasureEdit, delMeasure, measuresHistoryHTML, macrosSummaryHTML, renderProfile };

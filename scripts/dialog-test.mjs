@@ -122,8 +122,8 @@ try {
     await page.evaluate(()=>window.openInfo('Leg press',''));
     await open({danger:true});await page.keyboard.press('Escape');
     assert.equal(await page.locator('#infoBg').evaluate(e=>e.classList.contains('show')),true);
-    for(const [id,value]of Object.entries(origin))if(id)assert.equal(await page.locator(`#${id}`).getAttribute('inert'),value);
     await page.evaluate(()=>window.closeInfo());
+    for(const [id,value]of Object.entries(origin))if(id)assert.equal(await page.locator(`#${id}`).getAttribute('inert'),value);
     await open();const t=await page.locator('#wo-clock').innerText();await page.waitForTimeout(1200);assert.notEqual(await page.locator('#wo-clock').innerText(),t);await choose('Cancelar');
     await reset();
   });
@@ -206,7 +206,7 @@ try {
   await test('SW v32 em cache abre modal offline',async()=>{
     await page.evaluate(async()=>{await navigator.serviceWorker.ready;});
     await page.reload({waitUntil:'networkidle'});await page.evaluate(async()=>{window.M={dialog:await import('./js/dialog.js')};});
-    assert((await page.evaluate(()=>caches.keys())).includes('treino-v35'));
+    assert((await page.evaluate(()=>caches.keys())).includes('treino-v36'));
     await context.setOffline(true);await open();await choose('Confirmar');assert.equal(await result(),true);await context.setOffline(false);
   });
   assert.deepEqual(errors,[]);

@@ -437,11 +437,12 @@ for (const [w, h] of [[320, 640], [412, 915], [1280, 800]]) {
 }
 await page.setViewportSize({ width: 412, height: 915 });
 
+await step('ajustar descanso', () => click('.hdr-timer-adj'));
 await step('abrir definicoes', async () => {
   await click('.nb:has-text("Opções")');
   if (!(await page.locator('#sheetBg.show').count())) throw new Error('sheet nao abriu');
 });
-await step('ajustar descanso', () => click('.hdr-timer-adj'));
+
 await step('fechar definicoes', () => page.evaluate(() => window.closeSheet()));
 
 await step('reload mantem progresso', async () => {
@@ -534,6 +535,7 @@ await step('ficha EN do exercicio novo', async () => {
   if (!txt.includes('Gym visual')) throw new Error('falta a atribuicao obrigatoria a Gym visual');
 });
 await page.screenshot({ path: join(SHOTS, 'ficha-catalogo.png') });
+await page.keyboard.press('Escape');   /* a ficha é modal: Esc fecha e devolve o foco */
 await stepClean('remover exercicio novo', async () => {
   dialogQueue.push(true);
   await click('[onclick*="toggleEdit"]');

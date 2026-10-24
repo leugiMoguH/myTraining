@@ -1,3 +1,4 @@
+import { closeOverlay, openOverlay } from './overlay.js';
 import { confirmDialog } from './dialog.js';
 import { show } from './notice.js';
 /* myTraining — módulo extraído de index.html (Fase 0). */
@@ -12,8 +13,8 @@ import { render } from './ui.js';
 import { syncWakeUI } from './wake.js';
 
 /* ═══════════════ DEFINIÇÕES / BACKUP ════════════════ */
-function openSheet(){ syncWakeUI(); syncNotifUI(); document.getElementById('sheetBg').classList.add('show'); }
-function closeSheet(){ document.getElementById('sheetBg').classList.remove('show'); }
+function openSheet(){ syncWakeUI(); syncNotifUI(); openOverlay(document.getElementById('sheetBg'),{onClose:closeSheet}); }
+function closeSheet(){ closeOverlay(document.getElementById('sheetBg')); }
 
 function exportBackup(){
   const payload={ app:'treino', v:2, exportedAt:new Date().toISOString(), rest_sec:REST_SEC, state:ST };

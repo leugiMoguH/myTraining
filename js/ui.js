@@ -84,7 +84,7 @@ function buildCard(day,ex,i) {
   const slidesHTML=slidesArr.join('');
 
   const dotsHTML = n>1
-    ? `<div class="dots" id="dots-${i}">${Array.from({length:n},(_,j)=>`<div class="dot${j===0?' on':''}" onclick="slTo(${i},${j})"></div>`).join('')}</div>`
+    ? `<div class="dots" id="dots-${i}">${Array.from({length:n},(_,j)=>`<button type="button" class="dot${j===0?' on':''}" aria-label="Imagem ${j+1} de ${n}"${j===0?' aria-current="true"':''} onclick="slTo(${i},${j})"></button>`).join('')}</div>`
     : '';
 
   const navHTML = n>1
@@ -308,13 +308,13 @@ function renderWeek(content) {
     ${weekStripHTML(a)}
     <div class="week-list">${a.days.map(d=>{
       const {done,total} = d.status==='rest' ? {done:0,total:0} : getProgress(d.day);
-      return `<div class="wk-row s-${d.status}" data-day="${d.day}" onclick="goDay('${d.day}')">
+      return `<button type="button" class="wk-row s-${d.status}" data-day="${d.day}" onclick="goDay('${d.day}')">
         <div class="wk-row-main">
           <div class="wk-row-day">${d.icon} ${d.day}${d.isToday?' <span class="wk-today">hoje</span>':''}</div>
           <div class="wk-row-sub">${esc(d.label)}${total?` · ${done}/${total}`:''}</div>
         </div>
         <div class="wk-row-st">${LBL[d.status]}</div>
-      </div>`;
+      </button>`;
     }).join('')}</div>
   </div>`;
   document.getElementById('hdrSub').textContent = `Semana · ${a.pending} treino${a.pending===1?'':'s'} por fazer`;

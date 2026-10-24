@@ -29,3 +29,4 @@ As exclusões por limitação (`avoid` em `js/planner.js`) são **conservadoras 
 
 ## Roadmap
 - Smartwatch: `docs/SMARTWATCH_VIABILIDADE.md`.
+- Strava: `docs/STRAVA_VIABILIDADE.md` (prova só local; nada enviado). Próximo passo: o dono verifica no Mi Fitness (envio de musculação ao Strava, FC, Health Connect).

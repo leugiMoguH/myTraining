@@ -1,4 +1,4 @@
-/* Atualização do service worker (v32 → atual): dados, sessão em curso e descanso sobrevivem; cache velha sai — npm run test:sw-update */
+/* Atualização do service worker (v33 → atual): dados, sessão em curso e descanso sobrevivem; cache velha sai — npm run test:sw-update */
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { join, extname } from 'node:path';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const OLD_SW = execSync('git show e42b6b6:sw.js', { cwd: root, encoding: 'utf8' });   /* o sw.js publicado (treino-v32) */
+const OLD_SW = execSync('git show 1f4b63c:sw.js', { cwd: root, encoding: 'utf8' });   /* o sw.js publicado (treino-v33) */
 const OLD = /treino-v\d+/.exec(OLD_SW)[0], NEW = /treino-v\d+/.exec(readFileSync(join(root, 'sw.js'), 'utf8'))[0];
 assert.notEqual(OLD, NEW, 'a versão do SW não subiu');
 let serveOld = true;

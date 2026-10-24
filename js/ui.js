@@ -29,16 +29,24 @@ function refreshProgress() {
   document.getElementById('hdrSub').textContent=`${DAYS[day].label} · ${done}/${total}`;
 }
 
+/* Estado visual das séries: feita (`on`), atual (`next` = 1.ª por fazer, só com o cartão aberto) e pendente. */
+function paintSets(card,sets,isDone){
+  const next=isDone?-1:[...card.querySelectorAll('.set-btn')].map(b=>+b.dataset.si).find(si=>!sets.includes(si));
+  card.querySelectorAll('.set-btn').forEach(btn=>{
+    const si=+btn.dataset.si, on=sets.includes(si);
+    btn.classList.toggle('on',on);
+    btn.classList.toggle('next',si===next);
+    btn.setAttribute('aria-pressed',String(on));
+    btn.setAttribute('aria-label',`Série ${si+1}${si===next?', próxima':''}`);
+  });
+}
+
 function refreshCard(day,i) {
   const card=document.getElementById(`card-${i}`);
   if(!card) return;
   const isDone=!!ST.done[key(day,i)];
   card.classList.toggle('done',isDone);
-  const sets=getSets(day,i);
-  card.querySelectorAll('.set-btn').forEach(btn=>{
-    const si=+btn.dataset.si;
-    btn.classList.toggle('on',sets.includes(si));
-  });
+  paintSets(card,getSets(day,i),isDone);
 }
 
 /* GIF animado do exercises-dataset (180x180, ~90 KB). loading=lazy porque um dia
@@ -84,16 +92,15 @@ function buildCard(day,ex,i) {
   const completedSets=getSets(day,i);
   const trocado=swapOriginal(day,i);
 
+  /* colunas iguais: até 6 numa linha (6 só se o contentor tiver 304px; senão 3+3); mais séries repartem-se em 2 linhas equilibradas (6 cabe numa linha só a partir de 360px) */
+  const cols=totalSets<=6?totalSets:totalSets<=10?Math.ceil(totalSets/2):5;
   const setsHTML = totalSets>0
-    ? `<div>
-         <div class="sets-label">Séries</div>
-         <div class="sets-row">
-           ${Array.from({length:totalSets},(_,si)=>`
-             <button class="set-btn${completedSets.includes(si)?' on':''}" data-si="${si}"
-                     onclick="toggleSet('${day}',${i},${si});this.classList.add('pop');setTimeout(()=>this.classList.remove('pop'),220)">
-               ${si+1}
-             </button>`).join('')}
-         </div>
+    ? `<div class="sets-row" role="group" aria-label="Séries" style="--c:${cols}" data-n="${totalSets}">
+         ${Array.from({length:totalSets},(_,si)=>`
+           <button class="set-btn${completedSets.includes(si)?' on':''}" data-si="${si}" aria-pressed="${completedSets.includes(si)}" aria-label="Série ${si+1}"
+                   onclick="toggleSet('${day}',${i},${si});this.classList.add('pop');setTimeout(()=>this.classList.remove('pop'),220)">
+             ${si+1}
+           </button>`).join('')}
        </div>`
     : '';
 
@@ -113,9 +120,13 @@ function buildCard(day,ex,i) {
     <div class="card-body">
       <div class="card-title-row">
         <div class="card-title">${ex.name}</div>
-        <div class="done-pill">✓ Feito</div>
+        <div class="card-meta">
+          <div class="card-stats">${totalSets>0
+            ?`<span class="sr-only">${ex.s} séries de ${esc(ex.r)} repetições</span><span aria-hidden="true" class="st-vis"><b>${ex.s}</b><span class="st-x">×</span><b>${esc(ex.r)}</b></span>`
+            :`<b>${esc(ex.s)}</b><span class="st-x" aria-hidden="true">·</span><b>${esc(ex.r)}</b>`}</div>
+          <div class="done-pill">✓ Feito</div>
+        </div>
       </div>
-      <div class="card-stats">Séries: ${ex.s} · Reps: ${ex.r}</div>
       ${setsHTML}
       ${loadHTML}
       ${trocado?`<div class="card-swap">🔄 Trocado só esta semana ·
@@ -143,6 +154,7 @@ function buildCard(day,ex,i) {
       </div>
     </div>
   `;
+  paintSets(card,completedSets,!!ST.done[key(day,i)]);
   card.querySelector('.act-timer').addEventListener('click',()=>timerStart(REST_SEC));
   const more=card.querySelector('.card-more');
   const details=card.querySelector('.card-details');

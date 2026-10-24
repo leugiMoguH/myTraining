@@ -65,6 +65,7 @@ Valores de fontes secundárias; **confirmar nas páginas oficiais antes de decid
 5. **Nutrição nível 1 com PortFIR** (após confirmar licença).
 6. **Conquistas e lembretes** (opcionais, com limites).
 7. **Lojas** só se houver procura.
+8. **Smartwatch (futuro, não iniciado).** Nível 1 sincronização pós-treino via Health Connect (Android/APK) · nível 2 acompanhamento no relógio · nível 3 controlo/reconhecimento. Viabilidade e primeira experiência a validar em `docs/SMARTWATCH_VIABILIDADE.md`. *Aceite da 1.ª experiência:* 5 treinos reais com FC associada à sessão certa, sem duplicados.
 
 ## H. Relatório Codex
 1 chamada, só leitura (plano limitado). Pontos aceites: sync por eventos, identidade estável, migração preservando original e marcando ambiguidades, adaptação com explicar/recusar/desfazer, 2 modelos iniciais, adiar push/gamificação/lojas, RGPD como hipótese jurídica a validar (não "consentimento resolve"). Discordância parcial: Codex sugere IndexedDB já; adiar até Fase 2 (localStorage chega para o volume atual, migrar quando o sync exigir).

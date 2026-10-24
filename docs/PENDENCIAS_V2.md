@@ -20,3 +20,12 @@ As exclusões por limitação (`avoid` em `js/planner.js`) são **conservadoras 
 - Contraste do escuro: branco sobre laranja 2,8:1 (base documentada em `scripts/theme-test.mjs`).
 - Splash/barra de estado iOS escuros; versões mistas do service worker offline; Safari (data nativa) e impressão por verificar.
 - Sem teste com leitor de ecrã real nem em telemóvel físico.
+
+## Bloco 5 — cartões de exercício (2026-10-24), publicado; por validar no telemóvel
+- Cabeçalho nome | séries×reps, séries em colunas iguais, série atual destacada, ARIA (`aria-pressed`, «Série N, próxima»). Testes: `test:cards`. SW `treino-v34`.
+- Fim de semana: plano novo sem nada feito já não diz «Semana concluída» (`test:hoje-semana`).
+- Revisão Codex ao plano e ao diff: feita (3 achados corrigidos). A revisão independente do B4/acolhimento continua pendente.
+- Limitações: 6 séries a 360px ficam 3+3 (regra por largura do cartão); grid 1280px estica cartões (pré-existente); sem teste em telemóvel físico.
+
+## Roadmap
+- Smartwatch: `docs/SMARTWATCH_VIABILIDADE.md`.

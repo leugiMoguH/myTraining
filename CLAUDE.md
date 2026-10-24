@@ -164,3 +164,7 @@ subir a versão de `CACHE` (`treino-v3` → `v4`), senão os clientes ficam com 
 `scripts/build-www.mjs` copia `js/` e `data/` para o APK (Capacitor).
 
 O cartão do Dia mostra séries e registo de carga; Mais abre detalhes só no DOM, fecha a cada render e preserva campos por registar ao alternar.
+
+## Regra de publicação (decisão do dono, 2026-10-24)
+
+No fim de cada bloco de implementação concluído e validado: **commit + push para `main`** (GitHub Pages). Condições: testes relevantes verdes; preservação de dados verificada (`test:sw-update` ao mexer em `sw.js`/estado); sem segredos nos ficheiros publicados; sem funcionalidade incompleta exposta; sem regressões conhecidas; commits separados por assunto. Risco relevante → não publicar, comunicar o bloqueio. **Nunca** publicar integrações externas que possam alterar dados reais (ex.: envio para Strava) sem autorização específica. A validação local não substitui o teste no telemóvel. Não incluir `todolist_tommorow.md`, `.agents/`, `.claude/skills/`, `bash.exe.stackdump`, `scripts/_*.mjs`.

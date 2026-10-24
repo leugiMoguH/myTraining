@@ -609,11 +609,24 @@ body.kb #bnav { display: none; }
 
 /* ── LOAD / PROGRESSÃO ────────────────────────────── */
 /* Cartao Dia: registo essencial e detalhes em Mais. */
-.card .card-body { gap: 12px; padding: 16px; }
-.card .card-title-row { align-items: center; }
-.card .card-stats { font-size: 13px; color: var(--muted); margin-top: -6px; }
+.card .card-body { gap: 14px; padding: 16px; }
+/* Bloco 5: nome à esquerda, «séries × reps» à direita (a pílula «Feito» por baixo); nomes longos quebram na sua coluna */
+.card .card-title-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 4px 12px; }
+.card .card-title { font-size: 17px; line-height: 1.25; overflow-wrap: anywhere; }
+.card .card-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: 50cqw; }
+.card .card-stats { display: flex; align-items: baseline; gap: 5px; margin: 0; padding-top: 2px; flex-wrap: wrap; justify-content: flex-end; font-size: 13px; color: var(--muted); }
+.card .card-stats .st-vis { display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.card .card-stats b { font-size: 16px; font-weight: 800; color: var(--text); }
+.card .card-stats .st-x { font-weight: 600; }
+.card .done-pill { margin-top: 0; }
 .card .sets-label { display: none; }
-.card .sets-row { margin-top: 0; }
+/* séries: colunas iguais, bolinhas centradas e repartidas pela largura (pendente · feita · atual) */
+.card .sets-row { display: grid; grid-template-columns: repeat(var(--c, 4), minmax(0, 1fr)); gap: 10px 8px; justify-items: center; margin-top: 0; width: 100%; max-width: 360px; }
+.card .card-body { container-type: inline-size; }
+@container (max-width: 303px) { .card .sets-row[data-n="6"] { --c: 3 !important; } }
+.card .set-btn { width: 46px; height: 46px; }
+.card .set-btn.next { border-color: var(--accent); border-width: 3px; color: var(--text); font-weight: 800; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
 .card .load-row { gap: 8px; }
 .card .load-in { flex: 1; min-width: 0; }
 .card .card-actions { padding-top: 0; }

@@ -10,7 +10,7 @@ import { openInfo } from './guide.js';
 import { DEMOS, demoUrl } from './media.js';
 import { configOf, progHint } from './progression.js';
 import { lastBefore } from './records.js';
-import { ACTIVE, PAUSED, completeSession, currentSession, fmtDur, isLive, notifySession, pauseSession, resumeSession, sessionState, setSessionPos, startSession, timeStats, touchSession } from './session.js';
+import { ACTIVE, PAUSED, completeSession, currentSession, fmtDur, isLive, notifySession, onSessionEnd, pauseSession, resumeSession, sessionState, setSessionPos, startSession, timeStats, touchSession } from './session.js';
 import { ST, addSetLog, esc, getLog, getSets, lastSetOf, logDate, toggleSet } from './state.js';
 import { TM, onTimerChange, timerDismiss } from './timer.js';
 import { openSwap } from './catalog-ui.js';
@@ -36,6 +36,17 @@ async function startWorkout(day){
   if(!live) startSession(day,DAYS[day].label, day===CUSTOM_DAY && ST.custom?.quick ? {quick:ST.custom.quick.mode} : undefined);   /* só um toque do utilizador inicia a sessão */
   openWorkout(day, isLive() && currentSession().day===day ? currentSession().pos : 0);
 }
+let woHist=false, skipPop=false;   /* uma entrada de histórico enquanto o guiado está aberto */
+const LAYERS='.app-dialog, .sheet-bg.show, #infoBg.show, #onbBg.show, #mvBg.show';   /* diálogos e folhas por cima do guiado */
+window.addEventListener('popstate',()=>{
+  if(skipPop){ skipPop=false; return; }
+  if(!(woHist && guidedOpen())) return;
+  /* Voltar com um diálogo/folha aberto não fecha o guiado por baixo (deixaria o fundo inerte): a entrada é reposta */
+  if(document.querySelector(LAYERS)){ try{ history.pushState({wo:1},''); }catch(_){} return; }
+  woHist=false; closeWorkout();
+});
+/* depois de um reload a entrada {wo} já existe: adota-se em vez de acumular outra; se o guiado não reabrir, limpa-se a marca */
+setTimeout(()=>{ try{ if(!woHist && history.state && history.state.wo) history.replaceState(null,''); }catch(_){} },0);
 /* abre o ecrã guiado sem tocar no estado da sessão (também usada para retomar após refresh) */
 function openWorkout(day, idx=0){
   if(!DAYS[day] || !DAYS[day].ex.length) return false;
@@ -43,6 +54,7 @@ function openWorkout(day, idx=0){
   setSessionPos(WO.idx);
   touchSession(Date.now(),false);   /* o utilizador está presente; o intervalo anterior não se confirma */
   document.body.classList.add('guided'); background(true);
+  if(!woHist){ try{ if(history.state && history.state.wo) woHist=true; else { history.pushState({wo:1},''); woHist=true; } }catch(_){} }
   el('woBg').classList.add('show'); acquireWake(); woRender();
   clearInterval(WO.clock);
   WO.clock=setInterval(()=>{ const c=el('wo-clock'); if(c) c.textContent=clockTxt(); },1000);
@@ -52,6 +64,7 @@ function openWorkout(day, idx=0){
 /* Sair da vista: a sessão continua ACTIVE/PAUSED (a barra geral volta com a faixa "em curso") */
 function closeWorkout(){
   clearInterval(WO.clock);
+  if(woHist){ woHist=false; try{ if(history.state&&history.state.wo){ skipPop=true; history.back(); } }catch(_){} }
   el('woBg').classList.remove('show'); document.body.classList.remove('guided'); background(false);
   if(!wakeWanted) releaseWake();
   render(WO.day); notifySession();
@@ -154,17 +167,23 @@ function nextText(){
    por isso nunca se perde o que se está a escrever. */
 function woRestSync(){
   const box=el('woRest'); if(!box || !guidedOpen()) return;
-  box.parentElement.classList.toggle('resting',TM.on);   /* com descanso a correr a demonstração encolhe e deixa-o à vista */
+  const scroll=document.querySelector('#woBody .wo-scroll');
+  if(scroll) scroll.classList.toggle('resting',TM.on);   /* com descanso a correr a demonstração sai da frente */
   if(!TM.on){ box.hidden=true; box.innerHTML=''; return; }
-  const m=Math.floor(TM.left/60), s=String(TM.left%60).padStart(2,'0');
+  const m=Math.floor(TM.left/60), s=String(TM.left%60).padStart(2,'0'), pct=TM.total>0?Math.round(TM.left/TM.total*100):0;
+  if(!box.hidden && box.firstElementChild){   /* já desenhado: +30 s só muda o tempo, os botões (e o foco) ficam */
+    const t=box.querySelector('.wo-rest-num'), b=box.querySelector('.t-bar'), n=box.querySelector('.wo-rest-next');
+    if(t) t.textContent=`${m}:${s}`; if(b) b.style.width=`${pct}%`; if(n) n.innerHTML=`A seguir: ${nextText()}`;
+    return;
+  }
   box.hidden=false;
-  box.innerHTML=`<div class="wo-rest-lbl">Descanso</div>
-    <div class="wo-rest-num t-live">${m}:${s}</div>
-    <div class="wo-rest-bar"><i class="t-bar" style="width:${TM.total>0?Math.round(TM.left/TM.total*100):0}%"></i></div>
-    <div class="wo-rest-next">A seguir: ${nextText()}</div>
-    <div class="wo-rest-btns"><button class="wo-btn" onclick="timerAdd(30)">+30 s</button><button class="wo-btn" onclick="timerDismiss()">Saltar</button></div>`;
+  box.innerHTML=`<div class="wo-rest-main"><div class="wo-rest-lbl">Descanso</div><div class="wo-rest-num t-live">${m}:${s}</div></div>
+    <div class="wo-rest-btns"><button class="wo-btn" onclick="timerAdd(30)">+30 s</button><button class="wo-btn" onclick="timerDismiss()">Saltar</button></div>
+    <div class="wo-rest-bar"><i class="t-bar" style="width:${pct}%"></i></div>
+    <div class="wo-rest-next">A seguir: ${nextText()}</div>`;
 }
 onTimerChange(woRestSync);
+onSessionEnd(() => timerDismiss());   /* o treino acabou: o descanso também (banner, relógio e notificação) */
 /* a sessão pode mudar por fora (ex.: pausada ao reabrir): repinta o ecrã se estiver aberto */
 function refreshWorkout(){ if(WO.day && guidedOpen()) woRender(true); }
 
@@ -217,10 +236,10 @@ function woRender(keep){
       <div class="wo-title"><div class="wo-name">${esc(ex.name)}</div>
         <div class="wo-meta"><div class="wo-sub">${totalSets?`${ex.s} séries`:''}${totalSets&&ex.r?' · ':''}${ex.r?`${esc(String(ex.r))}${totalSets?' reps':''}`:''}</div>${dots}</div></div>
       ${prev?`<div class="wo-prev">Última vez: ${prev.w} kg × ${prev.r}</div>`:''}
-      <section id="woRest" class="wo-rest" aria-label="Descanso" hidden></section>
       ${hint?`<div class="wo-hint">${hint}</div>`:''}
       <button class="wo-end" onclick="woFinish()">Terminar treino</button>
     </div>
+    <section id="woRest" class="wo-rest" aria-label="Descanso" hidden></section>
     <div class="wo-dock">
       ${totalSets?`<div class="wo-load">${field('wo-w',draft?draft.w:(last?last.w:''),'kg','kg','w','peso')}${field('wo-r',draft?draft.r:(last?last.r:repsStart(ex.r)),'reps','reps','r','repetições')}</div>`:''}
       ${main}

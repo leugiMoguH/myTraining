@@ -21,6 +21,7 @@
     "test:superset": "node scripts/superset-test.mjs",
     "test:motiv": "node scripts/motiv-test.mjs",
     "test:motiv-ui": "node scripts/motiv-ui-test.mjs",
+    "test:rest": "node scripts/rest-test.mjs",
     "test:adapt": "node scripts/adapt-test.mjs",
     "test:classes": "node scripts/classes-test.mjs",
     "test:classes-ui": "node scripts/classes-ui-test.mjs",

@@ -247,9 +247,12 @@ body {
 }
 
 /* ── TIMER BANNER ─────────────────────────────────── */
+:root { --banner-h: calc(76px + env(safe-area-inset-top, 0px)); }
+body:has(#timerBanner.show):not(.guided) { padding-top: var(--banner-h); }
+body:has(#timerBanner.show):not(.guided) #hdr { top: var(--banner-h); }
 #timerBanner {
   position: fixed; top: 0; left: 0; right: 0; z-index: 300;
-  padding: 10px 16px 10px 20px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px 20px;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   background: var(--success-bg);
   border-bottom: 2px solid var(--green);
@@ -341,6 +344,7 @@ body.kb #bnav { display: none; }
 .nb.active { color: var(--accent); }
 .nb:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
 .nb-main { flex: 0 0 84px; margin-top: -16px; min-height: 74px; border-radius: 22px 22px 0 0; background: var(--primary-solid); color: var(--on-primary); box-shadow: 0 -4px 14px var(--scrim-14); }
+.nav-livewrap:has(#navLive:not([hidden])) + .nav-row .nb-main { margin-top: 0; min-height: 58px; border-radius: 0; box-shadow: none; }
 .nb-main.live { background: var(--warn-solid); }
 .nb-main.paused { background: var(--success-fill); color: var(--on-success); }
 .nb-main .nb-i { font-size: 24px; }
@@ -882,7 +886,7 @@ body.guided #bnav, body.guided #timerBanner { display: none !important; }
 .wo-media.wide { width: min(100%, calc(var(--wo-media-h) * 1.5)); aspect-ratio: 3 / 2; }
 .wo-img { display: block; width: 100%; height: 100%; object-fit: contain; }
 /* ecrãs baixos (telemóveis pequenos, teclado aberto): o descanso e os campos têm prioridade sobre a demonstração */
-@media (max-height: 720px) { .wo-scroll.resting .wo-media { display: none; } }
+@media (max-height: 800px) { .wo-scroll.resting .wo-media { display: none; } }
 @media (max-height: 520px) { .wo-media { display: none; } }
 .wo-title { display: flex; flex-direction: column; gap: var(--sp-2); }
 .wo-name { font-size: 26px; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
@@ -893,16 +897,21 @@ body.guided #bnav, body.guided #timerBanner { display: none !important; }
 .wo-dots i.on { background: var(--green); border-color: var(--success); }
 .wo-hint { font-size: 14px; color: var(--accent2); font-weight: 600; }
 .wo-hint b { color: var(--text); }
-.wo-rest { border-radius: var(--r); background: var(--success-bg); border: 1px solid var(--green); padding: 16px; text-align: center; display: flex; flex-direction: column; gap: 8px; }
+/* descanso: faixa própria entre a zona com scroll e o dock — nunca fica cortado nem tapado */
+.wo-rest { flex: none; margin: 0 12px 8px; border-radius: var(--r); background: var(--success-bg); border: 1px solid var(--green); padding: 8px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "main btns" "bar bar" "next next"; align-items: center; gap: 6px 10px; }
+.wo-rest-main { grid-area: main; min-width: 0; }
 .wo-rest[hidden] { display: none; }
 .wo-rest-lbl { font-size: 13px; font-weight: 700; color: var(--success-soft); letter-spacing: 0.06em; text-transform: uppercase; }
-.wo-rest-num { font-size: 64px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.wo-rest-num { font-size: 44px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .wo-rest.warn { background: var(--warn-bg); border-color: var(--accent2); }
 .wo-rest.warn .wo-rest-num { color: var(--accent2); }
-.wo-rest-bar { height: 6px; border-radius: 3px; background: var(--ov-10); overflow: hidden; }
+.wo-rest-bar { grid-area: bar; height: 6px; border-radius: 3px; background: var(--ov-10); overflow: hidden; }
 .wo-rest-bar i { display: block; height: 100%; background: var(--green); }
-.wo-rest-next { font-size: 15px; font-weight: 600; }
-.wo-rest-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.wo-rest-next { grid-area: next; min-width: 0; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wo-rest-btns { grid-area: btns; display: flex; gap: 8px; }
+.wo-rest-btns .wo-btn { min-width: 76px; min-height: 48px; }
+/* o aviso de recorde/erro não tapa Sair/Pausar do guiado */
+body.guided #toast { top: calc(env(safe-area-inset-top, 0px) + 76px); }
 .wo-btn { min-height: 52px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 16px; font-weight: 700; cursor: pointer; }
 .wo-dock { flex: none; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; gap: 12px; }
 .wo-load { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

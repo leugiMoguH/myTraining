@@ -1,6 +1,7 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { gifUrlFor } from './catalog.js';
 import { MUSCLES, bodySVG, muscleSlide, noImgSlide } from './charts.js';
+import { classDayMarks, recentClassesHTML, todayClassesHTML, weekClassesHTML } from './classes-ui.js';
 import { customEntryHTML, renderCustom } from './custom.js';
 import { editorHTML, isEditing, stopEdit, toggleEdit } from './editor.js';
 import { CUSTOM_DAY, DAYS } from './routine.js';
@@ -18,6 +19,7 @@ import { ST, esc, getLog, getProgress, getSets, key, markDone, resetDay, save, t
 import { REST_SEC, timerStart } from './timer.js';
 import { syncNav } from './nav.js';
 import { fmtDur, liveDay, statsOf } from './session.js';
+import { weekActivity } from './classes.js';
 import { startWorkout } from './workout.js';
 
 /* ═══════════════════════ RENDER ═════════════════════ */
@@ -194,10 +196,11 @@ function buildCard(day,ex,i) {
 /* Tira dos 7 dias com o estado de cada um. Substitui a antiga fila de
    separadores: é por aqui que se salta para um dia concreto. */
 function weekStripHTML(a) {
+  const marks = classDayMarks();
   return `<div class="week-strip">${a.days.map(d=>`
     <button class="wk-chip s-${d.status}${d.isToday?' today':''}${d.isCurrent?' current':''}"
-            data-day="${d.day}" onclick="goDay('${d.day}')" title="${esc(d.label)}">
-      <span class="wk-d">${d.short}</span>
+            data-day="${d.day}" onclick="goDay('${d.day}')" title="${esc(d.label)}${marks.has(d.day) ? ' · com aula' : ''}">
+      <span class="wk-d">${d.short}${marks.has(d.day) ? '<i class="wk-c" aria-hidden="true"></i>' : ''}</span>
       <span class="wk-i">${d.icon}</span>
     </button>`).join('')}</div>`;
 }
@@ -277,7 +280,7 @@ function renderToday(content) {
   if (a.allDone || (a.restToday && !a.late)) {
     const box = document.createElement('div');
     box.className = 'full';
-    box.innerHTML = restCardHTML(a) + (a.current ? heroHTML(a) : '') + customEntryHTML();
+    box.innerHTML = restCardHTML(a) + todayClassesHTML() + (a.current ? heroHTML(a) : '') + customEntryHTML();
     content.appendChild(box);
     document.getElementById('hdrSub').textContent = a.allDone ? (a.nothingDone ? 'Sem treinos esta semana' : 'Semana concluída') : 'Descanso';
     document.getElementById('progFill').style.width = a.allDone && !a.nothingDone ? '100%' : '0';
@@ -288,6 +291,10 @@ function renderToday(content) {
   ST.day = a.current; save();
 
   /* estado do dia (atraso/descanso) logo a seguir ao calendário, depois a ação principal e a lista recolhível */
+  const cls = document.createElement('div');
+  cls.className = 'full';
+  cls.innerHTML = todayClassesHTML();
+  if (cls.innerHTML) content.appendChild(cls);
   const note = document.createElement('div');
   note.className = 'full today-top';
   note.innerHTML = bannerHTML(a) + heroHTML(a) + listToggleHTML(a.current);
@@ -320,8 +327,10 @@ function renderWeek(content) {
         <div class="wk-row-st">${LBL[d.status]}</div>
       </button>`;
     }).join('')}</div>
+    ${weekClassesHTML()}
   </div>`;
-  document.getElementById('hdrSub').textContent = `Semana · ${a.pending} treino${a.pending===1?'':'s'} por fazer`;
+  const nc = weekActivity().classes;
+  document.getElementById('hdrSub').textContent = `Semana · ${a.pending} treino${a.pending===1?'':'s'} por fazer${nc ? ` · ${nc} aula${nc===1?'':'s'} feita${nc===1?'':'s'}` : ''}`;
   document.getElementById('progFill').style.width = `${a.days.length?(a.days.filter(d=>d.status==='done'||d.status==='swapped').length/a.days.filter(d=>d.status!=='rest').length)*100:0}%`;
 }
 
@@ -338,7 +347,7 @@ function renderHistory(content) {
   }).join('');
   const box = document.createElement('div');
   box.className = 'full';
-  box.innerHTML = `<div class="cu-title">Treinos recentes</div><div class="week-list">${rows || '<div class="sched-note">Ainda não há treinos terminados.</div>'}</div>`;
+  box.innerHTML = `<div class="cu-title">Treinos recentes</div><div class="week-list">${rows || '<div class="sched-note">Ainda não há treinos terminados.</div>'}</div>${recentClassesHTML()}`;
   content.appendChild(box);
   const ex = document.createElement('div');
   ex.className = 'full';

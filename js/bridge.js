@@ -4,6 +4,7 @@ import { setThemePref } from './theme.js';
    Em ES modules nada é global: sem isto TODOS os botões falham em silêncio.
    Regra: um handler novo usado num atributo inline tem de ser acrescentado aqui. */
 import { closeSheet, exportBackup, exportIntakeCSV, exportLoadCSV, exportMeasuresCSV, importBackup, openSheet } from './backup.js';
+import { clClose, clConflict, clDelete, clKeep, clMark, clMove, clMoveStep, clOpen, clReopen, clReplace, clSave, clSet, clText } from './classes-ui.js';
 import { catAdd, catFilter, catInput, catPick, catScope, closeCatalog, openSwap, undoSwap } from './catalog-ui.js';
 import { cuAdd, cuBegin, cuDiscard, cuFinish, cuHome, cuRemove, cuSuggest, cuToggle, openCustom } from './custom.js';
 import { edAdd, edField, edLabel, edSuper, edMove, edRemove, edReset, edRest, toggleEdit } from './editor.js';
@@ -26,6 +27,7 @@ import { obDiscard, obApply, obBack, obClose, obDay, obEquip, obLimit, obName, o
 import { closeWorkout, startWorkout, woDoSet, woFinish, woGo, woInfo, woPause, woStep, woSwap, woUndo } from './workout.js';
 
 Object.assign(window, {
+  clClose, clConflict, clDelete, clKeep, clMark, clMove, clMoveStep, clOpen, clReopen, clReplace, clSave, clSet, clText,
   slideFail,
   planBack, planEdit, obDiscard,
   setThemePref,
@@ -112,7 +114,7 @@ Object.assign(window, {
 });
 
 /* Os handlers devolvem Promises sem rejeições por tratar. */
-for (const name of ['heroStart','startWorkout','woFinish','cuFinish','cuDiscard','cuSuggest','edRemove','edReset','hxDelSet','hxDelDay','delMeasure','resetDay','obApply','obUndoPlan','importBackup','addMedia','scanBarcode','enableNotif']) {
+for (const name of ['heroStart','startWorkout','woFinish','cuFinish','cuDiscard','cuSuggest','edRemove','edReset','hxDelSet','hxDelDay','delMeasure','resetDay','obApply','obUndoPlan','importBackup','addMedia','scanBarcode','enableNotif','clMove','clDelete']) {
   const handler=window[name];
   window[name]=(...args)=>{ try { return Promise.resolve(handler(...args)).catch(e=>show(e?.message || 'Não foi possível concluir a ação.', 'error')); } catch(e) { show(e?.message || 'Não foi possível concluir a ação.', 'error'); } };
 }

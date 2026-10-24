@@ -1,6 +1,7 @@
 /* myTraining — ecrã Plano ('__plano'): a rotina planeada (consultar, editar um dia) e a gestão do plano.
    Distinto da Semana (Histórico), que é a agenda e o progresso desta semana. Sem estado próprio: lê ST.routine. */
 import { isEditing, stopEdit, toggleEdit } from './editor.js';
+import { planClassesHTML } from './classes-ui.js';
 import { planCardHTML } from './onboarding.js';
 import { estimateMin, isTraining } from './plan.js';
 import { WEEK } from './planner.js';
@@ -22,6 +23,7 @@ function renderPlan(content) {
   document.getElementById('progFill').style.width = '0%';
   content.innerHTML = `<div class="nutri-wrap"><button class="reset-btn btn-ghost hx-back" onclick="render('__hoje')">‹ Início</button>${planCardHTML()}
     <div class="nsec-title">Rotina da semana</div>${WEEK.map(dayRowHTML).join('')}
+    ${planClassesHTML()}
     <div class="ndisc">A agenda desta semana e o que já fizeste estão em Histórico.</div></div>`;
 }
 

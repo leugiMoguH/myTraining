@@ -11,6 +11,7 @@ import { ST, est1RM, fmtTime, save, todayStr, setST } from './state.js';
 import { REST_SEC, setRest, timerDismiss } from './timer.js';
 import { render } from './ui.js';
 import { syncWakeUI } from './wake.js';
+import { validateClassState } from './classes.js';
 
 /* ═══════════════ DEFINIÇÕES / BACKUP ════════════════ */
 function openSheet(){ syncWakeUI(); syncNotifUI(); openOverlay(document.getElementById('sheetBg'),{onClose:closeSheet}); }
@@ -52,6 +53,7 @@ async function importBackup(e){
          !['profile','prefs','media','nutri'].every(k=>optional(k,isObj)) ||
          !optional('routine',o=>o===null || isObj(o) && Object.values(o).every(d=>isObj(d) && records(d.ex))))
         throw new Error('estrutura interna invalida');
+      if(!validateClassState(incoming.classes, incoming.classLog).ok) throw new Error('estrutura interna invalida');
       // Recusar enquanto o guiado está aberto evita referências WO/descanso antigas.
       if(guided()){ show('Sai do treino guiado antes de importar uma cópia.', 'info'); return; }
       if(!await confirmDialog({title:'Importar backup', message:'Importar substitui o progresso atual. Continuar?', danger:true, confirmLabel:'Importar'})) return;
@@ -60,7 +62,7 @@ async function importBackup(e){
       if(!snap.ok){ show('Não foi possível guardar uma cópia do estado atual antes de importar: '+snap.error+'\nNada foi alterado.', 'error'); return; }
       const previous=ST, previousRest=REST_SEC;
       try {
-      setST({ day:'Segunda', sets:{}, done:{}, log:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], media:{}, routine:null, ...incoming });
+      setST({ classes:[], classLog:{}, day:'Segunda', sets:{}, done:{}, log:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], media:{}, routine:null, ...incoming });
       if(!ST.log || typeof ST.log!=='object') ST.log={};
       if(!ST.nutri || typeof ST.nutri!=='object') ST.nutri={profile:null};
       if(!ST.profile || typeof ST.profile!=='object') ST.profile={};

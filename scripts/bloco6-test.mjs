@@ -232,7 +232,7 @@ try {
     await ctx.setOffline(true);
     await page.reload({ waitUntil: 'load' });
     for (const v of ['__plano', '__eu', '__perfil']) { await page.evaluate(x => window.render(x), v); assert(await page.locator('#content').innerText().then(t => t.length > 50), v); }
-    assert((await page.evaluate(() => caches.keys())).includes('treino-v37'));
+    assert((await page.evaluate(() => caches.keys())).includes('treino-v38'));
     await ctx.setOffline(false);
     await ctx.close();
   });

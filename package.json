@@ -19,6 +19,9 @@
     "test:ux": "node scripts/ux-test.mjs",
     "test:timer": "node scripts/timer-test.mjs",
     "test:superset": "node scripts/superset-test.mjs",
+    "test:classes": "node scripts/classes-test.mjs",
+    "test:classes-ui": "node scripts/classes-ui-test.mjs",
+    "test:giffail": "node scripts/gif-fail-test.mjs",
     "test:plan": "node scripts/plan-test.mjs",
     "test:onboarding": "node scripts/onboarding-test.mjs",
     "test:sw-update": "node scripts/sw-update-test.mjs",
@@ -27,7 +30,6 @@
     "test:a11y": "node scripts/a11y-test.mjs",
     "test:drafts": "node scripts/drafts-test.mjs",
     "test:b6": "node scripts/bloco6-test.mjs",
-    "test:giffail": "node scripts/gif-fail-test.mjs",
     "test:data": "node scripts/history-test.mjs && node scripts/muscle-test.mjs"
   },
   "devDependencies": {

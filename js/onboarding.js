@@ -17,7 +17,7 @@ let PICK = null;        /* reorganizar: 1.º dia escolhido */
 let MSG = '';           /* erro/aviso visível no ecrã */
 let OPENER = null;      /* quem abriu o overlay: recebe o foco ao fechar */
 
-const draft = () => ({ ...normalizePrefs({}), ...(ST.onb && ST.onb.draft) });
+const draft = () => { const o = ST.onb && ST.onb.draft; return { ...normalizePrefs({ ...o, days: undefined }), ...o }; };
 function patch(p) { ST.onb = { ...ST.onb, draft: { ...draft(), ...p } }; save(); }
 function step(n) { ST.onb = { ...ST.onb, step: n }; save(); }
 
@@ -48,7 +48,7 @@ function stepHTML(n, d) {
       <h2>Experiência</h2><div class="ob-row">${chip("obSet('exp','inicio')", d.exp === 'inicio', 'A começar')}${chip("obSet('exp','regresso')", d.exp === 'regresso', 'A regressar')}${chip("obSet('exp','regular')", d.exp === 'regular', 'Já treino')}</div>
       <h2>Onde</h2><div class="ob-row">${chip("obSet('place','gym')", d.place === 'gym', 'Ginásio')}${chip("obSet('place','casa')", d.place === 'casa', 'Em casa')}${chip("obSet('place','ambos')", d.place === 'ambos', 'Ambos')}</div>
       <h2 id="ob-eq">Preferes <small>(podes escolher mais do que uma)</small></h2><div class="ob-row" role="group" aria-labelledby="ob-eq" aria-describedby="ob-eq-err">${[['maq', 'Máquinas'], ['livres', 'Pesos livres'], ['corpo', 'Peso corporal']].map(e => chip(`obEquip('${e[0]}')`, d.equip.includes(e[0]), e[1], true)).join('')}</div>${fieldErr('ob-eq')}
-      ${d.place === 'casa' && !d.equip.some(e => e !== 'maq') ? '<p class="ob-p">Em casa não há máquinas: usamos exercícios com o peso do corpo.</p>' : ''}`;
+      ${d.place === 'casa' && !d.equip.includes('livres') ? '<p class="ob-p">Em casa, sem pesos livres, usamos exercícios com o peso do corpo. Tens halteres? Marca «Pesos livres».</p>' : ''}`;
   }
   const L = [['joelhos', 'Joelhos'], ['costas', 'Costas'], ['ombros', 'Ombros'], ['ancas', 'Ancas'], ['punhos', 'Punhos'], ['cotovelos', 'Cotovelos'], ['pescoco', 'Pescoço']];
   return `<h1>Algo a evitar?</h1><p class="ob-p">Opcional. Evitamos exercícios que sobrecarreguem essas zonas. Não pedimos diagnósticos.</p>

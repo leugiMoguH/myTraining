@@ -29,6 +29,7 @@ async function newPage(seed) {
   const page = await ctx.newPage();
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', e => errors.push(e.message));
+  await page.clock.install({ time: new Date('2026-10-21T10:00:00') });   /* quarta: o teste não depende do dia em que corre */
   await dialogResponder(page, () => true, errors);
   if (seed) await page.addInitScript(s => { try { if (!localStorage.getItem('treino_v2')) localStorage.setItem('treino_v2', JSON.stringify(s)); } catch (_) { /* sem storage */ } }, seed);
   await page.goto(URL_, { waitUntil: 'networkidle' });

@@ -77,7 +77,7 @@ try {
       assert.equal((await draft(page)).pref, 'maq', 'pref acompanha equip[0]');
       /* em casa sem máquinas */
       await chip(page, 'Em casa').tap(); await chip(page, 'Peso corporal').tap();
-      assert.match(await body(page).innerText(), /Em casa não há máquinas/);
+      assert.match(await body(page).innerText(), /sem pesos livres, usamos/);
       await chip(page, 'Peso corporal').tap();   /* volta a ligar */
       assert(await noHScroll(page), 'scroll horizontal no equipamento');
       for (const loc of await chip(page, 'Máquinas').all()) assert((await loc.boundingBox()).height >= 44, 'alvo < 44px');
@@ -130,15 +130,28 @@ try {
     await ctx.close();
   });
 
+  await test('em casa sem confirmar equipamento: só peso corporal; pesos livres só se marcados', async () => {
+    const { ctx, page } = await open(390, 'dark', { onb: { done: false, step: 2, draft: { goal: 'forma', days: ['Segunda', 'Quarta', 'Sexta'], mins: 45, exp: 'inicio', place: 'casa', limits: [] } } });
+    assert.equal(await pressed(page, 'Peso corporal'), true);
+    for (const n of ['Máquinas', 'Pesos livres']) assert.equal(await pressed(page, n), false, `${n} não devia vir marcado em casa`);
+    assert.match(await body(page).innerText(), /Tens halteres/);
+    await chip(page, 'Pesos livres').tap();
+    assert.deepEqual((await draft(page)).equip, ['livres', 'corpo']);
+    assert.doesNotMatch(await body(page).innerText(), /Tens halteres/);
+    await ctx.close();
+  });
+
   await test('perfil antigo (só pref) abre sem perda: continua válido e editável', async () => {
     const { ctx, page } = await open(390, 'dark', OLD);
     assert(await page.locator('#onbBg.show').count());
     assert.match(await body(page).locator('h1').innerText(), /Como treinas/);
-    for (const n of ['Máquinas', 'Pesos livres', 'Peso corporal']) assert.equal(await pressed(page, n), true, `${n} (comportamento antigo: tudo permitido)`);
+    assert.equal(await pressed(page, 'Pesos livres'), true, 'a preferência antiga mantém-se');
+    for (const n of ['Máquinas', 'Peso corporal']) assert.equal(await pressed(page, n), false, `${n} não devia ser ativado automaticamente`);
+    assert.equal((await draft(page)).equip, undefined, 'abrir não altera o rascunho guardado');
     assert.equal((await draft(page)).pref, 'livres', 'o campo antigo não se perde antes de editar');
     await chip(page, 'Máquinas').tap();
     const d = await draft(page);
-    assert.deepEqual(d.equip, ['livres', 'corpo']); assert.equal(d.pref, 'livres');
+    assert.deepEqual(d.equip, ['maq', 'livres']); assert.equal(d.pref, 'maq');
     await ctx.close();
   });
 

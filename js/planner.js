@@ -15,7 +15,8 @@ const EQUIPS = ['maq', 'livres', 'corpo'];
 const LIMITS = ['joelhos', 'costas', 'ombros', 'ancas', 'punhos', 'cotovelos', 'pescoco'];
 const MINS = [30, 45, 60, 90, 120];
 
-/* eq: onde se faz · avoid: limitações que o desaconselham · pat: padrão de movimento */
+/* eq: onde se faz · avoid: limitações que o desaconselham (regras conservadoras por zona, NÃO são garantia clínica:
+   aguardam revisão por profissional)  · pat: padrão de movimento */
 const POOL = [
   { name: 'Leg press', pat: 'squat', eq: 'maq', avoid: ['joelhos', 'ancas'], tip: 'Pés à largura dos ombros. Não bloqueies os joelhos.', alt: 'Agachamento goblet' },
   { name: 'Agachamento goblet', pat: 'squat', eq: 'livres', avoid: ['joelhos', 'ancas'], tip: 'Haltere junto ao peito, costas direitas, desce até onde conseguires com controlo.', alt: 'Leg press' },
@@ -82,11 +83,12 @@ const LIMIT_TEXT = { joelhos: 'os joelhos', costas: 'as costas', ombros: 'os omb
 
 const pick = (v, list, fallback) => (list.includes(v) ? v : fallback);
 
-/* Equipamento escolhido (ordem canónica = prioridade). Perfil antigo só com `pref`: mantém o comportamento de
-   sempre (tudo permitido, `pref` primeiro) sem perder o campo. `pref` guarda-se sempre = equip[0]. */
-function equipPrefs(r) {
+/* Equipamento escolhido (ordem canónica = prioridade). Perfil antigo só com `pref`: passa a [pref] — exatamente o que
+   tinha, sem ativar as outras opções (ficam disponíveis no ecrã). Sem nada: em casa só peso corporal (pesos livres
+   só se o utilizador os indicar), fora de casa tudo. `pref` guarda-se sempre = equip[0]. */
+function equipPrefs(r, place) {
   const chosen = Array.isArray(r.equip) ? EQUIPS.filter(e => r.equip.includes(e)) : [];
-  const equip = chosen.length ? chosen : (EQUIPS.includes(r.pref) ? [r.pref, ...EQUIPS.filter(e => e !== r.pref)] : EQUIPS.slice());
+  const equip = chosen.length ? chosen : EQUIPS.includes(r.pref) ? [r.pref] : place === 'casa' ? ['corpo'] : EQUIPS.slice();
   return { equip, pref: equip[0] };
 }
 
@@ -97,14 +99,15 @@ function normalizePrefs(raw) {
   days = WEEK.filter(d => days.includes(d));            /* ordem da semana, sem repetidos */
   if (days.length < 2) days = DEFAULT_DAYS_BY_COUNT[3].slice();
   if (days.length > 5) days = days.slice(0, 5);
+  const place = pick(r.place, PLACES, 'gym');
   return {
     name: String(r.name || '').trim().slice(0, 30),
     goal: pick(r.goal, GOALS, 'forma'),
     days,
     mins: pick(+r.mins, MINS, 45),
     exp: pick(r.exp, EXPS, 'inicio'),
-    place: pick(r.place, PLACES, 'gym'),
-    ...equipPrefs(r),
+    place,
+    ...equipPrefs(r, place),
     limits: (Array.isArray(r.limits) ? r.limits : []).filter(l => LIMITS.includes(l)),
   };
 }
@@ -116,6 +119,11 @@ function allowedEquip(p) {
   const access = accessEquip(p);
   const chosen = p.equip.filter(e => access.includes(e));
   return chosen.length ? chosen : (p.place === 'casa' ? ['corpo'] : access);
+}
+/* Realmente disponível: o que o local permite, mas em casa pesos livres só se o utilizador os indicou.
+   Só serve de recurso quando a escolha não tem nenhum exercício para um padrão (ex.: limitações). */
+function availableEquip(p) {
+  return accessEquip(p).filter(e => e !== 'livres' || p.place !== 'casa' || p.equip.includes('livres'));
 }
 
 /* Candidatos de um padrão: sem limitações, já pela ordem de equipamento. */
@@ -130,7 +138,7 @@ function prescription(item, p) {
   return { name: item.name, s, r, tip: item.tip, alt: item.alt, pat: item.pat };
 }
 
-function buildSession(code, p, equip) {
+function buildSession(code, p, equip, avail) {
   const spec = SESSIONS[code];
   const n = EX_BY_MINS[p.mins];
   const used = new Set();
@@ -139,7 +147,8 @@ function buildSession(code, p, equip) {
   const offset = code.endsWith('B') || code === 'C' ? 1 : 0;
   for (const pat of spec.pats) {
     if (ex.length >= n) break;
-    const fresh = candidates(pat, p, equip).filter(x => !used.has(x.name));
+    let fresh = candidates(pat, p, equip).filter(x => !used.has(x.name));
+    if (!fresh.length) fresh = candidates(pat, p, avail).filter(x => !used.has(x.name));
     if (!fresh.length) continue;
     const item = fresh[offset % fresh.length];
     used.add(item.name);
@@ -165,7 +174,7 @@ function whyText(p, model, skippedFor) {
   if (p.exp === 'inicio') t += ' Como estás a começar, as cargas são ligeiras e o foco é a técnica.';
   if (p.exp === 'regresso') t += ' Como estás a regressar, começa leve e sobe aos poucos.';
   if (p.place === 'casa') t += ' Só incluímos exercícios que se fazem em casa.';
-  if (p.place === 'casa' && !p.equip.some(e => e !== 'maq')) t += ' Em casa não há máquinas, por isso usámos exercícios com o peso do corpo.';
+  if (p.place === 'casa' && !p.equip.includes('livres')) t += ' Em casa, sem pesos livres indicados, usámos exercícios com o peso do corpo.';
   if (p.mins >= 90) t += ' Tens bastante tempo, mas o volume não sobe só por isso: usa o resto para aquecer e descansar bem entre séries.';
   if (skippedFor.length) t += ` Evitámos exercícios que sobrecarregam ${skippedFor.map(l => LIMIT_TEXT[l]).join(' e ')}.`;
   return t;
@@ -178,7 +187,8 @@ function proposePlan(raw) {
   const codes = TEMPLATES[n];
   const model = n <= 3 ? 'fullbody' : 'upperlower';
   const equip = allowedEquip(p);
-  const sessions = codes.map(c => buildSession(c, p, equip));
+  const avail = [...equip, ...availableEquip(p).filter(e => !equip.includes(e))];
+  const sessions = codes.map(c => buildSession(c, p, equip, avail));
   const week = WEEK.map(day => {
     const i = p.days.indexOf(day);
     return i < 0 ? { day, rest: true, label: 'Descanso', ex: [] } : { day, rest: false, code: sessions[i].code, label: sessions[i].label, ex: sessions[i].ex };

@@ -78,6 +78,7 @@ for (const equip of EQSETS) for (const place of ['gym', 'casa', 'ambos']) for (c
   const access = place === 'casa' ? ['livres', 'corpo'] : ['maq', 'livres', 'corpo'];
   const chosen = equip.filter(e => access.includes(e));
   const allowed = chosen.length ? chosen : (place === 'casa' ? ['corpo'] : access);
+  const avail = access.filter(e => e !== 'livres' || place !== 'casa' || equip.includes('livres'));
   check(JSON.stringify(p.prefs.equip) === JSON.stringify(equip), `equip não preservado ${tag}`);
   for (const d of p.week.filter(x => !x.rest)) {
     check(d.ex.length >= 1 || p.notes.length, `treino vazio sem nota ${d.day} ${tag}`);
@@ -85,7 +86,7 @@ for (const equip of EQSETS) for (const place of ['gym', 'casa', 'ambos']) for (c
     for (const e of d.ex) {
       const item = POOL.find(x => x.name === e.name);
       if (!item) continue;
-      check(allowed.includes(item.eq), `${e.name} fora do equipamento permitido ${tag}`);
+      check(avail.includes(item.eq), `${e.name} fora do equipamento disponível ${tag}`);
       check(!item.avoid.some(z => limits.includes(z)), `${e.name} desrespeita limitação ${tag}`);
     }
   }
@@ -100,15 +101,26 @@ check(/aquecer/.test(proposePlan({ days: DEFAULT_DAYS_BY_COUNT[3], mins: 90 }).w
 check(!/aquecer/.test(proposePlan({ days: DEFAULT_DAYS_BY_COUNT[3], mins: 60 }).why), 'a nota de 90+ min aparece sem razão');
 /* perfil antigo (só com pref) mantém o comportamento e o campo */
 const oldP = normalizePrefs({ pref: 'corpo', days: DEFAULT_DAYS_BY_COUNT[3] });
-check(JSON.stringify(oldP.equip) === JSON.stringify(['corpo', 'maq', 'livres']) && oldP.pref === 'corpo', 'perfil antigo: pref devia virar equip com pref primeiro');
-check(proposePlan({ pref: 'corpo', days: DEFAULT_DAYS_BY_COUNT[3], place: 'gym' }).week.find(d => !d.rest).ex[0].name === 'Agachamento corporal', 'perfil antigo: o equipamento preferido devia ter prioridade');
+check(JSON.stringify(oldP.equip) === JSON.stringify(['corpo']) && oldP.pref === 'corpo', 'perfil antigo: pref devia virar APENAS [pref]');
+for (const pref of ['maq', 'livres', 'corpo']) check(JSON.stringify(normalizePrefs({ pref }).equip) === JSON.stringify([pref]), `perfil antigo (${pref}): não devia ativar as outras opções`);
+const rawOld = { pref: 'livres', days: DEFAULT_DAYS_BY_COUNT[3], place: 'gym' }, rawOldSnap = JSON.stringify(rawOld);
+proposePlan(rawOld); normalizePrefs(rawOld);
+check(JSON.stringify(rawOld) === rawOldSnap, 'normalizar/propor alterou o perfil guardado');
+check(proposePlan({ pref: 'corpo', days: DEFAULT_DAYS_BY_COUNT[3], place: 'gym' }).week.find(d => !d.rest).ex[0].name === 'Agachamento corporal', 'perfil antigo: o equipamento preferido devia ser usado');
 check(proposePlan({ pref: 'maq', days: DEFAULT_DAYS_BY_COUNT[3], place: 'gym' }).week.find(d => !d.rest).ex[0].name === 'Leg press', 'perfil antigo (maq): comportamento mudou');
+/* casa: pesos livres só se indicados */
+check(JSON.stringify(normalizePrefs({ place: 'casa' }).equip) === JSON.stringify(['corpo']), 'casa sem equipamento indicado devia ser só peso corporal');
+check(JSON.stringify(normalizePrefs({ place: 'gym' }).equip) === JSON.stringify(['maq', 'livres', 'corpo']), 'ginásio sem escolha devia permitir tudo');
+const homeNo = proposePlan({ place: 'casa', days: DEFAULT_DAYS_BY_COUNT[4], mins: 60, exp: 'regular' });
+check(homeNo.week.every(d => d.ex.every(e => { const i = POOL.find(x => x.name === e.name); return !i || i.eq === 'corpo'; })), 'casa sem confirmação incluiu pesos livres/máquinas');
+const homeDb = proposePlan({ place: 'casa', equip: ['livres', 'corpo'], days: DEFAULT_DAYS_BY_COUNT[4], mins: 60, exp: 'regular' });
+check(homeDb.week.some(d => d.ex.some(e => POOL.find(x => x.name === e.name)?.eq === 'livres')), 'casa com pesos livres indicados não os usou');
 /* entradas inválidas */
 check(JSON.stringify(normalizePrefs({ equip: [] }).equip) === JSON.stringify(['maq', 'livres', 'corpo']), 'equip vazio devia repor todas as opções');
 check(JSON.stringify(normalizePrefs({ equip: ['x', 'corpo', 'corpo'] }).equip) === JSON.stringify(['corpo']), 'equip com lixo devia filtrar');
 check(normalizePrefs({ mins: 75 }).mins === 45 && normalizePrefs({ mins: 120 }).mins === 120 && normalizePrefs({ mins: '90' }).mins === 90, 'mins: valores válidos 90/120 e inválido → 45');
 check(JSON.stringify(normalizePrefs({ limits: ['pescoco', 'dedo', 'ancas'] }).limits) === JSON.stringify(['pescoco', 'ancas']), 'limits: novas zonas aceites, inválidas removidas');
-check(proposePlan({ days: DEFAULT_DAYS_BY_COUNT[3], place: 'casa', equip: ['maq'] }).why.includes('Em casa não há máquinas'), 'casa + só máquinas devia explicar a substituição');
+check(proposePlan({ days: DEFAULT_DAYS_BY_COUNT[3], place: 'casa', equip: ['maq'] }).why.includes('sem pesos livres indicados'), 'casa sem pesos livres devia explicar a substituição');
 
 /* ── 2. migração protegida (utilizador existente) ───────────────────────── */
 const before = clone(ST);

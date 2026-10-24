@@ -1,7 +1,16 @@
-# Pendências V2 (atualizado 2026-10-22)
+# Pendências V2 (atualizado 2026-10-24)
 
 ## Acolhimento — corrigido localmente (2026-10-23), por validar pelo dono
 Equipamento multi-escolha (`equip`, compatível com `pref`), durações 30–120 min (volume não sobe só por haver tempo), zonas a evitar + «Nenhuma» exclusiva. Testes: `test:plan` (2700 combinações), `test:onb-choices`. `sw.js` treino-v32.
+
+## Acolhimento — 2.ª correção (2026-10-24), por validar no telemóvel
+- Perfil antigo só com `pref` passa a `equip=[pref]` (antes ativava as 3 opções); as outras ficam à escolha no ecrã. O rascunho/plano/histórico guardados não são reescritos ao abrir.
+- Em casa sem equipamento indicado: só peso corporal; pesos livres só se o utilizador marcar «Pesos livres» (sem pergunta nova; uma nota no ecrã explica). Se a escolha não tem exercício para um padrão (ex.: limitações), usa-se o restante equipamento realmente disponível (nunca pesos livres/máquinas em casa sem confirmação).
+- `sw.js` treino-v33; `npm run test:sw-update` prova que dados, sessão em curso e descanso sobrevivem à subida v32→v33.
+- `test:onboarding` fixa o relógio numa quarta (falhava ao sábado/domingo: semana «concluída», sem cartão Hoje).
+
+## Limitação: zonas corporais
+As exclusões por limitação (`avoid` em `js/planner.js`) são **conservadoras e não são garantia de segurança clínica**; as regras por zona (joelhos, costas, ombros, ancas, punhos, cotovelos, pescoço) **precisam de revisão por profissional** antes de serem apresentadas como seguras. Sem sistema de avaliação médica no âmbito.
 
 ## Contraditório independente do Codex (pendente)
 - Bloco 4: o contraditório do Codex ao plano e à implementação **não ocorreu** (chamada bloqueada pelo classificador de permissões; não foi repetida nem contornada). Implementado e verificado só pelo Claude.

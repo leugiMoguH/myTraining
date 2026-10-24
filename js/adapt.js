@@ -2,7 +2,7 @@
 import { ST, save, setST } from './state.js';
 import { dayNames, getDay, exercisesOf } from './routine.js';
 import { weekKey, dayStatus, isRest, currentDay, plannedIdx, moveOf } from './schedule.js';
-import { dateOfDay, occurrences, occurrencesOn } from './classes.js';
+import { dateOfDay, occurrences, occurrencesOn, intentDay } from './classes.js';
 import { liveDay } from './session.js';
 import { REST_SEC } from './timer.js';
 import { uid } from './ids.js';
@@ -102,16 +102,20 @@ function moveCandidates(day, now = new Date()) {
     if (dayNames().some(d => d !== day && moveOf(d, n)?.to === target)) reasons.push(`${target} já recebe outro treino`);
     const intense = classes.filter(o => o.date === date && (o.cls.intensity === 3 || o.cls.min >= 75));
     intense.forEach(o => reasons.push(`${target} tem uma aula intensa (${o.cls.name})`));
-    const occupied = new Set(dayNames().filter(d => d !== day && !isRest(d) &&
-      !['swapped', 'skipped'].includes(dayStatus(d))).map(d => plannedIdx(d, n)));
-    classes.filter(o => o.cls.intensity === 3 || o.cls.min >= 75).forEach(o => occupied.add(DAYS.indexOf(o.day)));
-    occupied.add(DAYS.indexOf(target));
-    let run = 0, longest = 0;
-    for (let i = 0; i < 7; i++) {
-      run = occupied.has(i) ? run + 1 : 0;
-      longest = Math.max(longest, run);
-    }
-    if (longest > 3) reasons.push(`ficavas com ${longest} dias seguidos`);
+    const shift = (date, offset) => {const d=clock(date);d.setDate(d.getDate()+offset);return civil(d);};
+    const real = new Set([...(ST.workouts||[]).filter(w=>w.state==='COMPLETED').map(w=>w.date),...(ST.sessions||[]).map(s=>s.date)]);
+    const active = date => {
+      const intense = occurrencesOn(date,n).some(o=>(o.cls.intensity===3||o.cls.min>=75)&&(date<today?o.status==='done':['planned','done'].includes(o.status)));
+      if(date<today)return real.has(date)||intense;
+      const ref=clock(date), index=DAYS.indexOf(DAYS[(ref.getDay()+6)%7]);
+      return intense||dayNames().some(d=>!(wkSame(date)&&d===day)&&!isRest(d)&&
+        (!wkSame(date)||!['swapped','skipped'].includes(dayStatus(d)))&&plannedIdx(d,ref)===index);
+    };
+    const wkSame = date => weekKey(clock(date))===weekKey(n);
+    let run=1;
+    for(let i=1;i<=4&&active(shift(date,-i));i++)run++;
+    for(let i=1;i<=4&&active(shift(date,i));i++)run++;
+    if(run>3)reasons.push(`ficavas com ${run} dias seguidos`);
     const light = classes.filter(o => o.date === date && !intense.includes(o));
     return { day: target, date, ok: !reasons.length, reasons,
       ...(light.length ? { note: `Também tens ${light.map(o => o.cls.name).join(', ')} (aula leve).` } : {}) };
@@ -131,7 +135,7 @@ function moveDay(day, to, reason = 'manual', now = new Date()) {
   if (!safe(getDay(day).id)) return error('O dia do plano não tem uma identidade válida.');
   if (!['manual', 'missed', 'class'].includes(reason)) return error('Motivo inválido.');
   if (Object.values(ST.classLog || {}).some(o => ['planned', 'done'].includes(o.status) &&
-      o.replacesDay === day && weekKey(clock(o.date)) === weekKey(n))) return error('Uma aula está ligada a esse treino.');
+      [day, to].includes(intentDay(o)) && weekKey(clock(o.date)) === weekKey(n))) return error('Uma aula está ligada a esse treino.');
   const previous = moveOf(day, n);
   if (previous?.to === to) return { ok: true, id: previous.id };
   if (!moveCandidates(day, n).some(c => c.day === to && c.ok)) return error('Esse dia não está disponível nesta semana.');

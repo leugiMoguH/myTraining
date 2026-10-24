@@ -10,7 +10,7 @@ const S=await import('../js/state.js'), C=await import('../js/classes.js'), Q=aw
 const st=()=>S.ST, copy=()=>JSON.stringify(st());
 const now='2026-10-21', day='Quarta';
 const base={kind:'yoga',name:'Yoga',day,time:'10:00',min:45,intensity:1,weekly:true};
-function reset(){S.setST({day,classes:[],classLog:{},sets:{},done:{},log:{x:[{date:now,w:10,r:5}]},workouts:[{id:'w'}],routine:Object.fromEntries(['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'].map(d=>[d,{label:d,ex:[{name:'x',s:3}]}])),sched:{week:Q.weekKey(new Date(now+'T12:00:00')),done:{},replaced:{}}});}
+function reset(){S.setST({day,classes:[],classLog:{},sets:{},done:{},log:{x:[{date:now,w:10,r:5}]},workouts:[{id:'w'}],routine:Object.fromEntries(['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'].map(d=>[d,{id:'day_'+d,label:d,ex:[{name:'x',s:3}]}])),sched:{week:Q.weekKey(new Date(now+'T12:00:00')),done:{},replaced:{}}});}
 reset();
 for(const patch of [{day:'bad'},{time:'24:00'},{time:'9:00'},{min:4},{min:45.5},{intensity:4},{weekly:'yes'},{weekly:false,date:'2026-02-30'}])assert.equal(C.addClass({...base,...patch},now).ok,false);
 const a=C.addClass(base,now).cls.id,b=C.addClass({...base,name:'Outra'},now).cls.id;
@@ -61,7 +61,8 @@ const body=source.slice(source.indexOf('async function importBackup('),source.in
 const messages=[];
 let accepted=0;
 const A=await import('../js/adapt.js');
-const deps={validateAdaptState:A.validateAdaptState,get ST(){return S.ST;},REST_SEC:60,setST:S.setST,validateClassState:C.validateClassState,
+const M=await import('../js/motiv.js');
+const deps={ensureMotiv:M.ensureMotiv,validateMotivState:M.validateMotivState,validateAdaptState:A.validateAdaptState,get ST(){return S.ST;},REST_SEC:60,setST:S.setST,validateClassState:C.validateClassState,
  document:{getElementById:()=>({classList:{contains:()=>false},textContent:''})},
  confirmDialog:async()=>{accepted++;return true;},snapshot:()=>({ok:true}),setRest(){},migrate:()=>({saved:true}),save:S.save,
  clearDrafts(){},timerDismiss(){},closeSheet(){},render(){},show:m=>messages.push(m),DEFAULT_DAYS:{Segunda:{ex:[]}},DAYS:{Segunda:{},Quarta:{}}};
@@ -83,3 +84,27 @@ assert.equal(JSON.stringify([st().sched,st().log,st().workouts]),untouched);
 assert.equal(C.setPastStatus(pastId,now,'done',now).ok,false);
 assert(C.validateClassState(st().classes,st().classLog).ok);
 console.log('OK correções passadas: retroativo, snapshot, changes e agenda intacta.');
+// Correction B: identity follows the training through swaps, disappears with a new plan.
+const Plan=await import('../js/plan.js');
+reset();const linked=C.addClass(base,now).cls.id;
+assert(C.setReplaceIntent(linked,now,day,now).ok);
+assert.equal(st().classLog[`${linked}@${now}`].replacesDayId,'day_Quarta');
+assert(Plan.swapDays('Quarta','Segunda').ok);
+assert.equal(C.intentDay(st().classLog[`${linked}@${now}`]),'Segunda');
+assert.equal(C.occurrences(now,now).find(o=>o.cls.id===linked).replacesDay,'Segunda');
+assert.equal(C.recentClasses(10,now).length,0);
+assert.equal(C.applyMove('Segunda','Sexta',now,now).ok,false);
+assert(C.markClass(linked,now,'done',{now}).ok);assert.equal(st().sched.replaced.Segunda,now);
+assert(C.reopenClass(linked,now,now).ok);assert.equal(st().sched.replaced.Segunda,undefined);
+st().routine.Segunda={...st().routine.Segunda,id:'new_plan_day'};
+assert.equal(C.intentDay(st().classLog[`${linked}@${now}`]),null);
+const obsolete=C.markClass(linked,now,'done',{now});assert(obsolete.ok);assert(obsolete.warning.includes('escolhe de novo'));assert.deepEqual(st().sched.replaced,{});
+reset();const legacy=C.addClass(base,now).cls.id;C.setReplaceIntent(legacy,now,day,now);
+delete st().classLog[`${legacy}@${now}`].replacesDayId;
+assert(C.validateClassState(st().classes,st().classLog).ok);assert.equal(C.occurrences(now,now).length,1);
+const oldIntent=C.markClass(legacy,now,'done',{now});assert(oldIntent.ok);assert(oldIntent.warning.includes('escolhe de novo'));assert.deepEqual(st().sched.replaced,{});
+// Already applied old entries remain readable and can undo their own substitution.
+st().classLog[`${legacy}@${now}`]={...st().classLog[`${legacy}@${now}`],replacesDay:day,status:'done'};st().sched.replaced[day]=now;
+assert.equal(C.intentDay(st().classLog[`${legacy}@${now}`]),day);assert.equal(C.recentClasses(10,now)[0].replacesDay,day);
+assert(C.reopenClass(legacy,now,now).ok);assert.equal(st().sched.replaced[day],undefined);
+console.log('OK B: swap, identidade obsoleta, bloqueios, desfazer e classLog legado.');

@@ -146,7 +146,7 @@ assert.equal(A.validateAdaptState({ moves: { 'bad\"': {} }, dismissed: {}, hist:
 const source = readFileSync(new URL('../js/backup.js', import.meta.url), 'utf8');
 const body = source.slice(source.indexOf('async function importBackup('), source.indexOf('/* ── EXPORTAÇÃO CSV'));
 let confirmations = 0;
-const deps = { get ST() { return S.ST; }, validateAdaptState: A.validateAdaptState, validateClassState: C.validateClassState, setST: S.setST, REST_SEC: 60,
+const deps = { ensureMotiv:(await import('../js/motiv.js')).ensureMotiv, validateMotivState:(await import('../js/motiv.js')).validateMotivState, get ST() { return S.ST; }, validateAdaptState: A.validateAdaptState, validateClassState: C.validateClassState, setST: S.setST, REST_SEC: 60,
   document: { getElementById: () => ({ classList: { contains: () => false } }) }, confirmDialog: async () => { confirmations++; return true; },
   snapshot: () => ({ ok: true }), setRest() {}, migrate: () => ({ saved: true }), save: S.save, clearDrafts() {}, timerDismiss() {}, closeSheet() {}, render() {}, show() {}, DEFAULT_DAYS: st().routine, DAYS: st().routine };
 const load = Function('deps', `with(deps){let importOperation=0;${body};return importBackup;}`)(deps);
@@ -185,7 +185,7 @@ const sessionModule = await import('../js/session.js');
 // Executa a conclusão real do personalizado com o relógio da agenda injetado.
 const customSource = readFileSync(new URL('../js/custom.js', import.meta.url), 'utf8');
 const finishBody = customSource.slice(customSource.indexOf('function finishQuickWorkout('), customSource.indexOf('const nameOf'));
-const finishDeps = { get ST() { return S.ST; }, setST: S.setST, save: S.save, CUSTOM_DAY: 'Personalizado',
+const finishDeps = { uid:(await import('../js/ids.js')).uid, get ST() { return S.ST; }, setST: S.setST, save: S.save, CUSTOM_DAY: 'Personalizado',
   finishQuick: c => A.finishQuick(c, monday), getSets: S.getSets,
   clearCustomProgress() { S.ST.sets = {}; S.ST.done = {}; }, endSessionOf: sessionModule.endSessionOf, liveDay: sessionModule.liveDay, render() {} };
 const finish = Function('deps', `with(deps){${finishBody};return finishQuickWorkout;}`)(finishDeps);
@@ -249,3 +249,39 @@ st().sets['Personalizado:0'] = [{ w: 1, r: 1 }]; st().done['Personalizado:0'] = 
 assert.equal(A.startQuick('Segunda', 'quick', new Date(now + 'T12:00:00')).ok, true);
 assert.deepEqual(Object.keys(st().sets).filter(k => k.startsWith('Personalizado:')).concat(Object.keys(st().done).filter(k => k.startsWith('Personalizado:'))), []);
 console.log('OK limites/skip, personalizado normal após move, import com identidade/data/destino hostis e q após estagnação.');
+// Correction A: only the consecutive block containing the proposal counts, across weeks.
+reset();
+st().routine = Object.fromEntries(days.map((d,i)=>[d,{id:`d${i}`,label:i===4?'Treino':'Descanso',rest:i!==4,ex:i===4?[{name:'X',s:3}]:[]}]));
+st().workouts = ['2026-10-23','2026-10-24','2026-10-25'].map((date,i)=>({id:`past${i}`,date,state:'COMPLETED'}));
+assert.equal(A.moveCandidates('Sexta','2026-10-26').find(c=>c.day==='Segunda').ok,false);
+reset();
+st().routine = Object.fromEntries(days.map((d,i)=>[d,{id:`d${i}`,label:i===0?'Treino':'Descanso',rest:i!==0,ex:i===0?[{name:'X',s:3}]:[]}]));
+st().workouts = ['2026-10-22','2026-10-23','2026-10-24'].map((date,i)=>({id:`past${i}`,date,state:'COMPLETED'}));
+assert.equal(A.moveCandidates('Segunda','2026-10-25').find(c=>c.day==='Domingo').ok,false);
+reset();
+st().routine.Segunda.rest=true;st().routine.Segunda.label='Descanso';
+for(const d of ['Quinta','Sexta','Sábado','Domingo']){st().routine[d].rest=false;st().routine[d].label='Treino';}
+assert.equal(A.moveCandidates('Domingo','2026-10-19').find(c=>c.day==='Segunda').ok,true);
+// Future Monday extends a Thursday-Friday-Saturday proposal across Sunday.
+reset();
+for(const d of days){st().routine[d].rest=!['Segunda','Sexta','Sábado'].includes(d);st().routine[d].label=st().routine[d].rest?'Descanso':'Treino';}
+assert.equal(A.moveCandidates('Quarta','2026-10-23').find(c=>c.day==='Domingo').ok,false);
+console.log('OK A: blocos reais na semana anterior, sequência futura e proposta longe de bloco longo.');
+// The adaptation blocker resolves the identity after a permanent swap too.
+reset();const linkedClass=C.addClass({kind:'yoga',name:'Yoga',day:'Quarta',time:'10:00',min:45,intensity:1,weekly:true},now).cls;
+assert(C.setReplaceIntent(linkedClass.id,now,'Segunda',now).ok);
+assert(Plan.swapDays('Segunda','Quarta').ok);
+assert.equal(A.moveDay('Quarta','Quinta','manual',now).ok,false);
+st().routine.Quarta.id='replacement';
+assert.equal(C.intentDay(Object.values(st().classLog)[0]),null);
+assert.equal(A.moveDay('Quarta','Quinta','manual',now).ok,true);
+// A done intense class is real past activity; a merely planned past class is not.
+reset();for(const d of days){st().routine[d].rest=d!=='Sexta';st().routine[d].label=d==='Sexta'?'Treino':'Descanso';}
+for(const [day,date] of [['Sexta','2026-10-23'],['Sábado','2026-10-24'],['Domingo','2026-10-25']]){
+ const cls=C.addClass({kind:'hiit',name:'HIIT',day,time:'10:00',min:45,intensity:3,weekly:true},date).cls;
+ assert(C.markClass(cls.id,date,'done',{now:date}).ok);
+}
+assert.equal(A.moveCandidates('Sexta','2026-10-26').find(c=>c.day==='Segunda').ok,false);
+for(const o of Object.values(st().classLog))o.status='planned';
+assert.equal(A.moveCandidates('Sexta','2026-10-26').find(c=>c.day==='Segunda').ok,true);
+console.log('OK identidade nos bloqueios adapt.moveDay e aulas intensas reais no passado.');

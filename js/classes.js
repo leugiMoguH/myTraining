@@ -3,7 +3,7 @@ import { ST, save, setST } from './state.js';
 import { weekKey, isRest, effectiveTrainingOn } from './schedule.js';
 import { swapDays, isTraining } from './plan.js';
 import { liveDay } from './session.js';
-import { getDay } from './routine.js';
+import { dayNames, getDay } from './routine.js';
 import { uid } from './ids.js';
 const DAYS=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
 const MODALITIES=[['pilates','Pilates','mente-corpo',1],['yoga','Yoga','mente-corpo',1],['spinning','Spinning','cardio',3],['zumba','Zumba','dança',2],['body-pump','Body Pump','força',2],['hiit','HIIT','cardio',3],['cross-training','Cross Training','força',3],['gap','GAP','força',2],['step','Step','cardio',2],['hidroginastica','Hidroginástica','cardio',1],['alongamentos','Alongamentos','mente-corpo',1],['combat','Boxe/Combat','cardio',3],['funcional','Funcional','força',2],['custom','Outra','outro',2]].map(([id,label,type,intensity])=>({id,label,type,intensity}));
@@ -21,7 +21,7 @@ function validClass(c){
 }
 function validateClassState(classes=[],classLog={}){
   if(!Array.isArray(classes)||!obj(classLog)||classes.some(c=>!validClass(c).ok)||new Set(classes.map(c=>c.id)).size!==classes.length) return err('estrutura interna invalida');
-  for(const [k,o] of Object.entries(classLog)) if(!obj(o)||!safeId(o.classId)||!validDate(o.date)||k!==`${o.classId}@${o.date}`||!['planned','done','cancelled','replaced'].includes(o.status)||!snapOK(o.snap)||!(typeof o.ts==='string'&&!isNaN(Date.parse(o.ts)))||(o.changes!==undefined&&(!Array.isArray(o.changes)||o.changes.some(c=>!obj(c)||!['planned','done','cancelled','replaced'].includes(c.from)||!['planned','done','cancelled','replaced'].includes(c.to)||typeof c.ts!=='string'||isNaN(Date.parse(c.ts)))))||(o.replacesDay!==undefined&&!DAYS.includes(o.replacesDay))) return err('estrutura interna invalida');
+  for(const [k,o] of Object.entries(classLog)) if(!obj(o)||!safeId(o.classId)||!validDate(o.date)||k!==`${o.classId}@${o.date}`||!['planned','done','cancelled','replaced'].includes(o.status)||!snapOK(o.snap)||!(typeof o.ts==='string'&&!isNaN(Date.parse(o.ts)))||(o.changes!==undefined&&(!Array.isArray(o.changes)||o.changes.some(c=>!obj(c)||!['planned','done','cancelled','replaced'].includes(c.from)||!['planned','done','cancelled','replaced'].includes(c.to)||typeof c.ts!=='string'||isNaN(Date.parse(c.ts)))))||(o.replacesDay!==undefined&&!DAYS.includes(o.replacesDay))||(o.replacesDayId!==undefined&&!safeId(o.replacesDayId))) return err('estrutura interna invalida');
   return {ok:true};
 }
 function commit(fn){const prev=JSON.stringify(ST); try{fn(); if(save()) return {ok:true};}catch(e){setST(JSON.parse(prev)); return err(e.message);} setST(JSON.parse(prev)); return err('Não foi possível guardar. Nada foi alterado.');}
@@ -47,13 +47,18 @@ function row(id,d,c,status,now){return {key:`${id}@${d}`,cls:{...c,id},date:d,da
 function occurrences(weekRef=new Date(),now=new Date()){
   const n=clock(now), start=dateOfDay('Segunda',weekRef), end=dateOfDay('Domingo',weekRef), out=new Map();
   for(const c of classList()){const d=c.weekly?dateOfDay(c.day,weekRef):c.date; if(d>=start&&d<=end&&d>=c.createdAt.slice(0,10))out.set(`${c.id}@${d}`,row(c.id,d,c,'planned',n));}
-  for(const [k,o] of Object.entries(ST.classLog||{}))if(o.date>=start&&o.date<=end)out.set(k,{...row(o.classId,o.date,o.snap,o.status,n),...(o.replacesDay?{replacesDay:o.replacesDay}:{})});
+  for(const [k,o] of Object.entries(ST.classLog||{}))if(o.date>=start&&o.date<=end)out.set(k,{...row(o.classId,o.date,o.snap,o.status,n),...(o.replacesDay?{replacesDay:intentDay(o)||o.replacesDay,...(o.replacesDayId?{replacesDayId:o.replacesDayId}:{})}:{})});
   return [...out.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.cls.time.localeCompare(b.cls.time)||a.key.localeCompare(b.key));
 }
 function occurrencesOn(date,now=new Date()){if(!validDate(date))return []; return occurrences(date,now).filter(o=>o.date===date);}
 function find(id,d,now){return occurrencesOn(d,now).find(o=>o.cls.id===id);}
-function own(o){return o?.status==='done'&&o.replacesDay&&ST.sched?.replaced?.[o.replacesDay]===o.date&&ST.sched?.week===weekKey(clock(o.date));}
-function undo(o){if(own(o)){const r={...ST.sched.replaced};delete r[o.replacesDay];ST.sched={...ST.sched,replaced:r};}}
+function intentDay(o){
+  if(!o)return null;
+  if(o.replacesDayId)return dayNames().find(d=>getDay(d)?.id===o.replacesDayId)||null;
+  return o.status==='done'?o.replacesDay||null:null;
+}
+function own(o){return o?.status==='done'&&intentDay(o)&&ST.sched?.replaced?.[intentDay(o)]===o.date&&ST.sched?.week===weekKey(clock(o.date));}
+function undo(o){if(own(o)){const r={...ST.sched.replaced};delete r[intentDay(o)];ST.sched={...ST.sched,replaced:r};}}
 /* Leitura sem sched(): validar ou resumir nunca deve inicializar/mutar a agenda. */
 function trainingState(day){
   if(isRest(day))return 'rest';
@@ -69,23 +74,26 @@ function replaceError(day,d,now,old){
   if(!isTraining(day)||isRest(day))return 'Esse dia não tem treino.';
   if(Object.entries(ST.sets||{}).some(([k,v])=>k.startsWith(`${day}:`)&&Array.isArray(v)&&v.length))return 'Esse dia tem séries marcadas.';
   if(trainingState(day)==='done'||ST.sched?.done?.[day]||ST.sched?.replaced?.[day]&&!own(old))return 'Esse treino já está feito ou substituído.';
-  if(Object.values(ST.classLog||{}).some(o=>o!==old&&o.status==='done'&&o.replacesDay===day&&o.date===d))return 'Esse treino pertence a outra aula.';
+  if(Object.values(ST.classLog||{}).some(o=>o!==old&&o.status==='done'&&intentDay(o)===day&&o.date===d))return 'Esse treino pertence a outra aula.';
   return null;
 }
 function setReplaceIntent(classId,date,replacesDay,now=new Date()){
   const n=clock(now), o=find(classId,date,n); if(!o)return err('Ocorrência inexistente.');
   if(o.status!=='planned')return err('Reabre a aula antes de escolher substituir.');
   if(replacesDay!==null&&!DAYS.includes(replacesDay))return err('Dia inválido.');
+  if(replacesDay&&!safeId(getDay(replacesDay)?.id))return err('Escolhe um treino com identidade válida.');
   if(replacesDay&&liveDay()===replacesDay)return err('Esse dia tem um treino em curso.');
   if(!replacesDay&&!ST.classLog?.[o.key])return {ok:true};
-  return commit(()=>{const log={...(ST.classLog||{})};if(replacesDay)log[o.key]={classId,date,status:'planned',ts:n.toISOString(),snap:snapshot(o.cls),replacesDay};else delete log[o.key];ST.classLog=log;});   /* sem intenção, planned não guarda nada */
+  return commit(()=>{const log={...(ST.classLog||{})};if(replacesDay)log[o.key]={classId,date,status:'planned',ts:n.toISOString(),snap:snapshot(o.cls),replacesDay,replacesDayId:getDay(replacesDay)?.id};else delete log[o.key];ST.classLog=log;});   /* sem intenção, planned não guarda nada */
 }
 function markClass(classId,date,status,opts={}){
   const n=clock(opts.now??new Date()), o=find(classId,date,n); if(!o||!['done','cancelled','replaced'].includes(status))return err('Ocorrência ou estado inválido.');
   if(status==='done'&&date>civil(n))return err('Não podes marcar uma aula futura como feita.');
-  const old=ST.classLog?.[o.key], day=old?.replacesDay;
+  const old=ST.classLog?.[o.key], day=intentDay(old);
+  const warning=status==='done'&&old?.replacesDay&&!day?'A ligação ao treino mudou; escolhe de novo para substituir.':null;
   if(status==='done'&&day){const e=replaceError(day,date,n,old);if(e)return err(e);}
-  return commit(()=>{undo(old);if(status==='done'&&day)ST.sched={...(ST.sched||{}),week:weekKey(n),replaced:{...(ST.sched?.replaced||{}),[day]:date}};ST.classLog={...(ST.classLog||{}),[o.key]:{classId,date,status,ts:n.toISOString(),snap:snapshot(o.cls),...(day?{replacesDay:day}:{})}};});
+  const result=commit(()=>{undo(old);if(status==='done'&&day)ST.sched={...(ST.sched||{}),week:weekKey(n),replaced:{...(ST.sched?.replaced||{}),[day]:date}};ST.classLog={...(ST.classLog||{}),[o.key]:{classId,date,status,ts:n.toISOString(),snap:snapshot(o.cls),...(old?.replacesDay&&(day||old.replacesDayId)?{replacesDay:day||old.replacesDay,...(old.replacesDayId?{replacesDayId:old.replacesDayId}:{})}:{})}};});
+  return {...result,...(warning?{warning}:{})};
 }
 function reopenClass(classId,date,now=new Date()){
   const o=find(classId,date,clock(now));if(!o)return err('Ocorrência inexistente.');
@@ -94,7 +102,8 @@ function reopenClass(classId,date,now=new Date()){
 }
 function conflictFor(cls,date,now=new Date()){
   if(!validDate(date))return null;
-  const day=effectiveTrainingOn(DAYS[(clock(date).getDay()+6)%7],clock(now));
+  const linked=ST.classLog?.[`${cls.id}@${date}`];
+  const day=intentDay(linked)||effectiveTrainingOn(DAYS[(clock(date).getDay()+6)%7],clock(now));
   if(!day||!isTraining(day)||isRest(day))return null;
   const trainingStatus=trainingState(day);if(['done','swapped','rest'].includes(trainingStatus))return null;
   return {day,label:getDay(day)?.label||day,trainingStatus,options:['keep','replace','move'],advice:cls.intensity===3||cls.min>=75?'Considera substituir ou mover só esta semana.':'Manter ambos é adequado.'};
@@ -102,7 +111,7 @@ function conflictFor(cls,date,now=new Date()){
 function applyMove(day,targetDay,date,now=new Date()){
   if(!validDate(date))return err('Data inválida.');
   const wk=weekKey(clock(now));
-  if(Object.values(ST.classLog||{}).some(o=>(o.status==='done'||o.status==='planned')&&[day,targetDay].includes(o.replacesDay)&&weekKey(clock(o.date))===wk))return err('Uma aula está ligada ao treino desses dias. Reabre-a antes de os trocar.');
+  if(Object.values(ST.classLog||{}).some(o=>(o.status==='done'||o.status==='planned')&&[day,targetDay].includes(intentDay(o))&&weekKey(clock(o.date))===wk))return err('Uma aula está ligada ao treino desses dias. Reabre-a antes de os trocar.');
   return swapDays(day,targetDay);
 }
 function weekActivity(weekRef = new Date(), now = new Date()) {
@@ -119,7 +128,7 @@ function weekActivity(weekRef = new Date(), now = new Date()) {
   };
 }
 function recentClasses(n=10,now=new Date()){
-  return Object.values(ST.classLog||{}).filter(o=>o.status!=='planned').sort((a,b)=>b.date.localeCompare(a.date)||b.ts.localeCompare(a.ts)).slice(0,n).map(o=>({...row(o.classId,o.date,o.snap,o.status,clock(now)),ts:o.ts,changes:o.changes||[],...(o.replacesDay?{replacesDay:o.replacesDay}:{})}));
+  return Object.values(ST.classLog||{}).filter(o=>o.status!=='planned').sort((a,b)=>b.date.localeCompare(a.date)||b.ts.localeCompare(a.ts)).slice(0,n).map(o=>({...row(o.classId,o.date,o.snap,o.status,clock(now)),ts:o.ts,changes:o.changes||[],...(o.replacesDay?{replacesDay:intentDay(o)||o.replacesDay,...(o.replacesDayId?{replacesDayId:o.replacesDayId}:{})}:{})}));
 }
 
 /* Corrigir uma semana passada preserva o snapshot e nunca reabre a agenda. */
@@ -140,4 +149,4 @@ function setPastStatus(classId, date, status, now = new Date()) {
   });
 }
 
-export { setPastStatus, MODALITIES, classList, validClass, addClass, updateClass, removeClass, dateOfDay, occurrences, occurrencesOn, markClass, reopenClass, setReplaceIntent, conflictFor, applyMove, weekActivity, recentClasses, validateClassState };
+export { intentDay, setPastStatus, MODALITIES, classList, validClass, addClass, updateClass, removeClass, dateOfDay, occurrences, occurrencesOn, markClass, reopenClass, setReplaceIntent, conflictFor, applyMove, weekActivity, recentClasses, validateClassState };

@@ -105,6 +105,7 @@ function swapDays(a, b) {
     e.date >= wk && e.sets ? { ...e, sets: e.sets.map(x => (x.k ? { ...x, k: Object.keys(swapKeys({ [x.k]: 1 }))[0] } : x)) } : e))]));
   const ok = commit(() => {
     ST.routine = { ...ST.routine, [a]: rb, [b]: ra };
+    ST.classLog = Object.fromEntries(Object.entries(ST.classLog || {}).map(([k,o]) => [k, o.replacesDayId && [ra.id,rb.id].includes(o.replacesDayId) ? {...o,replacesDay:o.replacesDayId===ra.id?b:a} : o.status==='done' && !o.replacesDayId && o.replacesDay ? {...o,replacesDay:other(o.replacesDay)} : o]));
     ST.sets = swapKeys(ST.sets);
     ST.done = swapKeys(ST.done);
     ST.log = relink(ST.log);

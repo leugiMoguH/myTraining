@@ -251,6 +251,7 @@ function clMark(id, date, status) {
   const r = markClass(id, date, status);
   if (!r.ok) show(r.error, 'error');
   again();
+  if (r.ok && r.warning) show(r.warning, 'ok');   /* ex.: intenção antiga sem ligação ao treino: «escolhe de novo» */
 }
 function clReopen(id, date) {
   const r = reopenClass(id, date);

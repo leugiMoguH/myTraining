@@ -27,6 +27,7 @@
     "test:a11y": "node scripts/a11y-test.mjs",
     "test:drafts": "node scripts/drafts-test.mjs",
     "test:b6": "node scripts/bloco6-test.mjs",
+    "test:giffail": "node scripts/gif-fail-test.mjs",
     "test:data": "node scripts/history-test.mjs && node scripts/muscle-test.mjs"
   },
   "devDependencies": {

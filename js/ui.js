@@ -55,9 +55,14 @@ function refreshCard(day,i) {
 
 /* GIF animado do exercises-dataset (180x180, ~90 KB). loading=lazy porque um dia
    pode ter 8 cartões e não vale a pena puxar todos de uma vez. */
+function slideFail(img){
+  const slide=img?.closest?.('.slide'); if(!slide) return;
+  const box=document.createElement('div'), icon=document.createElement('span'), name=document.createElement('span');
+  box.className='no-img'; icon.textContent='💪'; name.textContent=img.alt;
+  box.append(icon,name); slide.replaceChildren(box);
+}
 function gifSlide(ex){
-  return `<div class="slide"><img class="cat-gif" src="${gifUrlFor(ex.catalogId,ex.m)}" alt="${esc(ex.name)}" loading="lazy"
-    onerror="this.closest('.slide').innerHTML='<div class=\\'no-img\\'><span>💪</span><span>${esc(ex.name)}</span></div>'"></div>`;
+  return `<div class="slide"><img class="cat-gif" src="${esc(gifUrlFor(ex.catalogId,ex.m))}" alt="${esc(ex.name)}" loading="lazy" onerror="slideFail(this)"></div>`;
 }
 
 function buildCard(day,ex,i) {
@@ -75,10 +80,9 @@ function buildCard(day,ex,i) {
   const slidesArr=[];
   if(ex.catalogId && ex.m) slidesArr.push(gifSlide(ex));
   else if(dmo) slidesArr.push(demoSlide(dmo,ex.name));
-  slidesArr.push(mm ? muscleSlide(mm) : noImgSlide(ex.name));
+  slidesArr.push(mm ? muscleSlide(mm) : noImgSlide(esc(ex.name)));
   media.forEach((url,mi)=>slidesArr.push(mediaSlide(url,ex.name,mi)));
-  extra.forEach(src=>slidesArr.push(`<div class="slide"><img src="${src}" alt="${ex.name}" loading="lazy"
-        onerror="this.closest('.slide').innerHTML='<div class=\\'no-img\\'><span>💪</span><span>${ex.name}</span></div>'"></div>`));
+  extra.forEach(src=>slidesArr.push(`<div class="slide"><img src="${esc(src)}" alt="${esc(ex.name)}" loading="lazy" onerror="slideFail(this)"></div>`));
   const n=slidesArr.length;
   slInit(i,n);
   const slidesHTML=slidesArr.join('');
@@ -108,7 +112,7 @@ function buildCard(day,ex,i) {
        </div>`
     : '';
 
-  const jsName=ex.name.replace(/'/g,"\\'");
+  const jsName=esc(ex.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r/g,'\\r').replace(/\n/g,'\\n'));
   const lastLog=getLog(ex.name).slice(-1)[0];
   const loadHTML = totalSets>0 ? `
       <div class="load" id="load-${i}">
@@ -123,7 +127,7 @@ function buildCard(day,ex,i) {
   card.innerHTML=`
     <div class="card-body">
       <div class="card-title-row">
-        <div class="card-title">${ex.name}</div>
+        <div class="card-title">${esc(ex.name)}</div>
         <div class="card-meta">
           <div class="card-stats">${totalSets>0
             ?`<span class="sr-only">${ex.s} séries de ${esc(ex.r)} repetições</span><span aria-hidden="true" class="st-vis"><b>${ex.s}</b><span class="st-x">×</span><b>${esc(ex.r)}</b></span>`
@@ -437,4 +441,4 @@ function render(target) {
   renderDay(content, target);
 }
 
-export { setBack, refreshProgress, refreshCard, buildCard, gifSlide, render, renderDay, renderToday, renderWeek, renderHistory, goDay, toggleDayDone, toggleTodayList };
+export { slideFail, setBack, refreshProgress, refreshCard, buildCard, gifSlide, render, renderDay, renderToday, renderWeek, renderHistory, goDay, toggleDayDone, toggleTodayList };

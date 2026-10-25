@@ -16,3 +16,5 @@ Dados de produtos podem estar incompletos; confirma alergénios no rótulo.
 PortFIR (INSA): não incorporado — condições de reutilização por confirmar (site inacessível ao ambiente de desenvolvimento). Só entra após licença confirmada.
 
 Base USDA gerada em 2026-10-25 com scripts/build-foods.mjs (valores conferidos com o USDA). Referências EFSA/OMS/Morton documentadas a partir das fontes citadas; o limite superior de 2,2 g/kg da Morton 2018 foi confirmado apenas em fontes secundárias.
+
+Catálogo desta entrega: `data/foods-pt.json`, USDA SR Legacy, versão 2019-04-01 (domínio público), 172 alimentos curados em português. Nomes, estados e sinónimos são pesquisa local; porções reais da fonte. A marca «aprox.» identifica equivalências com alimentos USDA, com justificação e nome original no botão ⓘ. Não implica equivalência exata com o produto português. PortFIR não incorporado. ⓘ das referências apresenta fórmula, fontes, população, pressupostos e limites; os totais referem-se apenas aos registos. Falhas de carregamento permitem tentar de novo ou adicionar manualmente sem inventar nutrientes.

@@ -15,6 +15,7 @@ const SCREENS = ['__hoje', '__semana', '__dia', '__perfil', '__eu', '__plano', '
 
 async function open(w, theme = 'dark') {
   const ctx = await browser.newContext({ viewport: { width: w, height: 800 } });
+  await ctx.route('**/*',r=>['localhost','127.0.0.1'].includes(new URL(r.request().url()).hostname)?r.continue():r.fulfill({status:200,body:''}));
   const page = await ctx.newPage();
   await skipOnboarding(page);
   await page.addInitScript(t => { try { localStorage.setItem('treino_theme', t); } catch { /* sem storage */ } }, theme);
@@ -98,6 +99,30 @@ for (const theme of ['dark', 'light']) {
   const row = page.locator('.wk-row').first();
   await row.focus(); await page.keyboard.press('Enter'); await page.waitForTimeout(200);
   check(await page.evaluate(() => !document.querySelector('.week-list')), 'linha da semana: Enter não navegou');
+  await ctx.close();
+}
+
+/* 5. Diário: folha fora do conteúdo, summary na ordem Tab e diálogos aninhados. */
+{
+  const {ctx,page}=await open(320);
+  await go(page,'__nutri');await page.locator('[data-add="pa"]').click();
+  check(await insideActive(page,'#foodSheet'),'nutri: foco inicial');
+  check(await page.locator('#foodSheet').evaluate(e=>!document.getElementById('content').contains(e)),'nutri: folha dentro de content');
+  check(await page.locator('#foodSheet [role="dialog"]').getAttribute('aria-modal')==='true','nutri: sem modal');
+  let summaryFocused=false;
+  for(let i=0;i<18;i++){
+    await page.keyboard.press('Tab');
+    check(await insideActive(page,'#foodSheet'),'nutri: Tab saiu da folha');
+    summaryFocused ||= await page.evaluate(()=>document.activeElement.tagName==='SUMMARY');
+  }
+  check(summaryFocused,'nutri: summary fora do controlo Tab');
+  await page.locator('#food-query').fill('banana');await page.locator('[data-result]').first().waitFor();
+  await page.locator('[data-source]').first().click();
+  await page.keyboard.press('Escape');
+  check(await page.locator('#foodSheet').count()===1,'nutri: Esc fechou folha sob ⓘ');
+  check(await page.locator('[data-source]').first().evaluate(e=>e===document.activeElement),'nutri: foco após ⓘ');
+  await page.keyboard.press('Escape');
+  check(await page.locator('[data-add="pa"]').evaluate(e=>e===document.activeElement),'nutri: foco após fechar');
   await ctx.close();
 }
 

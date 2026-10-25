@@ -4,6 +4,8 @@
   "description": "Plano de treino pessoal",
   "scripts": {
     "start": "http-server -p 8000 -c-1",
+    "test:nutri-contract": "node scripts/nutri-contract-test.mjs",
+    "test:nutri-search": "node scripts/nutri-search-test.mjs",
     "test:nutri": "node scripts/nutri-test.mjs",
     "test:nutri-ui": "node scripts/nutri-ui-test.mjs",
     "smoke": "node scripts/smoke.mjs",

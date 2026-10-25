@@ -1,3 +1,4 @@
+import { validateIntakeList, validateCustomFoods, validateFoodRecent } from './foods.js';
 import { closeOverlay, openOverlay } from './overlay.js';
 import { confirmDialog } from './dialog.js';
 import { show } from './notice.js';
@@ -55,6 +56,9 @@ async function importBackup(e){
          !['profile','prefs','media','nutri'].every(k=>optional(k,isObj)) ||
          !optional('routine',o=>o===null || isObj(o) && Object.values(o).every(d=>isObj(d) && records(d.ex))))
         throw new Error('estrutura interna invalida');
+      for (const result of [validateIntakeList(incoming.intake), validateCustomFoods(incoming.foodsCustom), validateFoodRecent(incoming.foodRecent)]) {
+        if (!result.ok) throw new Error(result.reason);
+      }
       if(!validateClassState(incoming.classes, incoming.classLog).ok) throw new Error('estrutura interna invalida');
       if (!validateAdaptState(incoming.adapt).ok) throw new Error('estrutura interna invalida');
       if(incoming.motiv!==undefined&&!validateMotivState(incoming.motiv).ok) delete incoming.motiv;
@@ -80,7 +84,7 @@ async function importBackup(e){
       if(!snap.ok){ show('Não foi possível guardar uma cópia do estado atual antes de importar: '+snap.error+'\nNada foi alterado.', 'error'); return; }
       const previous=ST, previousRest=REST_SEC;
       try {
-      setST({ classes:[], classLog:{}, day:'Segunda', sets:{}, done:{}, log:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], media:{}, routine:null, ...incoming });
+      setST({ classes:[], classLog:{}, day:'Segunda', sets:{}, done:{}, log:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], foodsCustom:[], foodRecent:[], media:{}, routine:null, ...incoming });
       if(!ST.log || typeof ST.log!=='object') ST.log={};
       if(!ST.nutri || typeof ST.nutri!=='object') ST.nutri={profile:null};
       if(!ST.profile || typeof ST.profile!=='object') ST.profile={};
@@ -127,8 +131,8 @@ function exportMeasuresCSV(){
   csvDownload(`medidas-${todayStr()}.csv`, rows); closeSheet();
 }
 function exportIntakeCSV(){
-  const rows=[['data','hora','alimento','kcal','proteina_g','hidratos_g','gordura_g','fibra_g','acucares_totais_g','sal_g','quantidade','unidade','fonte','id_fonte','versao','nota']];
-  (ST.intake||[]).slice().sort((a,b)=>(a.ts||'')<(b.ts||'')?-1:1).forEach(x=>rows.push([x.date, x.ts?fmtTime(x.ts):'', x.name, x.kcal == null ? '' : Math.round(x.kcal), x.protein ?? '', ...['carbs','fat','fibre','sugars','salt'].map(k=>x.n?.[k]??''), x.g??'', x.unit??'', x.src??'', x.sid??'', x.ver??'', x.note??'']));
+  const rows=[['data','hora','alimento','kcal','proteina_g','hidratos_g','gordura_g','fibra_g','acucares_totais_g','sal_g','quantidade','unidade','fonte','id_fonte','versao','nota','refeicao','id_alimento','id_registo']];
+  (ST.intake||[]).slice().sort((a,b)=>(a.ts||'')<(b.ts||'')?-1:1).forEach(x=>rows.push([x.date, x.ts?fmtTime(x.ts):'', x.name, x.kcal == null ? '' : Math.round(x.kcal), x.protein ?? '', ...['carbs','fat','fibre','sugars','salt'].map(k=>x.n?.[k]??''), x.g??'', x.unit??'', x.src??'', x.sid??'', x.ver??'', x.note??'', x.meal??'', x.fid??'', x.id??'']));
   if(rows.length<2){ show('Sem registos de ingestão para exportar.', 'info'); return; }
   csvDownload(`diario-${todayStr()}.csv`, rows); closeSheet();
 }

@@ -146,7 +146,7 @@ assert.equal(A.validateAdaptState({ moves: { 'bad\"': {} }, dismissed: {}, hist:
 const source = readFileSync(new URL('../js/backup.js', import.meta.url), 'utf8');
 const body = source.slice(source.indexOf('async function importBackup('), source.indexOf('/* ── EXPORTAÇÃO CSV'));
 let confirmations = 0;
-const deps = { ensureMotiv:(await import('../js/motiv.js')).ensureMotiv, validateMotivState:(await import('../js/motiv.js')).validateMotivState, get ST() { return S.ST; }, validateAdaptState: A.validateAdaptState, validateClassState: C.validateClassState, setST: S.setST, REST_SEC: 60,
+const deps={...(await import('../js/foods.js')), ensureMotiv:(await import('../js/motiv.js')).ensureMotiv, validateMotivState:(await import('../js/motiv.js')).validateMotivState, get ST() { return S.ST; }, validateAdaptState: A.validateAdaptState, validateClassState: C.validateClassState, setST: S.setST, REST_SEC: 60,
   document: { getElementById: () => ({ classList: { contains: () => false } }) }, confirmDialog: async () => { confirmations++; return true; },
   snapshot: () => ({ ok: true }), setRest() {}, migrate: () => ({ saved: true }), save: S.save, clearDrafts() {}, timerDismiss() {}, closeSheet() {}, render() {}, show() {}, DEFAULT_DAYS: st().routine, DAYS: st().routine };
 const load = Function('deps', `with(deps){let importOperation=0;${body};return importBackup;}`)(deps);

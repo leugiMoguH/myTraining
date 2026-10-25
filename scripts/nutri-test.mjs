@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import './nutri-contract-test.mjs';
 import { bmrMifflin, energyEstimate, references } from '../js/nutri-calc.js';
 import { nutrient, scaleFood, sumEntries, parseOff } from '../js/foods.js';
 const m={sex:'m',weight:80,height:180,age:30,activity:'mod'};

@@ -80,5 +80,16 @@ try {
   await page.getByRole('button',{name:'Registar medidas de hoje'}).click();assert(await storage());assert(await page.locator('#m-form').evaluate(e=>e.open));assert.equal(await page.inputValue('#m-weight'),'88');
   await page.evaluate(()=>Storage.prototype.setItem=window.originalSet);await page.getByRole('button',{name:'Descartar rascunho'}).click();
  });
+ await test('perfil sem escolhas, rascunho e gordura sem sexo explícito',async()=>{
+  await page.evaluate(async()=>{const {ST,save}=await import('./js/state.js');ST.profile={age:30,height:180};save();(await import('./js/profile.js')).clearDrafts();});
+  await reload('__eu');assert.equal(await page.inputValue('#p-sex'),'');assert.equal(await page.inputValue('#p-activity'),'');
+  const metrics=await page.evaluate(async()=>{const p=await import('./js/profile.js');return {body:p.bodyMetrics(),fat:p.bodyFat({waist:90,neck:40}),complete:p.profileComplete()};});
+  assert.equal(metrics.body.sex,null);assert.equal(metrics.body.activity,null);assert.equal(metrics.fat,null);assert.equal(metrics.complete,false);
+  await page.selectOption('#p-sex','f');await page.selectOption('#p-activity','leve');await reload('__eu');
+  assert.equal(await page.inputValue('#p-sex'),'f');assert.equal(await page.inputValue('#p-activity'),'leve');
+  await page.getByRole('button',{name:'Descartar rascunho'}).click();assert.equal(await page.inputValue('#p-sex'),'');assert.equal(await page.inputValue('#p-activity'),'');
+  await page.getByRole('button',{name:'Guardar dados',exact:true}).click();await reload('__eu');
+  assert.equal(await page.inputValue('#p-sex'),'');assert.equal(await page.inputValue('#p-activity'),'');assert.equal(await storage(),null);
+ });
  assert.equal(await intact(),before);assert.deepEqual(errors,[]);console.log(`OK - ${count} grupos de rascunhos; log/workouts intactos`);await ctx.close();
 } finally {await browser.close();server.close();}

@@ -16,7 +16,7 @@ const MIDS=['m-date','m-weight','m-waist','m-neck','m-hip','m-chest','m-arm','m-
 const idsFor=k=>k==='profile'?PIDS:/^measure:(new|\d{4}-\d{2}-\d{2})$/.test(k)?MIDS:null;
 function baseFields(k){
   const p=ST.profile||{};
-  if(k==='profile') return Object.fromEntries(PIDS.map((id,i)=>[id,String([p.sex||'m',p.age||'',p.height||'',p.goal||'manter',p.activity||'mod'][i])]));
+  if(k==='profile') return Object.fromEntries(PIDS.map((id,i)=>[id,String([p.sex||'',p.age||'',p.height||'',p.goal||'manter',p.activity||''][i])]));
   const date=k.slice(8), e=(ST.measures||[]).find(e=>e.date===date);
   if(date!=='new'&&!e) return null;
   const fields=Object.fromEntries(MIDS.map(id=>[id,String(id==='m-date'?(e?.date||todayStr()):(date==='new'?'':e?.[id.slice(2)]??''))]));
@@ -62,14 +62,14 @@ function discardDraft(k){clearDraft(k);if(k==='profile')renderProfile();else{MEA
    mudar o ecrã de quem tinha a app aberta), '__eu' = Perfil (dados pessoais e preferências), '__plano' = Plano. */
 /* ═══════════════════════ PERFIL ═════════════════════ */
 function getProfile(){ return ST.profile||{}; }
-function bodyMetrics(){ const p=getProfile(); return { sex:p.sex||'m', age:+p.age||0, height:+p.height||0, goal:p.goal||'manter', activity:p.activity||'mod', weight:latestWeight() }; }
-function profileComplete(){ const b=bodyMetrics(); return b.age>0 && b.height>0 && b.weight>0; }
+function bodyMetrics(){ const p=getProfile(); return { sex:['m','f'].includes(p.sex)?p.sex:null, age:+p.age||0, height:+p.height||0, goal:p.goal||'manter', activity:['sed','leve','mod','alto'].includes(p.activity)?p.activity:null, weight:latestWeight() }; }
+function profileComplete(){ const b=bodyMetrics(); return !!b.sex && !!b.activity && b.age>0 && b.height>0 && b.weight>0; }
 function latestMeasure(){ const m=ST.measures||[]; return m.length?m[m.length-1]:null; }
 function latestWeight(){ const e=latestMeasure(); return e&&e.weight>0?e.weight:0; }
 
 function bodyFat(e){
   const p=getProfile(), h=+p.height, waist=+e.waist, neck=+e.neck, hip=+e.hip;
-  if(!(h>0)) return null;
+  if(!(h>0) || !['m','f'].includes(p.sex)) return null;
   let v;
   if(p.sex==='f'){
     if(!(waist>0 && hip>0 && neck>0 && (waist+hip-neck)>0)) return null;
@@ -115,13 +115,13 @@ function profileDataHTML(){
   <div class="nplan-hdr"><div><div class="day-hdr-name">👤 Dados pessoais</div><div class="day-hdr-sub">Fonte para as metas de Nutrição</div></div></div>
   <div class="nform" data-draft="profile">
     <div class="nrow">
-      <label class="nfield"><span>Sexo</span><select id="p-sex"><option value="m"${sel(p.sex||'m','m')}>Masculino</option><option value="f"${sel(p.sex,'f')}>Feminino</option></select></label>
+      <label class="nfield"><span>Sexo</span><select id="p-sex"><option value="">Escolher</option><option value="m"${sel(p.sex||'','m')}>Masculino</option><option value="f"${sel(p.sex,'f')}>Feminino</option></select></label>
       <label class="nfield"><span>Idade</span><input id="p-age" type="number" min="10" max="100" inputmode="numeric" value="${p.age||''}"></label>
       <label class="nfield"><span>Altura (cm) *</span><input id="p-height" type="number" min="120" max="230" inputmode="numeric" value="${p.height||''}"></label>
     </div>
     <div class="nrow">
       <label class="nfield"><span>Objetivo alimentar</span><select id="p-goal"><option value="perder"${sel(p.goal,'perder')}>Perder gordura</option><option value="manter"${sel(p.goal||'manter','manter')}>Manter</option><option value="ganhar"${sel(p.goal,'ganhar')}>Ganhar músculo</option></select></label>
-      <label class="nfield"><span>Atividade (fora do treino)</span><select id="p-activity"><option value="sed"${sel(p.activity,'sed')}>Sedentário</option><option value="leve"${sel(p.activity,'leve')}>Leve</option><option value="mod"${sel(p.activity||'mod','mod')}>Moderado</option><option value="alto"${sel(p.activity,'alto')}>Alto</option></select></label>
+      <label class="nfield"><span>Atividade (fora do treino)</span><select id="p-activity"><option value="">Escolher</option><option value="sed"${sel(p.activity,'sed')}>Sedentário</option><option value="leve"${sel(p.activity,'leve')}>Leve</option><option value="mod"${sel(p.activity||'','mod')}>Moderado</option><option value="alto"${sel(p.activity,'alto')}>Alto</option></select></label>
     </div>
     <button class="nbtn" onclick="saveProfile()">Guardar dados</button>
     <button type="button" class="reset-btn" data-discard hidden onclick="discardDraft('profile')">Descartar rascunho</button>

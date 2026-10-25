@@ -931,7 +931,7 @@ body.guided #toast { top: calc(env(safe-area-inset-top, 0px) + 76px); }
 .wo-bg button:focus-visible, #bnav button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 /* SCANNER */
-.scan-bg { position: fixed; inset: 0; z-index: 650; background: #000; display: none; align-items: center; justify-content: center; }
+.scan-bg { position: fixed; inset: 0; z-index: 710; background: #000; display: none; align-items: center; justify-content: center; }
 .scan-bg.show { display: flex; }
 .scan-vid { width: 100%; height: 100%; object-fit: cover; }
 .scan-frame { position: absolute; width: 72%; max-width: 320px; height: 140px; border: 3px solid rgba(255,255,255,0.85); border-radius: 14px; box-shadow: 0 0 0 4000px rgba(0,0,0,0.45); }
@@ -1169,8 +1169,8 @@ button:active:not(:disabled) { opacity: .75; }
 .barcode-row input { min-width:0; flex:1; }
 .barcode-row button { min-height:var(--tap); padding:var(--sp-3); border-radius:var(--r-sm); }
 /* Diálogos partilhados: fora das zonas que os relógios repintam. */
-.app-dialog-bg { position:fixed; inset:0; z-index:900; background:var(--backdrop,rgba(0,0,0,.65)); display:flex; align-items:center; justify-content:center; padding:var(--sp-4); }
-.app-dialog { box-sizing:border-box; width:100%; max-width:480px; max-height:100dvh; overflow:auto; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:var(--r-lg); padding:var(--sp-5); animation:dialog-enter var(--dur-fast) ease-out; }
+.app-dialog-bg { position:fixed; inset:0; z-index:calc(var(--z-sheet,700) + 200); background:var(--scrim-57); display:flex; align-items:center; justify-content:center; padding:var(--sp-4); }
+.app-dialog { box-sizing:border-box; width:100%; max-width:480px; max-height:100dvh; overflow:auto; background:var(--surface); opacity:1; color:var(--text); border:1px solid var(--border); border-radius:var(--r-lg); padding:var(--sp-5); animation:dialog-enter var(--dur-fast) ease-out; }
 .app-dialog h2 { margin:0 0 var(--sp-3); font-size:var(--fs-lg); }
 .app-dialog p { margin:0 0 var(--sp-4); white-space:pre-line; font-size:var(--fs-md); line-height:1.5; }
 .app-dialog label { display:block; margin-bottom:var(--sp-2); }
@@ -1182,7 +1182,7 @@ button:active:not(:disabled) { opacity: .75; }
 .inline-error { color:var(--danger); font-size:var(--fs-sm); line-height:1.5; margin-top:var(--sp-2); }
 .inline-error:empty { display:none; }
 [aria-invalid=true] { border-color:var(--danger)!important; }
-@keyframes dialog-enter { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+@keyframes dialog-enter { from { transform:translateY(8px); } to { transform:none; } }
 @media(max-width:479px) { .app-dialog-bg { align-items:flex-end; padding:0; } .app-dialog { border-radius:var(--r-lg) var(--r-lg) 0 0; padding-bottom:max(var(--sp-5),env(safe-area-inset-bottom)); } }
 @media(max-width:340px) { .app-dialog-actions { flex-direction:column; } .app-dialog-actions button { flex:auto; } }
 @media(prefers-reduced-motion:reduce) { .app-dialog { animation:none; transition:none; } }
@@ -1248,6 +1248,47 @@ button:active:not(:disabled) { opacity: .75; }
 .cl-in { padding: 10px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--bg, var(--bg-fallback)); color: var(--text); font: inherit; min-height: 44px; width: 100%; box-sizing: border-box; }
 .cl-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .wk-c { display: block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); margin: 1px auto 0; }
+
+/* Di?rio alimentar: tokens partilhados nos dois temas; alvos t?teis de 44 px. */
+.diary-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.diary-row h2 { font-size:16px; margin:0; min-width:0; }
+.diary-date { flex-wrap:wrap; margin:16px 0; }
+.diary-date label { flex:1; min-width:120px; color:var(--muted); font-size:12px; }
+.diary-date input { display:block; width:100%; min-width:0; min-height:44px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:4px; }
+.diary-summary,.diary-meal { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px; margin:12px 0; }
+.diary-summary { box-shadow:var(--shadow); }
+.diary-total { padding:10px 0; border-bottom:1px solid var(--border); }
+.diary-total:last-child { border-bottom:0; }
+.diary-total>div:first-child { display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.diary-total b { font-size:var(--fs-lg); line-height:1.2; }
+.diary-total small { display:block; color:var(--muted); line-height:1.5; margin-top:3px; }
+.diary-bar { position:relative; height:6px; background:var(--border); margin-top:7px; border-radius:3px; overflow:hidden; }
+.diary-bar span { display:block; height:100%; background:var(--blue); }
+.diary-bar i { position:absolute; top:0; height:100%; width:2px; background:var(--text); }
+.diary-entry { display:flex; flex-direction:column; align-items:flex-start; text-align:left; gap:5px; width:100%; min-width:0; padding:12px 4px; min-height:52px; background:transparent; color:var(--text); border:0; border-bottom:1px solid var(--border); font:inherit; overflow-wrap:anywhere; }
+.diary-entry span { font-size:12px; color:var(--muted); }
+.nutri-preferences>summary,.food-sheet summary { min-height:44px; padding:12px 0; cursor:pointer; color:var(--text); }
+.food-sheet-bg { display:none; position:fixed; inset:0; background:var(--overlay-bg,rgba(0,0,0,.65)); z-index:var(--z-sheet,700); padding:12px 12px 0; align-items:flex-end; justify-content:center; }
+.food-sheet-bg.show { display:flex; }
+.food-sheet { width:100%; max-width:560px; max-height:90dvh; overflow-y:auto; overflow-x:hidden; padding:16px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:18px 18px 0 0; box-sizing:border-box; overscroll-behavior:contain; }
+.food-sheet h2 { font-size:19px; }
+.food-sheet h3 { overflow-wrap:anywhere; }
+body.food-sheet-open { overflow:hidden; }
+body.food-sheet-open #bnav { visibility:hidden; }
+.food-name { display:flex; align-items:center; gap:8px; }
+.food-name h3 { flex:1; min-width:0; }
+.food-sheet .nfield { display:flex; flex-direction:column; gap:6px; margin:12px 0; }
+.food-sheet input,.food-sheet select { min-width:0; width:100%; box-sizing:border-box; min-height:44px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:10px; font:inherit; }
+.food-sheet button,.nutri-wrap button { min-height:44px; min-width:44px; white-space:normal; font:inherit; border-radius:var(--r-sm); padding:8px 10px; cursor:pointer; }
+.food-result { display:flex; align-items:center; gap:6px; }
+.food-result .diary-entry { flex:1; }
+.food-sheet .qfoods { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.food-sheet .food-check { display:flex; align-items:center; min-height:44px; gap:8px; }
+.food-check input { width:24px; }
+.food-sheet .food-source { flex:0 0 var(--tap); padding:0; border:0; background:transparent; color:var(--muted); font-size:var(--fs-lg); }
+.food-sheet { padding-bottom:max(16px,env(safe-area-inset-bottom)); }
+#food-save,#food-delete { margin:8px 8px 8px 0; }
+
 </style>
 </head>
 <body>

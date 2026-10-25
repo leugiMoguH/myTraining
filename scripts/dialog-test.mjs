@@ -171,15 +171,18 @@ try {
   });
   await test('nutrição: entrada manual, inválido, sem produto, offline e resposta antiga',async()=>{
     await reset();await page.evaluate(()=>window.render('__nutri'));
+    await page.locator('[data-add="pa"]').click();
+    await page.locator('#foodSheet summary').click();
     await page.locator('#barcode').fill('abc');await page.locator('#barcode').press('Enter');assert.equal(await page.locator('#barcode').getAttribute('aria-invalid'),'true');
     await page.route('**/api/v0/product/**',r=>r.fulfill({json:{status:0}}));
     await page.locator('#barcode').fill('12345678');await page.locator('#barcode').press('Enter');await page.locator('#barcode-status').filter({hasText:'não encontrado'}).waitFor();
-    await page.locator('#barcodeForm').scrollIntoViewIfNeeded();await screenshot('nutricao-codigo');await page.evaluate(()=>window.setThemePref('light'));await screenshot('nutricao-codigo','light');await page.evaluate(()=>window.setThemePref('dark'));await page.unroute('**/api/v0/product/**');await page.route('**/api/v0/product/**',r=>r.abort());
+    await page.locator('#food-barcode').scrollIntoViewIfNeeded();await screenshot('nutricao-codigo');await page.evaluate(()=>window.setThemePref('light'));await screenshot('nutricao-codigo','light');await page.evaluate(()=>window.setThemePref('dark'));await page.unroute('**/api/v0/product/**');await page.route('**/api/v0/product/**',r=>r.abort());
     await page.locator('#barcode').press('Enter');await page.locator('#barcode-status').filter({hasText:'Sem ligação'}).waitFor();
     await page.unroute('**/api/v0/product/**');let release;const gate=new Promise(r=>{release=r;});
     await page.route('**/api/v0/product/**',async r=>{await gate;r.fulfill({json:{status:1,product:{product_name:'Antigo'}}});});
-    await page.locator('#barcode').press('Enter');await page.locator('#barcode').fill('87654321');release();await page.waitForTimeout(200);assert.equal(await page.locator('#i-name').inputValue(),'');await page.unroute('**/api/v0/product/**');
+    await page.locator('#barcode').press('Enter');await page.locator('#barcode').fill('87654321');release();await page.waitForTimeout(200);assert.equal(await page.locator('#food-query').inputValue(),'');assert.equal(await page.locator('#food-amount').count(),0);await page.unroute('**/api/v0/product/**');
     await page.getByRole('button',{name:'Ler código de barras',exact:true}).click();assert.equal(await page.locator('#barcode').evaluate(e=>e===document.activeElement),true);
+    await page.keyboard.press('Escape');assert.equal(await page.locator('#foodSheet').count(),0);
   });
   await test('media: validação inline, Enter guarda, Escape cancela',async()=>{
     await reset();await run(M=>M.media.addMedia('Leg press'));await modal().waitFor();await modal().locator('input').fill('inválido');await modal().locator('input').press('Enter');assert.equal(await modal().locator('input').getAttribute('aria-invalid'),'true');await screenshot('prompt-url');
@@ -206,7 +209,7 @@ try {
   await test('SW v32 em cache abre modal offline',async()=>{
     await page.evaluate(async()=>{await navigator.serviceWorker.ready;});
     await page.reload({waitUntil:'networkidle'});await page.evaluate(async()=>{window.M={dialog:await import('./js/dialog.js')};});
-    assert((await page.evaluate(()=>caches.keys())).includes('treino-v42'));
+    assert((await page.evaluate(()=>caches.keys())).includes('treino-v43'));
     await context.setOffline(true);await open();await choose('Confirmar');assert.equal(await result(),true);await context.setOffline(false);
   });
   assert.deepEqual(errors,[]);

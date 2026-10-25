@@ -8,7 +8,7 @@ import { refreshCard, refreshProgress, render } from './ui.js';
 
 /* ═══════════════════════ STATE ══════════════════════ */
 const STORE_KEY = "treino_v2";
-let ST = { day:"Segunda", sets:{}, done:{}, log:{}, prog:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], media:{} };
+let ST = { day:"Segunda", sets:{}, done:{}, log:{}, prog:{}, nutri:{profile:null}, profile:{}, measures:[], intake:[], foodsCustom:[], foodRecent:[], media:{} };
 try { const s=localStorage.getItem(STORE_KEY); if(s) ST={...ST,...JSON.parse(s)}; } catch(_){}
 if(!ST.profile || typeof ST.profile!=='object') ST.profile={};
 if(!Array.isArray(ST.measures)) ST.measures=[];

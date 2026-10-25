@@ -15,10 +15,19 @@ function unlock(e) {
   if (held && !--held.count) { e.inert = held.was; locks.delete(e); }
 }
 
-const usable = e => e && e.isConnected && !e.disabled && !e.closest('[inert]') && e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden';
+/* Chromium pode devolver caixas para descendentes de details fechado; não são Tab stops. */
+function hiddenInDetails(e) {
+  for (let parent=e.parentElement; parent; parent=parent.parentElement) {
+    if (parent.tagName !== 'DETAILS' || parent.open) continue;
+    const summary=[...parent.children].find(child=>child.tagName === 'SUMMARY');
+    if (!summary?.contains(e)) return true;
+  }
+  return false;
+}
+const usable = e => e && e.isConnected && !e.disabled && !hiddenInDetails(e) && !e.closest('[inert]') && e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden';
 /* só os pontos de paragem do Tab: num grupo de rádios conta apenas o marcado (ou o primeiro, se nenhum) */
 const tabStop = (e, root) => e.type !== 'radio' || (e.checked ? true : !root.querySelector(`input[type="radio"][name="${e.name}"]:checked`) && root.querySelector(`input[type="radio"][name="${e.name}"]`) === e);
-const controls = root => [...root.querySelectorAll('button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])')].filter(e => usable(e) && tabStop(e, root));
+const controls = root => [...root.querySelectorAll('button, input, select, textarea, summary, a[href], [tabindex]:not([tabindex="-1"])')].filter(e => usable(e) && tabStop(e, root));
 
 function openOverlay(bg, { initial, onClose }) {
   if (stack.some(o => o.bg === bg)) return;

@@ -1,12 +1,11 @@
+import { diaryHTML, bindDiary, selectSheetFood } from './diary-ui.js';
 import { references, energyEstimate } from './nutri-calc.js';
-import { NUTRIENTS, nutrient, scaleFood, sumEntries, entryNutrients, parseOff } from './foods.js';
+import { parseOff } from './foods.js';
 import { openOverlay, closeOverlay } from './overlay.js';
 /* myTraining — módulo extraído de index.html (Fase 0). */
-import { chartSVG } from './charts.js';
 import { fieldError } from './inline-error.js';
 import { bodyMetrics, profileComplete } from './profile.js';
-import { ST, esc, fmtTime, nowISO, save, todayStr } from './state.js';
-import { render } from './ui.js';
+import { ST, esc, save } from './state.js';
 
 /* ═══════════════════════ NUTRIÇÃO ═══════════════════ */
 const PROT=['Frango','Peru','Carne vaca','Atum','Salmão','Ovos','Iogurte','Queijo fresco','Tofu','Whey'];
@@ -25,7 +24,7 @@ function referencesHTML(p){
   const r=references(p);
   if(!r.applicable) return `<div class="ndisc">${esc(r.reason)}</div>`;
   const labels={energy:'Energia de manutenção (kcal/dia)',protein:'Proteína (g/dia)',fat:'Gordura (g/dia)',carbs:'Hidratos (g/dia)',fibre:'Fibra (g/dia)',water:'Água total (L/dia)',salt:'Sal (g/dia)',sugars:'Açúcares livres (informação)'};
-  return `<div class="nsec-title">Estimativa · referências</div>`+Object.keys(labels).map(k=>{const x=r[k]; return `<div class="ndisc">${labels[k]}: <b>${x.range?x.range.map(v=>Math.round(v)).join('–'):x.value===null?'—':k==='salt'?'&lt;5':Math.round(x.value*10)/10}</b><details><summary>Fonte · ${esc(x.fonte)}</summary>${esc(x.nota)}</details></div>`;}).join('');
+  return `<div class="nsec-title">Estimativa · referências</div>`+Object.keys(labels).map(k=>{const x=r[k]; return `<div class="ndisc">${labels[k]}: <b>${x.range?x.range.map(v=>Math.round(v)).join('–'):x.value===null?'—':k==='salt'?'&lt;5':Math.round(x.value*10)/10}</b><button type="button" class="btn-secondary" data-reference-info aria-label="Informação sobre ${labels[k]}">ⓘ</button></div>`;}).join('');
 }
 
 function mealPlan(p){
@@ -52,90 +51,7 @@ function shopping(p){
 }
 
 /* ── DIÁRIO DE INGESTÃO ───────────────────────────── */
-let FOODS=[], foodsLoad=null, selectedFood=null;
-const nutrientLabels={kcal:'Energia (kcal)',protein:'Proteína (g)',carbs:'Hidratos (g)',fat:'Gordura (g)',fibre:'Fibra (g)',sugars:'Açúcares totais (g)',salt:'Sal (g)'};
-const inputId=k=>k==='protein'?'i-prot':'i-'+k;
-const display=v=>v===null||v===undefined?'—':String(Math.round(v*10)/10);
-function totalText(t,k){return display(t[k])+(t.missing[k]?` + ${t.missing[k]} sem dado`:'');}
-function loadFoods(){
-  if(!foodsLoad) foodsLoad=fetch('data/foods-basic.json').then(r=>r.ok?r.json():null).then(j=>{FOODS=Array.isArray(j?.foods)?j.foods.filter(f=>f?.name&&f?.ref&&f?.nutrients):[];}).catch(()=>{FOODS=[];}).then(()=>{
-    const box=document.getElementById('basic-foods'); if(box) box.innerHTML=foodsHTML();
-  });
-}
-function foodsHTML(){return FOODS.map((f,k)=>`<button type="button" class="qfood" onclick="fillIntake(${k})">${esc(f.name)}${f.state?' · '+esc(f.state):''}</button>`).join('');}
-function addIntake(name,kcal,protein,extra={}){
-  name=(name||'').trim(); kcal=nutrient(kcal); protein=nutrient(protein);
-  if(!name && kcal===null) return false;
-  const item={...extra,id:'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),ts:nowISO(),date:todayStr(),name:name||'Item',kcal,protein};
-  ST.intake=(ST.intake||[]).concat([item]); save(); return true;
-}
-function delIntake(id){ST.intake=(ST.intake||[]).filter(x=>x.id!==id);save();renderNutri();}
-function intakeToday(){return (ST.intake||[]).filter(x=>x.date===todayStr());}
-function intakeTotals(list){return sumEntries(list);}
-function intakeDailySeries(){
-  const by={}; (ST.intake||[]).forEach(x=>(by[x.date]??=[]).push(x));
-  return Object.keys(by).sort().map(date=>({date,v:sumEntries(by[date]).kcal,missing:sumEntries(by[date]).missing.kcal}));
-}
-function clearSelectedFood(){
-  selectedFood=null; document.getElementById('i-unit').textContent='g'; updatePreview();
-}
-function selectFood(f){
-  selectedFood=f; document.getElementById('i-name').value=f.name;
-  document.getElementById('i-grams').value=100;
-  document.getElementById('i-unit').textContent=f.ref.unit;
-  NUTRIENTS.forEach(k=>{document.getElementById(inputId(k)).value=f.nutrients[k]??'';}); updatePreview();
-}
-function fillIntake(k){if(FOODS[k]) selectFood(FOODS[k]);}
-function formFood(){return selectedFood||{ref:{amount:100,unit:'g'},nutrients:Object.fromEntries(NUTRIENTS.map(k=>[k,nutrient(document.getElementById(inputId(k)).value)]))};}
-function foodNote(food){
-  const notes=food?.notes;
-  return typeof notes==='string'?notes:notes&&typeof notes==='object'?Object.entries(notes).map(([k,v])=>`${nutrientLabels[k]||k}: ${v}`).join(' · '):'';
-}
-function updatePreview(){
-  const f=formFood(), n=scaleFood(f,document.getElementById('i-grams').value);
-  document.getElementById('i-preview').textContent='Estimativa para a quantidade: '+NUTRIENTS.map(k=>nutrientLabels[k]+': '+display(n[k])).join(' · ');
-  document.getElementById('i-source').textContent=selectedFood?`${f.source} · ${f.sourceId} · versão ${f.version??'não indicada'} · ${foodNote(f)}`:'Entrada manual: valores por 100 g indicados por ti.';
-}
-function addIntakeUI(){
-  const g=nutrient(document.getElementById('i-grams').value);
-  if(!g){fieldError('i-grams','Indica uma quantidade superior a zero.');return;}
-  const f=formFood(), n=scaleFood(f,g);
-  const extra={g,unit:f.ref.unit,src:selectedFood?.source||'manual',sid:selectedFood?.sourceId??null,ver:selectedFood?.version??null,note:foodNote(selectedFood),n:Object.fromEntries(NUTRIENTS.filter(k=>k!=='kcal'&&k!=='protein').map(k=>[k,n[k]]))};
-  if(addIntake(document.getElementById('i-name').value,n.kcal,n.protein,extra)) renderNutri();
-  else fieldError('i-name','Indica pelo menos um nome ou as kcal.');
-}
-function entryHTML(x){
-  const n=entryNutrients(x);
-  const source=x.src?`${x.src} · ${x.sid??'sem identificador'} · versão ${x.ver??'não indicada'}${x.note?' · '+x.note:''}`:'Registo anterior: fonte não indicada.';
-  return `<div class="iitem" style="flex-wrap:wrap"><div class="iitem-main"><span class="iitem-n">${esc(x.name)}</span><span class="iitem-t">${fmtTime(x.ts)}${x.g?' · '+display(x.g)+' '+esc(x.unit):''}</span></div><div class="iitem-r"><span>${display(n.kcal)} kcal · ${display(n.protein)} g proteína</span><button class="iitem-x" onclick="delIntake('${esc(x.id)}')" aria-label="Remover">✕</button></div><details class="ndisc" style="width:100%;overflow-wrap:anywhere"><summary>Estimativa · fonte e nutrientes</summary>${esc(source)}<br>${NUTRIENTS.filter(k=>n[k]!==null).map(k=>`${nutrientLabels[k]}: ${display(n[k])}`).join(' · ')}</details></div>`;
-}
-function totalsHTML(list){
-  const t=sumEntries(list);
-  return `<div class="ndisc">Estimativa · total registado: ${NUTRIENTS.filter(k=>k==='kcal'||k==='protein'||list.some(x=>entryNutrients(x)[k]!==null)).map(k=>`${nutrientLabels[k]}: ${totalText(t,k)}`).join(' · ')}</div>`;
-}
-function intakeHTML(){
-  const list=intakeToday(), series=intakeDailySeries(), known=series.filter(p=>p.v!==null);
-  return `<div class="nsec-title">Hoje · diário alimentar</div>${totalsHTML(list)}
-  <div class="ndisc">Dados de produtos podem estar incompletos; confirma alergénios no rótulo.</div>
-  <div class="iadd" style="flex-wrap:wrap">
-    <label>Alimento<input id="i-name" class="nfree" placeholder="alimento"></label>
-    <label>Quantidade (<span id="i-unit">g</span>)<input id="i-grams" class="nfree inum" type="number" min="0" step="any" value="100"></label>
-    <div class="ndisc" style="width:100%">Valores de referência por 100 g ou 100 ml, conforme a fonte. Entrada manual em gramas.</div>
-    ${NUTRIENTS.map(k=>`<label>${nutrientLabels[k]}<input id="${inputId(k)}" class="nfree inum" type="number" min="0" step="any" placeholder="sem dado"></label>`).join('')}
-    <button class="load-chart-btn" onclick="scanBarcode()" aria-label="Ler código de barras">📷</button>
-    <button class="load-save" onclick="addIntakeUI()">Registar</button>
-  </div>
-  <div id="i-preview" class="ndisc"></div><details class="ndisc"><summary>Estimativa · fonte do alimento</summary><span id="i-source">Entrada manual.</span></details>
-  <form id="barcodeForm" class="barcode-form"><label class="nfield" for="barcode">Código de barras</label><div class="barcode-row"><input id="barcode" class="nfree" inputmode="numeric"><button class="btn-secondary" type="submit">Pesquisar</button></div><div id="barcode-status" class="inline-error" role="status" aria-live="polite"></div></form>
-  <div id="basic-foods" class="qfoods">${foodsHTML()}</div>
-  ${list.length?`<div class="ilist">${list.map(entryHTML).join('')}</div>`:'<div class="ndisc">Ainda nada registado hoje.</div>'}
-  ${known.length>1?`<div class="lc">${chartSVG(known.map(p=>p.v))}<div class="ndisc">Energia registada (estimativa): ${series.map(p=>`${esc(p.date)}: ${display(p.v)} kcal${p.missing?' + '+p.missing+' sem dado':''}`).join(' · ')}. Dias sem dados não entram no gráfico.</div></div>`:''}
-  ${intakeHistoryHTML()}`;
-}
-function intakeHistoryHTML(){
-  const by={}; (ST.intake||[]).filter(x=>x.date!==todayStr()).forEach(x=>(by[x.date]??=[]).push(x));
-  return Object.keys(by).sort().reverse().slice(0,7).map(d=>`<div class="nsec-title">${esc(d)}</div>${totalsHTML(by[d])}${by[d].map(entryHTML).join('')}`).join('');
-}
+function selectFood(food){ selectSheetFood(food); }
 
 function nchips(cat,opts,selected){
   selected=selected||[];
@@ -194,7 +110,7 @@ function nutriPlanHTML(food){
     <button class="reset-btn btn-ghost" onclick="editNutri()">✎ Editar</button>
   </div>
   ${targetsHTML}
-  ${intakeHTML()}
+
   <div class="nsec-title">Sugestão de refeições</div>
   <div class="nmeals">${meals.map(m=>`<div class="nmeal${m.tag==='treino'?' treino':''}"><div class="nmeal-t">${m.t}</div><div class="nmeal-i">${esc(m.i)}</div></div>`).join('')}</div>
   <div class="nnote">⏱ Nos dias de treino: <b>pré-treino</b> 60–90min antes, <b>pós-treino</b> na 1ª hora a seguir.</div>
@@ -208,20 +124,10 @@ function renderNutri(content){
   document.getElementById('progFill').style.width='0%';
   const p=ST.nutri&&ST.nutri.profile;
   const showForm = !p || NUTRI_EDIT;
-  content.innerHTML=`<div class="nutri-wrap">${ showForm ? nutriFormHTML(p) : nutriPlanHTML(p) }</div>`;
-  // O diário e a entrada manual existem mesmo antes de definir preferências.
-  if(showForm) content.querySelector('.nutri-wrap').insertAdjacentHTML('beforeend',referencesHTML(bodyMetrics())+intakeHTML());
-  selectedFood=null;
-  loadFoods();
-  for(const id of ['i-name',...NUTRIENTS.map(inputId)]){
-    document.getElementById(id)?.addEventListener('input',()=>{lookupOperation++;clearSelectedFood();});
-  }
-  document.getElementById('i-grams')?.addEventListener('input',()=>{lookupOperation++;updatePreview();});
-  updatePreview();
-  const form=document.getElementById('barcodeForm'), field=document.getElementById('barcode');
-  if(form) form.addEventListener('submit',e=>{ e.preventDefault(); offLookup(field.value); });
-  if(field) field.addEventListener('input',()=>{ lookupOperation++; clearSelectedFood(); document.getElementById('barcode-status').textContent=''; });
+  content.innerHTML=`<div class="nutri-wrap"><h1 class="day-hdr-name">Nutrição</h1>${diaryHTML()}<details class="nutri-preferences"><summary>Preferências e sugestões</summary>${showForm ? nutriFormHTML(p) : nutriPlanHTML(p)}</details></div>`;
+  bindDiary(renderNutri);
 }
+
 function editNutri(){ NUTRI_EDIT=true; renderNutri(); }
 function cancelNutri(){ NUTRI_EDIT=false; renderNutri(); }
 function saveNutri(e){
@@ -244,12 +150,12 @@ function saveNutri(e){
 let lookupOperation=0;
 async function offLookup(code){
   const field=document.getElementById('barcode'); if(!field) return;
-  clearSelectedFood();
   code=String(code||'').trim(); field.value=code;
   const operation=++lookupOperation, view=ST.view;
   const valid=()=>operation===lookupOperation && field.isConnected && document.getElementById('barcode')===field && field.value===code && ST.view===view;
   if(!/^\d{6,}$/.test(code)){ fieldError('barcode','Código inválido. Introduz pelo menos 6 algarismos.'); return; }
   const status=document.getElementById('barcode-status');
+  if(!navigator.onLine){ status.textContent='Sem ligação. Usa Não encontro para adicionar manualmente.'; return; }
   status.textContent='A pesquisar…';
   try{
     const r=await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
@@ -304,4 +210,4 @@ function stopScan(){
   if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
 }
 
-export { PROT, CARB, VEG, SNACK, RESTR, SUPPS, NUTRI_EDIT, calcTargets, referencesHTML, mealPlan, shopping, FOODS, addIntake, delIntake, intakeToday, intakeTotals, intakeDailySeries, fillIntake, addIntakeUI, intakeHTML, intakeHistoryHTML, nchips, freeVal, collectFav, nutriFormHTML, nutriPlanHTML, renderNutri, editNutri, cancelNutri, saveNutri, offLookup, scanBarcode, scanStream, startScan, stopScan };
+export { PROT, CARB, VEG, SNACK, RESTR, SUPPS, NUTRI_EDIT, calcTargets, referencesHTML, mealPlan, shopping, nchips, freeVal, collectFav, nutriFormHTML, nutriPlanHTML, renderNutri, editNutri, cancelNutri, saveNutri, offLookup, scanBarcode, scanStream, startScan, stopScan };

@@ -2,7 +2,7 @@
    Shell em cache para funcionar offline.
    Navegação: network-first (apanha updates quando online).
    Assets/imagens: cache-first (rápido e funciona sem rede). */
-const CACHE = 'treino-v42';
+const CACHE = 'treino-v43';
 /* instructions.en.json (610 KB) fica de fora: só é preciso ao abrir uma ficha,
    e o handler cache-first abaixo guarda-o na primeira vez que for pedido. */
 const CORE = [
@@ -50,6 +50,9 @@ const CORE = [
   './js/nutrition.js',
   './js/nutri-calc.js',
   './js/foods.js',
+  './js/food-search.js',
+  './js/nutri-summary.js',
+  './js/diary-ui.js',
   './js/profile.js',
   './js/progression.js',
   './js/records.js',
@@ -66,7 +69,7 @@ const CORE = [
   './js/session.js',
   './js/workout.js',
   './data/catalog.json',
-  './data/foods-basic.json'
+  './data/foods-pt.json'
 ];
 
 self.addEventListener('install', e => {

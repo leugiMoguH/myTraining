@@ -10,9 +10,18 @@ function energyEstimate(p) {
   const factor = Object.hasOwn(factors,p?.activity) ? factors[p.activity] : null;
   return ree === null || !factor ? null : ree * factor;
 }
-function references(p) {
+function references(p = {}) {
   const energy = energyEstimate(p);
-  if (energy === null) return { applicable:false, reason:'Estimativa não aplicável: requer dados válidos de adultos saudáveis dos 18 aos 65 anos.' };
+  if (energy === null) {
+    const missing = [];
+    if (!['m','f'].includes(p?.sex)) missing.push('sexo');
+    if (!['sed','leve','mod','alto'].includes(p?.activity)) missing.push('atividade');
+    for (const [key,label] of [['age','idade'],['height','altura'],['weight','peso']])
+      if (!(typeof p?.[key] === 'number' && Number.isFinite(p[key]) && p[key] > 0)) missing.push(label);
+    return {applicable:false, missing, reason:missing.length
+      ? 'Referência indisponível: falta preencher ou corrigir '+missing.join(', ')+'.'
+      : 'Estimativa não aplicável: idade fora dos 18 aos 65 anos.'};
+  }
   const ref = (value, fonte, nota) => ({value, fonte, nota});
   return { applicable:true,
     energy:ref(energy,'Mifflin–St Jeor, 1990','Repouso (REE) × fator de atividade; fatores convencionais de uso comum, não da fórmula de Mifflin. Estimativa de manutenção.'),

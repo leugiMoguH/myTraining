@@ -62,7 +62,7 @@ const messages=[];
 let accepted=0;
 const A=await import('../js/adapt.js');
 const M=await import('../js/motiv.js');
-const deps={ensureMotiv:M.ensureMotiv,validateMotivState:M.validateMotivState,validateAdaptState:A.validateAdaptState,get ST(){return S.ST;},REST_SEC:60,setST:S.setST,validateClassState:C.validateClassState,
+const deps={...(await import('../js/foods.js')),ensureMotiv:M.ensureMotiv,validateMotivState:M.validateMotivState,validateAdaptState:A.validateAdaptState,get ST(){return S.ST;},REST_SEC:60,setST:S.setST,validateClassState:C.validateClassState,
  document:{getElementById:()=>({classList:{contains:()=>false},textContent:''})},
  confirmDialog:async()=>{accepted++;return true;},snapshot:()=>({ok:true}),setRest(){},migrate:()=>({saved:true}),save:S.save,
  clearDrafts(){},timerDismiss(){},closeSheet(){},render(){},show:m=>messages.push(m),DEFAULT_DAYS:{Segunda:{ex:[]}},DAYS:{Segunda:{},Quarta:{}}};

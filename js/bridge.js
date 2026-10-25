@@ -15,7 +15,7 @@ import { mmDays, mmSel } from './muscle-map.js';
 import { progInc, progScheme, saveLoad, toggleChart } from './loads.js';
 import { addMedia, delMedia } from './media.js';
 import { enableNotif } from './notify.js';
-import { addIntakeUI, cancelNutri, delIntake, editNutri, fillIntake, saveNutri, scanBarcode, stopScan } from './nutrition.js';
+import { cancelNutri, editNutri, saveNutri, scanBarcode, stopScan } from './nutrition.js';
 import { planBack, planEdit } from './plan-screen.js';
 import { discardDraft, cancelMeasureEdit, delMeasure, editMeasure, saveMeasure, saveProfile, setMetric } from './profile.js';
 import { slNext, slPrev, slTo } from './sliders.js';
@@ -35,7 +35,6 @@ Object.assign(window, {
   slideFail,
   planBack, planEdit, obDiscard,
   setThemePref,
-  addIntakeUI,
   addMedia,
   adjustRest,
   discardDraft, cancelMeasureEdit,
@@ -58,7 +57,6 @@ Object.assign(window, {
   cuRemove,
   cuSuggest,
   cuToggle,
-  delIntake,
   delMeasure,
   delMedia,
   edAdd,
@@ -76,7 +74,6 @@ Object.assign(window, {
   exportIntakeCSV,
   exportLoadCSV,
   exportMeasuresCSV,
-  fillIntake,
   goDay,
   importBackup,
   markDone,

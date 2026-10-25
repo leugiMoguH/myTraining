@@ -39,7 +39,10 @@ No build, no bundler, no framework. HTML/CSS estáticos + **ES modules** nativos
 | `timer.js` · `wake.js` · `notify.js` | descanso, ecrã ligado, notificações |
 | `sliders.js` · `media.js` · `guide.js` | slider dos cartões, demos por URL, ficha técnica |
 | `nutri-calc.js` · `foods.js` | estimativas e modelo alimentar puros; null preserva dados desconhecidos |
-| `nutrition.js` | nutrição, diário de ingestão, scanner + Open Food Facts |
+| `nutrition.js` | preferências, referências partilhadas com Perfil, scanner + Open Food Facts |
+| `diary-ui.js` | diário por data/refeição, resumo e folha de pesquisa/criação/edição com gravação verificada |
+| `food-search.js` | pesquisa pura: acentos, todos os termos, ranking e recentes |
+| `nutri-summary.js` | resumo puro dos registos; parciais e posição com referência aplicável |
 | `profile.js` | perfil, medidas, % gordura, macros |
 | `workout.js` | **ecrã** de treino guiado (barra Sair·tempo·Pausar / corpo / dock com kg×reps e a ação principal); descanso em `#woRest` |
 | `session.js` | `ST.session`: máquina de estados do treino (NOT_STARTED/ACTIVE/PAUSED/COMPLETED/ABANDONED), tempo por timestamps, `reconcileSession` |

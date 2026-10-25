@@ -76,7 +76,7 @@ try {
 
   for (const i of [5, 6]) await test(`${DAYS[i]}: rotina original, treinos em falta → em atraso (não fim de semana vazio)`, async () => {
     const { ctx, page } = await open(i, SKIP);
-    assert.match(await text(page), /Em atraso · Segunda/i);
+    assert.match(await text(page), /(Em atraso|Descanso hoje) · Segunda/i);
     assert.equal(await page.locator('.hero').count(), 1);
     await ctx.close();
   });

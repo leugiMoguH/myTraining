@@ -90,3 +90,10 @@ Legibilidade: `.nutri-wrap .ndisc` passa a 13px normal; passam a 12px `.nutri-wr
 Validação em série: smoke, test:mais-sheet (quatro viewports × dois temas, foco/teclado, alvos, scroll, texto e gráficos), test:a11y e test:b6 passaram. test:ux e test:onboarding falharam apenas na agregação de erros de consola por pedidos `net::ERR_FAILED`, sem falhas funcionais reportadas. test:browser não executado. CRLF confirmado com `file` nos ficheiros de código alterados. Sem commit/push.
 
 Pendências: chips de 7 dias; z-index 400 da folha. Nenhuma alteração ao protótipo neste bloco.
+
+## Bloco 2 — Hoje (implementado)
+- **Antes → Depois (390 px, atraso + adaptação + aula anterior):** blocos acima do botão principal 5 → 1 (tira + cartão); o botão «Começar treino» passou de y=694 (fora do ecrã a 360×640) para y=275 (visível), medido com o mesmo estado — treino em atraso, adaptação e aula anterior — a 360×640 e 390×844; «Segunda pendente» repetido 3× → 1×; ações de «versão rápida» 3 → 1; saudação, linha «Ver o plano» e banner de descanso eliminados (a informação passou para o estado do cartão).
+- **Nova ordem:** tira dos 7 dias → cartão do treino (estado, nome, duração, CTA único, «Pouco tempo? Versão rápida» · «Ver plano ›») → «Ver exercícios e registar» → atenção compacta (treino movido · Desfazer; sugestão de adaptação) → aulas (hoje + pendentes) → treino personalizado (linha discreta).
+- **Temporizador do cabeçalho** (− ⏱60s +): só em dia/personalizado/ficha, ou no Hoje com sessão viva ou lista aberta.
+- **Pendências transitórias:** botão central «Iniciar» continua a duplicar o CTA do Hoje até ao Bloco 4; a lista de exercícios aberta empurra a atenção/aulas para baixo; chips dos 7 dias <44 px de largura a 320 (Bloco 5).
+- Capturas: `capturas/bloco2/{antes,depois,comparativos}` (11 estados × 320/360/390/412/1280 × claro/escuro; relógio fixo, dados de demonstração).

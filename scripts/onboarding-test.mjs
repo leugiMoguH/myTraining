@@ -25,9 +25,10 @@ const check = (c, m) => { if (!c) fail.push(m); };
 const browser = await chromium.launch();
 
 async function newPage(seed) {
-  const ctx = await browser.newContext({ viewport: { width: 412, height: 900 }, screen: { width: 412, height: 900 }, hasTouch: true, isMobile: true });
+  const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 412, height: 900 }, screen: { width: 412, height: 900 }, hasTouch: true, isMobile: true });
+  await ctx.route('**/*', route => ['localhost', '127.0.0.1'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><rect width="180" height="180" fill="gray"/></svg>' }));
   const page = await ctx.newPage();
-  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  page.on('console', m => { if (m.type() === 'error') errors.push(`${m.text()} (${m.location().url})`); });
   page.on('pageerror', e => errors.push(e.message));
   await page.clock.install({ time: new Date('2026-10-21T10:00:00') });   /* quarta: este teste cobre o fluxo do acolhimento; cada dia da semana (fins de semana incl.) está em test:hoje-semana */
   await dialogResponder(page, () => true, errors);
@@ -87,7 +88,7 @@ const goPlano = async page => { await page.locator('#bnav').locator('[data-day="
   check(st.plan && st.prefs.name === 'Ana' && st.onb.done && Object.keys(st.routine).length === 7, 'novo: plano/preferências não ficaram persistidos');
   check(Object.values(st.routine).every(d => d.id), 'novo: dias sem id');
   const hero = await page.locator('.hero').innerText();
-  check(/Ana/.test(hero) && /Corpo inteiro [ABC]/.test(hero) && /min/.test(hero), `novo: cartão Hoje sem nome/treino/duração: ${hero}`);
+  check(/Corpo inteiro [ABC]/.test(hero) && /min/.test(hero), `novo: cartão Hoje sem treino/duração: ${hero}`);
   check(!/Em atraso/.test(await page.locator('#content').innerText()), 'novo: um plano criado a meio da semana não pode começar "em atraso"');
   await page.waitForTimeout(300);
   await shot(page, '5-hoje');
@@ -191,9 +192,10 @@ const goPlano = async page => { await page.locator('#bnav').locator('[data-day="
 
 /* ═══ 4. LARGURAS PEQUENAS: alvos ≥44 px e sem scroll horizontal ══════════ */
 for (const w of [320, 360]) {
-  const ctx = await browser.newContext({ viewport: { width: w, height: 640 }, screen: { width: w, height: 640 }, hasTouch: true, isMobile: true });
+  const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: { width: w, height: 640 }, screen: { width: w, height: 640 }, hasTouch: true, isMobile: true });
+  await ctx.route('**/*', route => ['localhost', '127.0.0.1'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><rect width="180" height="180" fill="gray"/></svg>' }));
   const page = await ctx.newPage();
-  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  page.on('console', m => { if (m.type() === 'error') errors.push(`${m.text()} (${m.location().url})`); });
   page.on('pageerror', e => errors.push(e.message));
   await dialogResponder(page, () => true, errors);
   await page.goto(URL_, { waitUntil: 'networkidle' });

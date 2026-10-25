@@ -445,7 +445,7 @@ for (const [w, h] of [[320, 640], [412, 915], [1280, 800]]) {
 }
 await page.setViewportSize({ width: 412, height: 915 });
 
-await step('ajustar descanso', () => click('.hdr-timer-adj'));
+await step('ajustar descanso', async () => { await page.evaluate(() => { window.render('__hoje'); const list = document.getElementById('todayList'); if (list?.hidden) window.toggleTodayList(); if (!list) window.render('__pers'); }); await click('.hdr-timer-adj'); });
 await step('abrir definicoes', async () => {
   await click('[data-day="opts"]');
   if (!(await page.locator('#sheetBg.show').count())) throw new Error('sheet nao abriu');

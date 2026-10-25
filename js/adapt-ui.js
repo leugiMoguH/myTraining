@@ -18,7 +18,7 @@ function canQuick(day) {
 
 function quickButtonHTML(day) {
   return canQuick(day)
-    ? '<button class="reset-btn btn-secondary ad-quick" onclick="adQuick()">⏱ Hoje tenho pouco tempo</button>'
+    ? '<button class="linklike ad-quick" onclick="adQuick()">Pouco tempo? Versão rápida</button>'
     : '';
 }
 
@@ -29,12 +29,12 @@ function movedNoteHTML() {
       <button class="reset-btn btn-ghost" onclick="adUndo('${esc(m.id)}')">Desfazer</button></div>`).join('');
 }
 
-function cardHTML(s) {
+function cardHTML(s, day) {
   const act = s.accept
-    ? `<button class="start-wo btn-primary ad-yes" onclick="adAccept('${esc(s.key)}')">${esc(s.acceptLabel || 'Aceitar')}</button>` : '';
-  const alt = s.alt ? `<button class="reset-btn btn-secondary" onclick="adAlt('${esc(s.key)}')">⏱ Versão rápida hoje</button>` : '';
+    ? `<button class="reset-btn btn-secondary ad-yes" onclick="adAccept('${esc(s.key)}')">${esc(s.acceptLabel || 'Aceitar')}</button>` : '';
+  const alt = s.alt && !(canQuick(day) && s.alt.day === day && s.alt.mode === 'quick') ? `<button class="reset-btn btn-secondary" onclick="adAlt('${esc(s.key)}')">⏱ Versão rápida hoje</button>` : '';
   return `<div class="ad-card" role="region" aria-label="Sugestão">
-    <div class="ad-what">${esc(s.what)}</div>
+    ${s.kind === 'back' ? `<div class="ad-what">${esc(s.what)}</div>` : ''}
     <div class="ad-rec"><b>${esc(s.title)}</b></div>
     ${s.why ? `<div class="ad-why">${esc(s.why)}</div>` : ''}
     <div class="ad-acts">${act}${alt}<button class="reset-btn btn-ghost" onclick="adDismiss('${esc(s.key)}')">${s.accept ? 'Agora não' : 'Percebi'}</button></div></div>`;
@@ -42,7 +42,7 @@ function cardHTML(s) {
 
 function adaptCardHTML() {
   const s = suggestion();
-  return movedNoteHTML() + (s ? cardHTML(s) : '');
+  return movedNoteHTML() + (s ? cardHTML(s, currentDay()) : '');
 }
 
 const again = () => render('__hoje');

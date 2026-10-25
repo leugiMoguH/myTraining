@@ -212,7 +212,7 @@ function customEntryHTML() {
       <b>${esc(ST.custom.label)}</b>
       <button class="cat-chip on" onclick="openCustom()">Continuar</button></div>`;
   }
-  return `<button class="reset-btn btn-secondary cu-entry" onclick="openCustom()">🎯 Fazer treino personalizado hoje</button>`;
+  return `<button class="linklike cu-entry" onclick="openCustom()">🎯 Treino personalizado hoje ›</button>`;
 }
 
 function setHeader(sub, pct = 0) {

@@ -57,7 +57,7 @@ try {
   await test('navegação: Hoje, Opções → Plano/Perfil, Evolução; 5 destinos fixos; regresso consistente', async () => {
     const { ctx, page } = await open(390);
     assert.equal(await page.locator('#bnav .nb').count(), 5);
-    await page.locator('.today-plan .linklike').tap();
+    await page.locator('.hero-links .linklike[onclick*="__plano"], .today-plan-link').tap();
     assert.equal(await view(page), '__plano'); assert.match(await page.locator('#hdrSub').textContent(), /Plano/);
     await page.locator('.hx-back').tap(); assert.equal(await view(page), '__hoje');
     await sheetTo(page, 'Plano'); assert.equal(await view(page), '__plano');
@@ -232,7 +232,7 @@ try {
     await ctx.setOffline(true);
     await page.reload({ waitUntil: 'load' });
     for (const v of ['__plano', '__eu', '__perfil']) { await page.evaluate(x => window.render(x), v); assert(await page.locator('#content').innerText().then(t => t.length > 50), v); }
-    assert((await page.evaluate(() => caches.keys())).includes('treino-v45'));
+    assert((await page.evaluate(() => caches.keys())).includes('treino-v46'));
     await ctx.setOffline(false);
     await ctx.close();
   });

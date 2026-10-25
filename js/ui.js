@@ -11,7 +11,7 @@ import { openInfo } from './guide.js';
 import { saveLoad, toggleChart } from './loads.js';
 import { DEMOS, demoSlide, mediaSlide } from './media.js';
 import { renderNutri } from './nutrition.js';
-import { estimateMin, getPrefs } from './plan.js';
+import { estimateMin } from './plan.js';
 import { renderEvolution, renderProfile } from './profile.js';
 import { renderPlan } from './plan-screen.js';
 import { slInit, slNext, slPrev, slTo } from './sliders.js';
@@ -207,11 +207,6 @@ function weekStripHTML(a) {
     </button>`).join('')}</div>`;
 }
 
-function bannerHTML(a) {
-  if (a.restToday && a.late) return `<div class="sched-note warn">😴 Hoje é descanso, mas <b>${a.current}</b> ficou pendente.</div>`;
-  return '';   /* em dia, ou em atraso (o cartão Hoje já diz «Em atraso · dia»): nada a acrescentar */
-}
-
 /* Nada para treinar hoje: ou é dia de descanso, ou a semana já está fechada. */
 function restCardHTML(a) {
   const next = a.nextPlanned && DAYS[a.nextPlanned];
@@ -232,19 +227,17 @@ function restCardHTML(a) {
 function heroHTML(a) {
   const d = DAYS[a.current];
   if (!d || !d.ex.length) return '';
-  const h = new Date().getHours(), p = getPrefs();
-  const hi = `${h < 6 || h >= 20 ? 'Boa noite' : h < 13 ? 'Bom dia' : 'Boa tarde'}${p && p.name ? `, ${esc(p.name)}` : ''}`;
-  const kicker = a.late ? `Em atraso · ${a.current}` : a.current === a.today ? `Hoje · ${a.current}` : `Próximo treino · ${a.current}`;
+  const kicker = a.restToday && a.late ? `Descanso hoje · ${a.current} pendente` : a.late ? `Em atraso · ${a.current}` : a.current === a.today ? `Hoje · ${a.current}` : `Próximo treino · ${a.current}`;
   const mins = estimateMin(a.current);
   const live = liveDay() === a.current;
   const why = ST.plan && ST.plan.why ? `<details><summary>Porquê este plano?</summary><p>${esc(ST.plan.why)}</p></details>` : '';
   const names = d.ex.map(e => e.name), more = names.length - 3;
   const preview = `${names.slice(0, 3).map(esc).join(' · ')}${more > 0 ? ` · +${more}` : ''}`;
-  return `<div class="hero"><div class="hero-hi">${hi} 👋</div>
+  return `<div class="hero">
     <div class="hero-k">${esc(kicker)}</div><div class="hero-t">${esc(d.label)}</div>
     <div class="hero-s">${mins ? `~${mins} min · ` : ''}${d.ex.length} exercícios</div>
     <div class="hero-ex">${preview}</div>
-    <button class="start-wo btn-primary" onclick="heroStart('${a.current}')">${live ? '▶ Continuar treino' : '▶ Começar treino'}</button>${quickButtonHTML(a.current)}${why}</div>`;
+    <button class="start-wo btn-primary" onclick="heroStart('${a.current}')">${live ? '▶ Continuar treino' : '▶ Começar treino'}</button><div class="hero-links">${quickButtonHTML(a.current)}<button class="linklike" onclick="render('__plano')">Ver plano ›</button></div>${why}</div>`;
 }
 
 /* Lista de exercícios do Hoje: recolhida por omissão; abre sozinha com treino em curso, séries marcadas ou edição.
@@ -266,6 +259,7 @@ function toggleTodayList() {
   listChoice[ST.day] = open;
   list.hidden = !open;
   btn.setAttribute('aria-expanded', String(open));
+  syncHeaderTimer();
   btn.querySelector('span').textContent = open ? 'Esconder exercícios' : 'Ver exercícios e registar';
 }
 
@@ -274,15 +268,15 @@ function renderToday(content) {
   content.innerHTML = '';
 
   const head = document.createElement('div');
-  head.className = 'full';
-  head.innerHTML = weekStripHTML(a) + `<div class="today-plan"><button class="linklike" onclick="render('__plano')">📋 Ver o plano ›</button></div>`;
+  head.className = 'full today-strip';
+  head.innerHTML = weekStripHTML(a);
   content.appendChild(head);
 
   /* dia de descanso e sem atrasos, ou semana fechada → não há treino a mostrar */
   if (a.allDone || (a.restToday && !a.late)) {
     const box = document.createElement('div');
     box.className = 'full';
-    box.innerHTML = restCardHTML(a) + adaptCardHTML() + todayClassesHTML() + (a.current ? heroHTML(a) : '') + customEntryHTML();
+    box.innerHTML = restCardHTML(a) + (a.current ? heroHTML({ ...a, late: false, today: null }) : `<button class="linklike today-plan-link" onclick="render('__plano')">Ver plano ›</button>`) + adaptCardHTML() + todayClassesHTML() + customEntryHTML();
     content.appendChild(box);
     document.getElementById('hdrSub').textContent = a.allDone ? (a.nothingDone ? 'Sem treinos esta semana' : 'Semana concluída') : 'Descanso';
     document.getElementById('progFill').style.width = a.allDone && !a.nothingDone ? '100%' : '0';
@@ -292,14 +286,9 @@ function renderToday(content) {
   /* ST.day tem de ser um dia real: é a chave do progresso (`dia:índice`) */
   ST.day = a.current; save();
 
-  /* estado do dia (atraso/descanso) logo a seguir ao calendário, depois a ação principal e a lista recolhível */
-  const cls = document.createElement('div');
-  cls.className = 'full';
-  cls.innerHTML = adaptCardHTML() + todayClassesHTML();
-  if (cls.innerHTML) content.appendChild(cls);
   const note = document.createElement('div');
   note.className = 'full today-top';
-  note.innerHTML = bannerHTML(a) + heroHTML(a) + listToggleHTML(a.current);
+  note.innerHTML = heroHTML(a) + listToggleHTML(a.current);
   content.appendChild(note);
   const list = document.createElement('div');
   list.className = 'full today-list';
@@ -309,7 +298,7 @@ function renderToday(content) {
   renderDay(list, a.current, false);
   const cu = document.createElement('div');
   cu.className = 'full';
-  cu.innerHTML = customEntryHTML();
+  cu.innerHTML = adaptCardHTML() + todayClassesHTML() + customEntryHTML();
   content.appendChild(cu);
 }
 
@@ -427,6 +416,14 @@ function toggleDayDone(day) {
 
 function goDay(day) { render(day); }
 
+/* Só o contentor do temporizador muda de visibilidade; o relógio conserva os seus nós. */
+function syncHeaderTimer() {
+  const list = document.getElementById('todayList');
+  const visible = ['__dia', '__pers', '__ex'].includes(ST.view) ||
+    (ST.view === '__hoje' && (liveDay() !== null || !!list && !list.hidden));
+  document.body.classList.toggle('show-header-timer', visible);
+}
+
 /* `target` é um dia da rotina ou um dos ecrãs `__…`. */
 function render(target) {
   if (target === '__semana') target = '__hist';   /* ecrã antigo, agora dentro do Histórico */
@@ -445,15 +442,17 @@ function render(target) {
 
   syncNav();
 
-  if (target === '__nutri') { renderNutri(content); return; }
-  if (target === '__perfil'){ renderEvolution(content); return; }   /* a aba «Evolução» (id antigo) */
-  if (target === '__eu')    { renderProfile(content); return; }     /* Perfil: dados pessoais e preferências */
-  if (target === '__plano') { renderPlan(content); return; }
-  if (target === '__hist')  { renderHistory(content); return; }
-  if (target === '__ex')    { renderExercise(content); return; }
-  if (target === '__hoje')  { renderToday(content); return; }
-  if (target === '__pers')  { renderCustom(content); return; }
-  renderDay(content, target);
+  try {
+    if (target === '__nutri') { renderNutri(content); return; }
+    if (target === '__perfil'){ renderEvolution(content); return; }   /* a aba «Evolução» (id antigo) */
+    if (target === '__eu')    { renderProfile(content); return; }     /* Perfil: dados pessoais e preferências */
+    if (target === '__plano') { renderPlan(content); return; }
+    if (target === '__hist')  { renderHistory(content); return; }
+    if (target === '__ex')    { renderExercise(content); return; }
+    if (target === '__hoje')  { renderToday(content); return; }
+    if (target === '__pers')  { renderCustom(content); return; }
+    renderDay(content, target);
+  } finally { syncHeaderTimer(); }
 }
 
-export { slideFail, setBack, refreshProgress, refreshCard, buildCard, gifSlide, render, renderDay, renderToday, renderWeek, renderHistory, goDay, toggleDayDone, toggleTodayList };
+export { syncHeaderTimer, slideFail, setBack, refreshProgress, refreshCard, buildCard, gifSlide, render, renderDay, renderToday, renderWeek, renderHistory, goDay, toggleDayDone, toggleTodayList };

@@ -21,12 +21,13 @@ let count = 0;
 const test = async (name, fn) => { await fn(); count++; console.log(`OK ${name}`); };
 
 async function open(width, height, theme = 'dark') {
-  const ctx = await browser.newContext({ viewport: { width, height }, hasTouch: width < 1000, isMobile: width < 1000 });
+  const ctx = await browser.newContext({ viewport: { width, height }, hasTouch: width < 1000, isMobile: width < 1000, serviceWorkers: 'block' });
   await ctx.addInitScript(th => { try { if (!localStorage.getItem('treino_v2')) localStorage.setItem('treino_v2', JSON.stringify({ onb: { done: true, skipped: true, step: 0, draft: {} } })); localStorage.setItem('treino_theme', th); } catch (_) {} }, theme);
   const page = await ctx.newPage();
   page.setDefaultTimeout(7000);
   page.on('pageerror', e => errors.push(e.message));
   page.on('dialog', d => { errors.push(`Diálogo nativo: ${d.message()}`); d.dismiss(); });
+  await page.route('https://cdn.jsdelivr.net/**', route => route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><rect width="180" height="180" fill="gray"/></svg>' }));
   await page.goto(url, { waitUntil: 'networkidle' });
   return { ctx, page };
 }
@@ -37,10 +38,11 @@ try {
     const { ctx, page } = await open(390, 844);
     const order = await page.evaluate(() => {
       const top = id => document.querySelector(id)?.getBoundingClientRect().top ?? -1;
-      return { strip: top('.week-strip'), hero: top('.hero'), toggle: top('#todayToggle'), note: top('.today-top .sched-note') };
+      return { strip: top('.week-strip'), hero: top('.hero'), toggle: top('#todayToggle'), note: top('.ad-card') };
     });
     assert(order.strip < order.hero && order.hero < order.toggle, 'ordem strip < hero < lista');
-    if (order.note >= 0) assert(order.note < order.hero, 'o aviso de descanso/atraso fica antes do cartão');
+    if (order.note >= 0) assert(order.note > order.toggle, 'a atenção fica depois da lista');
+    assert.equal(await page.locator('.hero-hi, .today-plan, .today-top .sched-note').count(), 0);
     assert.equal(await page.locator('#todayList').evaluate(e => e.hidden), true);
     assert.equal(await page.locator('#todayToggle').getAttribute('aria-expanded'), 'false');
     assert.equal(await page.locator('.start-wo').first().isVisible(), true);

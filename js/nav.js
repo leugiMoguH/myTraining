@@ -8,7 +8,7 @@ import { CUSTOM_DAY, DAYS } from './routine.js';
 import { agenda, dayStatus } from './schedule.js';
 import { ACTIVE, PAUSED, abandonSession, completeSession, currentSession, durationMs, finishedToday, fmtDur, idleMs, isIdle, isLive, onSessionChange, pauseSession, resumeSession, sessionState, touchSession } from './session.js';
 import { ST } from './state.js';
-import { render } from './ui.js';
+import { render, syncHeaderTimer } from './ui.js';
 import { openSheet } from './backup.js';
 import { closeWorkout, openWorkout, refreshWorkout, startWorkout } from './workout.js';
 
@@ -195,7 +195,7 @@ function tick() {
 
 function initNav() {
   buildNav();
-  onSessionChange(syncNav);
+  onSessionChange(() => { syncNav(); syncHeaderTimer(); });
   setInterval(tick, 1000);
   /* escondida: último sinal (com crédito). De volta: sem crédito pelo intervalo, e só se não esteve parado muito tempo */
   document.addEventListener('visibilitychange', () => {

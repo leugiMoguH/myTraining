@@ -52,7 +52,9 @@ async function run(theme, width) {
   const card = page.locator('.ad-card');
   assert.equal(await card.count(), 1, 'uma sugestão');
   const text = await card.innerText();
-  assert.match(text, /Segunda/, 'diz que treino ficou por fazer');
+  assert.match(await page.locator('.hero-k').innerText(), /Segunda/i, 'o cartão identifica o treino pendente');
+  assert.equal(await card.locator('.ad-what, .btn-primary').count(), 0);
+  assert.equal(await card.locator('[onclick^="adAlt"]').count(), 0);
   assert.doesNotMatch(text, /falhaste|preguiça|culpa|devias/i, 'sem tom culpabilizador');
   await noH(page, 'sugestão'); await small(page, 'sugestão'); await shot(page, 'sug');
 

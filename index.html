@@ -1085,17 +1085,24 @@ body.guided #toast { top: calc(env(safe-area-inset-top, 0px) + 76px); }
 .ev-more[open] { padding-bottom: 12px; }
 .ev-more summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 700; font-size: 14px; }
 .ev-list { margin-top: 6px; }
-.today-plan { display: flex; justify-content: flex-end; margin-top: 4px; }
-.today-plan .linklike { min-height: 44px; display: inline-flex; align-items: center; }
+.today-strip .week-strip { gap: 4px; }
+.today-strip .wk-chip { min-height: 44px; }
+@media (max-width: 374px) { .today-strip .week-strip { margin-inline: -12px; gap: 0; } }
+.hero-links { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 12px; }
+.hero-links .linklike, .today-plan-link, .cu-entry { min-height: 44px; display: inline-flex; align-items: center; }
+.today-plan-link { margin-bottom: 8px; }
+.hero-links .linklike, .today-plan-link, .cu-entry.linklike { color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 14px; }
 .ev-link { width: 100%; text-align: left; margin-top: 12px; color: inherit; font: inherit; }
 .pl-day ul { list-style: none; margin: 8px 0; padding: 0; }
 .pl-day li { padding: 4px 0; }
 .hero { padding: 16px; border: 1px solid var(--danger-a04); border-radius: var(--r); background: var(--card); display: flex; flex-direction: column; gap: 4px; }
 .hero-k { font-size: 12px; font-weight: 700; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.04em; }
 .hero { gap: var(--sp-1); padding: var(--sp-5) var(--sp-4); }
-.hero-hi { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+body:not(.show-header-timer) .hdr-timer-row { display: none; }
 .hero-t { font-size: 24px; font-weight: 800; } .hero-s { color: var(--muted); font-size: 14px; }
 .hero-ex { color: var(--text-muted); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+#content:has(.today-strip) > .full > .rest-card { padding: 14px 16px; gap: 4px; margin-bottom: 12px; }
+#content:has(.today-strip) .rest-emoji { font-size: 28px; }
 .today-top { display: flex; flex-direction: column; gap: var(--sp-3); }
 .today-top .sched-note { padding: var(--sp-3) var(--sp-4); font-size: 14px; }
 .list-toggle { display: flex; align-items: center; gap: var(--sp-2); width: 100%; min-height: var(--tap); padding: 0 var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--card); color: var(--text); font: 700 15px/1.2 inherit; text-align: left; cursor: pointer; }
@@ -1189,13 +1196,13 @@ button:active:not(:disabled) { opacity: .75; }
 @media(prefers-reduced-motion:reduce) { .app-dialog { animation:none; transition:none; } }
 
 /* adaptação do plano */
-.ad-card { background: var(--card); border: 1px solid var(--accent); border-radius: var(--r); padding: 12px 14px; margin: 0 0 10px; display: flex; flex-direction: column; gap: 6px; }
+.ad-card { background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--warn); border-radius: var(--r); padding: 10px 12px; margin: 0 0 10px; display: flex; flex-direction: column; gap: 6px; }
 .ad-what { font-size: 13px; color: var(--muted); } .ad-rec { font-size: 15px; } .ad-why { font-size: 12px; color: var(--muted); }
 .ad-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; } .ad-acts .reset-btn, .ad-acts .start-wo { min-height: 44px; }
-.ad-yes { width: auto; padding-inline: 18px; }
+.ad-yes { width: auto; padding-inline: 18px; font-weight: 800; }
 .ad-note { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .ad-note .reset-btn { min-height: 44px; }
-.ad-quick { width: 100%; margin-top: 8px; min-height: 44px; }
+.ad-quick { min-height: 44px; font-size: 13px; }
 /* ── motivação: celebração, A tua semana, conquistas ── */
 .mv-bg { z-index: 720; }
 .mv-sheet { max-height: 92vh; overflow-y: auto; }
@@ -1310,7 +1317,7 @@ body.food-sheet-open #bnav { visibility:hidden; }
 #sheetBg .theme-choice { min-width:0; }
 .nutri-wrap .ndisc { font-size:13px; font-style:normal; }
 .nutri-wrap .ntar-l, .nutri-wrap .qfood, .nutri-wrap .iitem-t,
-.today-top .wk-row-st, .nutri-wrap .wk-row-st, #content:has(.today-plan) .cl-st,
+.today-top .wk-row-st, .nutri-wrap .wk-row-st, #content:has(.today-strip) .cl-st,
 .nutri-wrap .hx-k, .nutri-wrap .hx-day-h small, .nutri-wrap .mm-ex small,
 .nutri-wrap .lc-next-s, .nutri-wrap .lc-prog-t { font-size:12px; }
 </style>

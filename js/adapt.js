@@ -182,7 +182,7 @@ function suggestion(now = new Date()) {
   const candidates = moveCandidates(day, n), chosen = candidates.find(c => c.ok);
   const why = candidates.filter(c => !c.ok).flatMap(c => c.reasons).join('; ');
   return { key, kind: 'missed', day, title: 'Ajustar esta semana', what: `O treino de ${day} continua pendente.`,
-    why: chosen ? `Podes passá-lo para ${chosen.day}, só esta semana. ${why}` : `Esta semana não há um dia livre sem sobrecarregar. O treino de ${day} continua pendente. ${why}`,
+    why: chosen ? `Podes passá-lo para ${chosen.day}, só esta semana. ${why}` : `Esta semana não há um dia livre sem sobrecarregar. ${why}`,
     accept: chosen ? { type: 'move', day, to: chosen.day } : null,
     ...(!chosen ? { limit: true, alt: { type: 'quick', mode: 'quick', day } } : {}) };
 }

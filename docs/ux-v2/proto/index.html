@@ -51,9 +51,9 @@ body.hasbar #app{padding-top:46px}
 <script>
 const Q=new URLSearchParams(location.search);
 const S={alt:(Q.get('alt')||'a').toLowerCase(),theme:Q.get('theme')||'dark',screen:Q.get('screen')||'hoje',tab:Q.get('tab')||(Q.get('alt')==='b'?'resumo':'cargas'),bar:Q.get('bar')!=='0',rest:Q.get('rest')?1:0};
-const I={hoje:'<path d="M3 11l9-8 9 8v10H3z"/>',plano:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',nutri:'<path d="M12 21c-5 0-8-4-8-9 3 0 5 1 8 4 3-3 5-4 8-4 0 5-3 9-8 9zM12 3c0 3-1 5-3 6"/>',prog:'<path d="M3 20h18M6 16V9M12 16V4M18 16v-5"/>',play:'<path d="M7 4l13 8-13 8z" fill="currentColor"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',back:'<path d="M15 4l-8 8 8 8"/>'};
+const I={hoje:'<path d="M3 11l9-8 9 8v10H3z"/>',plano:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',nutri:'<path d="M12 21c-5 0-8-4-8-9 3 0 5 1 8 4 3-3 5-4 8-4 0 5-3 9-8 9zM12 3c0 3-1 5-3 6"/>',prog:'<path d="M3 20h18M6 16V9M12 16V4M18 16v-5"/>',play:'<path d="M7 4l13 8-13 8z" fill="currentColor"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',back:'<path d="M15 4l-8 8 8 8"/>',dots:'<circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/>'};
 const ic=n=>`<svg viewBox="0 0 24 24">${I[n]}</svg>`;
-const NAV={a:[['hoje','Hoje','hoje'],['plano','Semana','plano'],['prog','Evolução','prog'],['nutri','Nutrição','nutri'],['eu','Mais','gear']],
+const NAV={a:[['hoje','Hoje','hoje'],['plano','Semana','plano'],['prog','Evolução','prog'],['nutri','Nutrição','nutri'],['eu','Mais','dots']],
            b:[['hoje','Hoje','hoje'],['plano','Plano','plano'],['treino','Treino','play'],['nutri','Nutrição','nutri'],['prog','Progresso','prog']]};
 const go=(s,t)=>{S.screen=s;if(t)S.tab=t;draw();scrollTo(0,0)};
 function hdr(t,sub,right=true){return `<div class="hdr"><div><h1>${t}</h1>${sub?`<small>${sub}</small>`:''}</div>${right&&S.alt==='b'?`<button class="ico" aria-label="Definições e perfil" onclick="go('eu')">${ic('gear')}</button>`:''}</div>`}
@@ -103,7 +103,7 @@ function draw(){
  const cur=S.screen;
  document.getElementById('app').innerHTML=SCR[S.screen]()+(live?'':`<nav class="nav" aria-label="Navegação principal">${ids.map(([id,l,i])=>id==='treino'?`<button class="mid" onclick="go('treino')" aria-label="Iniciar treino">${ic('play')}<span>Iniciar</span></button>`:`<button class="${cur===id?'on':''}" onclick="go('${id}')">${ic(i)}<span>${l}</span></button>`).join('')}</nav>`);
  document.body.classList.toggle('hasbar',S.bar);const d=document.getElementById('demobar');d.setAttribute('role','note');d.style.display=S.bar?'flex':'none';
- d.innerHTML=`<b>DEMONSTRAÇÃO · não é a app</b> Proposta: ${['a','b'].map(x=>`<button class="${S.alt==x?'on':''}" onclick="S.alt='${x}';go('hoje')">${x=='a'?'1 Estável':'2 Central'}</button>`).join('')} Tema: ${['dark','light'].map(x=>`<button class="${S.theme==x?'on':''}" onclick="S.theme='${x}';draw()">${x}</button>`).join('')} <button onclick="S.rest=1;go('treino')">descanso</button>`;
+ d.innerHTML=`<b>DEMONSTRAÇÃO · não é a app</b> Proposta: ${['a','b'].map(x=>`<button class="${S.alt==x?'on':''}" onclick="S.alt='${x}';go('hoje')">${x=='a'?'1 Estável · aprovada':'2 Central · arquivada'}</button>`).join('')} Tema: ${['dark','light'].map(x=>`<button class="${S.theme==x?'on':''}" onclick="S.theme='${x}';draw()">${x}</button>`).join('')} <button onclick="S.rest=1;go('treino')">descanso</button>`;
 }
 draw();
 </script></body></html>

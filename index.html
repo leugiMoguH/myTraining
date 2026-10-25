@@ -248,8 +248,8 @@ body {
 
 /* ── TIMER BANNER ─────────────────────────────────── */
 :root { --banner-h: calc(76px + env(safe-area-inset-top, 0px)); }
-body:has(#timerBanner.show):not(.guided) { padding-top: var(--banner-h); }
-body:has(#timerBanner.show):not(.guided) #hdr { top: var(--banner-h); }
+body.show-header-timer:has(#timerBanner.show):not(.guided) { padding-top: var(--banner-h); }
+body.show-header-timer:has(#timerBanner.show):not(.guided) #hdr { top: var(--banner-h); }
 #timerBanner {
   position: fixed; top: 0; left: 0; right: 0; z-index: 300;
   padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px 20px;
@@ -343,17 +343,12 @@ body.kb #bnav { display: none; }
 .nb-l { font-size: 11px; font-weight: 700; }
 .nb.active { color: var(--accent); }
 .nb:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
-.nb-main { flex: 0 0 84px; margin-top: -16px; min-height: 74px; border-radius: 22px 22px 0 0; background: var(--primary-solid); color: var(--on-primary); box-shadow: 0 -4px 14px var(--scrim-14); }
-.nav-livewrap:has(#navLive:not([hidden])) + .nav-row .nb-main { margin-top: 0; min-height: 58px; border-radius: 0; box-shadow: none; }
-.nb-main.live { background: var(--warn-solid); }
-.nb-main.paused { background: var(--success-fill); color: var(--on-success); }
-.nb-main .nb-i { font-size: 24px; }
 .nav-livewrap { display: flex; align-items: stretch; max-width: 640px; margin: 0 auto; border-bottom: 1px solid var(--border); }
 .nav-livewrap[hidden], .nav-live[hidden], .nav-drop[hidden] { display: none; }
 .nav-live .nl-t { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav-live > span:last-child { flex: none; margin-left: 10px; white-space: nowrap; }
-.nav-live { flex: 1; min-height: 44px; background: var(--danger-a01); border: 0; color: var(--text); font-family: inherit; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; cursor: pointer; }
-.nav-drop { flex: none; width: 48px; border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; }
+.nav-live { flex: 1; min-width: 0; min-height: 44px; background: var(--danger-a01); border: 0; color: var(--text); font-family: inherit; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; cursor: pointer; }
+.nav-drop { flex: none; width: 44px; min-height: 44px; border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; }
 #content { padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important; }
 
 /* ── CONTENT GRID ─────────────────────────────────── */
@@ -1098,7 +1093,7 @@ body.guided #toast { top: calc(env(safe-area-inset-top, 0px) + 76px); }
 .hero { padding: 16px; border: 1px solid var(--danger-a04); border-radius: var(--r); background: var(--card); display: flex; flex-direction: column; gap: 4px; }
 .hero-k { font-size: 12px; font-weight: 700; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.04em; }
 .hero { gap: var(--sp-1); padding: var(--sp-5) var(--sp-4); }
-body:not(.show-header-timer) .hdr-timer-row { display: none; }
+body:not(.show-header-timer) .hdr-timer-row, body:not(.show-header-timer) #timerBanner { display: none; }
 .hero-t { font-size: 24px; font-weight: 800; } .hero-s { color: var(--muted); font-size: 14px; }
 .hero-ex { color: var(--text-muted); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
 #content:has(.today-strip) > .full > .rest-card { padding: 14px 16px; gap: 4px; margin-bottom: 12px; }
@@ -1367,7 +1362,7 @@ body.food-sheet-open #bnav { visibility:hidden; }
 
 <!-- NAVEGAÇÃO INFERIOR (js/nav.js) -->
 <nav id="bnav" aria-label="Navegação principal">
-  <div class="nav-livewrap"><button id="navLive" class="nav-live" type="button" hidden><span class="nl-t"></span><span>Abrir ›</span></button><button id="navEnd" class="nav-drop" type="button" hidden aria-label="Encerrar o treino à hora da última atividade">✓</button><button id="navDrop" class="nav-drop" type="button" hidden aria-label="Descartar treino por terminar">✕</button></div>
+  <div class="nav-livewrap"><button id="navLive" class="nav-live" type="button" hidden><span class="nl-t"></span><span>Abrir ›</span></button><button id="navPause" class="nav-drop" type="button" hidden aria-label="Pausar treino">⏸</button><button id="navEnd" class="nav-drop" type="button" hidden aria-label="Encerrar o treino à hora da última atividade">✓</button><button id="navDrop" class="nav-drop" type="button" hidden aria-label="Descartar treino por terminar">✕</button></div>
   <div class="nav-row" id="navRow"></div>
 </nav>
 
@@ -1418,8 +1413,8 @@ body.food-sheet-open #bnav { visibility:hidden; }
     <button class="sheet-item" onclick="closeSheet();goDay('__eu')">
       <span>👤 Perfil</span><span class="sheet-arrow">›</span>
     </button>
-    <button class="sheet-item" onclick="closeSheet();goDay('__nutri')">
-      <span>🥗 Nutrição</span><span class="sheet-arrow">›</span>
+    <button class="sheet-item" onclick="closeSheet();goDay('__hist')">
+      <span>📅 Histórico</span><span class="sheet-arrow">›</span>
     </button>
     <h3 class="sheet-sub">Aparência</h3>
     <fieldset class="theme-choice"><legend>Tema</legend>

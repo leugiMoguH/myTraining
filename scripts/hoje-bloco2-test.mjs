@@ -110,7 +110,7 @@ try {
       assert.match(await page.locator('.hero .start-wo').innerText(), /Continuar/);
       await hit(page, '.hero .start-wo'); assert(await page.locator('#woBg.show').isVisible());
       await page.evaluate(() => { window.closeWorkout(); window.timerDismiss(); });
-      for (const v of ['__hist', '__perfil', '__nutri', '__plano', '__eu']) {
+      for (const v of ['__semana', '__hist', '__perfil', '__nutri', '__plano', '__eu']) {
         await page.evaluate(v => window.render(v), v); assert.equal(await timerVisible(page), false, `${v}: escondido mesmo com sessão`);
       }
       for (const v of ['Segunda', '__pers', '__ex']) {

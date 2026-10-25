@@ -74,7 +74,7 @@ async function run(theme, width) {
   assert.equal(await st(page, s => JSON.stringify(s.routine)), routine0, 'rotina intacta');
   assert.equal(await st(page, s => Object.keys(s.adapt.moves).length), 1, 'um move');
   await noH(page, 'após aceitar'); await small(page, 'nota'); await shot(page, 'moved');
-  await page.evaluate(() => window.render('__hist'));
+  await page.evaluate(() => window.render('__semana'));
   assert.match(await page.locator('#content').innerText(), /Passa para/, 'Semana mostra o treino movido');
   await page.reload({ waitUntil: 'networkidle' }); await page.evaluate(() => window.render('__hoje'));
   assert.equal(await page.locator('.ad-note').count(), 1, 'move persiste após recarregar');
@@ -100,7 +100,7 @@ async function run(theme, width) {
   const from = await st(page, s => s.custom.quick.from);
   assert.equal(await st(page, s => !!s.sched.quick[s.custom.quick.from]), true, 'dia reduzido marcado');
   assert.equal(await st(page, s => !!s.sched.done[s.custom.quick.from]), true, 'dia fechado');
-  await page.evaluate(() => window.render('__hist'));
+  await page.evaluate(() => window.render('__semana'));
   assert.match(await page.locator('#content').innerText(), /Feito · reduzido/, 'Semana distingue reduzido');
   void day; void from;
 

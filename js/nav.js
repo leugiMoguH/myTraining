@@ -1,11 +1,8 @@
 import { confirmDialog } from './dialog.js';
-/* myTraining — navegação inferior + faixa "treino em curso".
-   Cinco destinos: Início · Evolução · [Treino] · Histórico · Opções.
-   O botão central só controla a SESSÃO (iniciar / pausar / retomar), nunca o descanso.
-   Tudo o que mostra deriva de ST.session e ST.view: não guarda estado próprio. */
+/* myTraining — cinco destinos globais e faixa de sessão. */
 import { show } from './notice.js';
-import { CUSTOM_DAY, DAYS } from './routine.js';
-import { agenda, dayStatus } from './schedule.js';
+import { DAYS } from './routine.js';
+import { agenda } from './schedule.js';
 import { ACTIVE, PAUSED, abandonSession, completeSession, currentSession, durationMs, finishedToday, fmtDur, idleMs, isIdle, isLive, onSessionChange, pauseSession, resumeSession, sessionState, touchSession } from './session.js';
 import { ST } from './state.js';
 import { render, syncHeaderTimer } from './ui.js';
@@ -13,22 +10,13 @@ import { openSheet } from './backup.js';
 import { closeWorkout, openWorkout, refreshWorkout, startWorkout } from './workout.js';
 
 const SIDE = [
-  { id: '__hoje',   icon: '🏠', label: 'Início' },
+  { id: '__hoje',   icon: '🏠', label: 'Hoje' },
+  { id: '__semana', icon: '📅', label: 'Semana' },
   { id: '__perfil', icon: '📈', label: 'Evolução' },   /* id antigo = ecrã Evolução; Perfil = '__eu', Plano = '__plano' (via Opções) */
-  { id: 'main' },
-  { id: '__hist',   icon: '📅', label: 'Histórico' },
+  { id: '__nutri', icon: '🥗', label: 'Nutrição' },
   { id: 'opts',     icon: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>', label: 'Mais'  },
 ];
 const HEARTBEAT_S = 15;
-
-/* Treino "selecionado": o dia que o utilizador está a ver, ou o da agenda. Nunca um arbitrário:
-   sem nenhum (descanso, semana fechada) o botão encaminha para o Histórico (onde está a Semana). */
-function selectedDay() {
-  if (ST.view === '__pers') { const c = DAYS[CUSTOM_DAY]; return c && c.ex && c.ex.length ? CUSTOM_DAY : null; }
-  if (ST.view === '__dia' && DAYS[ST.day] && dayStatus(ST.day) !== 'rest') return ST.day;
-  const a = agenda();
-  return !a.allDone && a.current && !(a.restToday && !a.late) ? a.current : null;
-}
 
 const openable = s => !!(DAYS[s.day] && DAYS[s.day].ex && DAYS[s.day].ex.length);
 
@@ -50,28 +38,11 @@ async function openLive() {
   openWorkout(s.day, s.pos);
 }
 
-/* Botão do cartão "Hoje": inicia (ou retoma) o treino real deste dia, com as mesmas regras do botão central. */
+/* Botão do cartão Hoje: inicia ou abre a sessão do dia, com confirmação se já terminou. */
 async function heroStart(day) {
   if (isLive()) { const s = currentSession(); if (s.day === day) return openLive(); return startWorkout(day); }
   const context = JSON.stringify([ST.view, ST.day, DAYS[day], ST.custom]);
   if (finishedToday(day) && !await confirmDialog({title:'Iniciar outro treino', confirmLabel:'Iniciar outro', message:`O treino de ${day} já terminou hoje. Iniciar outro?`})) return;
-  if (isLive() || !DAYS[day] || context !== JSON.stringify([ST.view, ST.day, DAYS[day], ST.custom])) return;
-  return startWorkout(day);
-}
-
-async function navMain() {
-  const st = sessionState();
-  if (st === ACTIVE) { pauseSession(); return; }
-  if (st === PAUSED) { resumeSession(); return; }   /* uma ação = uma transição; abrir o guiado é a faixa "Abrir" */
-  const day = selectedDay();
-  if (!day) { render('__hist'); return; }
-  const context = JSON.stringify([ST.view, ST.day, DAYS[day], ST.custom]);
-  /* terminado hoje: nada de reiniciar sozinho. Um personalizado é um treino novo de cada vez: só o concluído bloqueia
-     (o descartado deixou uma sessão ABANDONED do dia, mas o treino novo é outro). */
-  if (day === CUSTOM_DAY ? ST.custom && ST.custom.stage === 'done' : finishedToday(day)) {
-    /* nunca mudo: o toque tem de dar resposta. Terminado hoje → pergunta se é para fazer outro. */
-    if (!await confirmDialog({title:'Iniciar outro treino', confirmLabel:'Iniciar outro', message:`O treino de ${day} já terminou hoje. Iniciar outro?`})) return;
-  }
   if (isLive() || !DAYS[day] || context !== JSON.stringify([ST.view, ST.day, DAYS[day], ST.custom])) return;
   return startWorkout(day);
 }
@@ -95,30 +66,22 @@ async function navAbandon() {
   }
 }
 
-function mainFace() {
-  const st = sessionState();
-  if (st === ACTIVE) return { icon: '⏸', label: 'Pausar', cls: 'live' };
-  if (st === PAUSED) return { icon: '▶', label: 'Retomar', cls: 'paused' };
-  return selectedDay() ? { icon: '▶', label: 'Iniciar', cls: '' } : { icon: '▶', label: 'Treino', cls: '' };
-}
-
 function buildNav() {
   const row = document.getElementById('navRow');
   row.innerHTML = '';
   SIDE.forEach(it => {
     const b = document.createElement('button');
     b.type = 'button';
-    if (it.id === 'main') {
-      b.id = 'navMain'; b.className = 'nb nb-main';
-      b.onclick = () => navMain().catch(() => show('Não foi possível iniciar o treino.', 'error'));
-    } else {
-      b.className = 'nb'; b.dataset.day = it.id;
-      b.innerHTML = `<span class="nb-i" aria-hidden="true">${it.icon}</span><span class="nb-l">${it.label}</span>`;
-      b.onclick = it.id === 'opts' ? navOpts : () => render(it.id);
-    }
+    b.className = 'nb'; b.dataset.day = it.id;
+    b.innerHTML = `<span class="nb-i" aria-hidden="true">${it.icon}</span><span class="nb-l">${it.label}</span>`;
+    b.onclick = it.id === 'opts' ? navOpts : () => render(it.id);
     row.appendChild(b);
   });
   document.getElementById('navLive').onclick = () => openLive().catch(() => show('Não foi possível atualizar o treino.', 'error'));
+  document.getElementById('navPause').onclick = () => {
+    if (sessionState() === ACTIVE) pauseSession();
+    else if (sessionState() === PAUSED) resumeSession();
+  };
   document.getElementById('navEnd').onclick = () => navEnd().catch(() => show('Não foi possível atualizar o treino.', 'error'));
   document.getElementById('navDrop').onclick = () => navAbandon().catch(() => show('Não foi possível atualizar o treino.', 'error'));
   document.getElementById('navEnd').title = 'Encerrar à hora da última atividade';
@@ -136,19 +99,8 @@ function liveText(s) {
 }
 
 function syncNav() {
-  const f = mainFace();
-  const main = document.getElementById('navMain');
-  /* Só se toca no botão quando o seu aspeto muda. Reescrevê-lo todos os segundos (o relógio da faixa chama
-     syncNav) trocava o nó debaixo do dedo a meio de um toque. */
-  const face = `${f.cls}|${f.icon}|${f.label}`;
-  if (main && main.dataset.face !== face) {
-    main.dataset.face = face;
-    main.className = `nb nb-main ${f.cls}`;
-    main.setAttribute('aria-label', f.label === 'Treino' ? 'Escolher treino' : `${f.label} treino`);
-    main.innerHTML = `<span class="nb-i" aria-hidden="true">${f.icon}</span><span class="nb-l">${f.label}</span>`;
-  }
-  /* o ecrã atual: um dia concreto conta como Histórico (vem da Semana); Plano, Perfil e Nutrição vivem nas Opções */
-  const at = ST.view === '__dia' || ST.view === '__semana' ? '__hist' : ST.view === '__ex' ? '__perfil' : ST.view === '__pers' ? '__hoje' : ['__plano', '__eu', '__nutri'].includes(ST.view) ? 'opts' : ST.view;
+  const destinations = { __hoje:'__hoje', __pers:'__hoje', __semana:'__semana', __dia:'__semana', __perfil:'__perfil', __ex:'__perfil', __hist:'__perfil', __nutri:'__nutri', __plano:'opts', __eu:'opts' };
+  const at = destinations[ST.view];
   document.querySelectorAll('.nb[data-day]').forEach(b => {
     const on = b.dataset.day === at;
     b.classList.toggle('active', on);
@@ -166,6 +118,17 @@ function syncNav() {
   const viewOpen = document.getElementById('woBg').classList.contains('show');
   const show = isLive() && !viewOpen;
   live.hidden = !show;
+  const pause = document.getElementById('navPause');
+  pause.hidden = !show;
+  const paused = sessionState() === PAUSED;
+  const face = paused ? 'paused' : 'active';
+  if (show && pause.dataset.face !== face) {
+    pause.dataset.face = face;
+    const label = paused ? 'Retomar treino' : 'Pausar treino';
+    pause.setAttribute('aria-label', label);
+    pause.title = label;
+    pause.textContent = paused ? '▶' : '⏸';
+  }
   const idle = show && isIdle();
   document.getElementById('navEnd').hidden = !idle;     /* encerrar na última atividade: só se esteve parado */
   document.getElementById('navDrop').hidden = !show;    /* descartar: sempre explícito, sempre à mão */
@@ -216,4 +179,4 @@ function initNav() {
   if (window.visualViewport) window.visualViewport.addEventListener('resize', updateKb);
 }
 
-export { selectedDay, navMain, heroStart, navOpts, mainFace, buildNav, syncNav, initNav, openLive };
+export { heroStart, navOpts, buildNav, syncNav, initNav, openLive };

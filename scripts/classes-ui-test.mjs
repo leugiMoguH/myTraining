@@ -65,7 +65,10 @@ async function run(theme) {
   assert.equal(await st(s => s.sched.done.Quarta || null), null, 'treino de Quarta não ficou feito');
   /* Histórico: resumo e aulas recentes, sem as misturar com treinos */
   await page.evaluate(() => window.render('__hist'));
+  assert.equal(await page.locator('#hdrSub').innerText(), 'Histórico');
+  await page.evaluate(() => window.render('__semana'));
   assert.match(await page.locator('#hdrSub').innerText(), /1 aula feita/);
+  await page.evaluate(() => window.render('__hist'));
   assert.match(await page.locator('#content').innerText(), /Aulas recentes/);
   await noH('histórico'); await shot('hist');
   await page.evaluate(() => window.render('__hoje'));

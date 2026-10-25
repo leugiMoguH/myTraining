@@ -319,15 +319,18 @@ function renderWeek(content) {
       </button>`;
     }).join('')}</div>
     ${weekClassesHTML()}
+    <button class="ev-link" onclick="render('__hist')">Histórico ›</button>
   </div>`;
   const nc = weekActivity().classes;
   document.getElementById('hdrSub').textContent = `Semana · ${a.pending} treino${a.pending===1?'':'s'} por fazer${nc ? ` · ${nc} aula${nc===1?'':'s'} feita${nc===1?'':'s'}` : ''}`;
   document.getElementById('progFill').style.width = `${a.days.length?(a.days.filter(d=>d.status==='done'||d.status==='swapped').length/a.days.filter(d=>d.status!=='rest').length)*100:0}%`;
 }
 
-/* Histórico: a Semana (agenda) e os treinos terminados. O histórico completo vem depois. */
+/* Histórico: treinos terminados e aulas recentes. */
 function renderHistory(content) {
-  renderWeek(content);
+  content.innerHTML = '';
+  document.getElementById('hdrSub').textContent = 'Histórico';
+  document.getElementById('progFill').style.width = '0%';
   const guided = new Set((ST.workouts || []).map(w => w.id));
   const manual = (ST.sessions || []).filter(s => s.id && !(s.sid && guided.has(s.sid)) && !(ST.workouts || []).some(w => w.day === 'Personalizado' && w.date === s.date && !s.sid) && /^\d{4}-\d{2}-\d{2}$/.test(s.date || ''))
     .map(s => ({ id: s.id, state: 'COMPLETED', date: s.date, day: s.label || 'Treino personalizado', label: '', quick: s.kind === 'quick' ? (s.quick && s.quick.mode) || 'quick' : '', manual: true }));
@@ -358,7 +361,7 @@ function renderDay(content, day, standalone = true) {
     /* a tira da semana anda sempre com o utilizador: é a navegação entre dias */
     const strip = document.createElement('div');
     strip.className = 'full';
-    strip.innerHTML = (BACK && BACK.day === day ? `<button class="reset-btn btn-ghost hx-back" onclick="planBack()">‹ ${esc(BACK.label)}</button>` : '') + weekStripHTML(agenda());
+    strip.innerHTML = (BACK && BACK.day === day ? `<button class="reset-btn btn-ghost hx-back" onclick="render('${BACK.view}')">‹ ${esc(BACK.label)}</button>` : '') + weekStripHTML(agenda());
     content.appendChild(strip);
   }
   if (!DAYS[day]) return;
@@ -414,7 +417,10 @@ function toggleDayDone(day) {
   render(ST.view === '__hoje' ? '__hoje' : day);
 }
 
-function goDay(day) { render(day); }
+function goDay(day) {
+  if (ST.view === '__semana' && DAYS[day]) setBack('__semana', 'Semana', day);
+  render(day);
+}
 
 /* Só o contentor do temporizador muda de visibilidade; o relógio conserva os seus nós. */
 function syncHeaderTimer() {
@@ -426,7 +432,6 @@ function syncHeaderTimer() {
 
 /* `target` é um dia da rotina ou um dos ecrãs `__…`. */
 function render(target) {
-  if (target === '__semana') target = '__hist';   /* ecrã antigo, agora dentro do Histórico */
   const content = document.getElementById('content');
   const isView = String(target).startsWith('__');
 
@@ -447,6 +452,7 @@ function render(target) {
     if (target === '__perfil'){ renderEvolution(content); return; }   /* a aba «Evolução» (id antigo) */
     if (target === '__eu')    { renderProfile(content); return; }     /* Perfil: dados pessoais e preferências */
     if (target === '__plano') { renderPlan(content); return; }
+    if (target === '__semana') { renderWeek(content); return; }
     if (target === '__hist')  { renderHistory(content); return; }
     if (target === '__ex')    { renderExercise(content); return; }
     if (target === '__hoje')  { renderToday(content); return; }

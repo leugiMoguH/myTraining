@@ -67,7 +67,7 @@ const screenshot=async(name,theme='dark',width=390)=>page.screenshot({path:join(
 try {
   await boot();
   await test('foco, Tab, Shift+Tab, Escape e restauro exato de inert/scroll',async()=>{
-    await page.locator('#navMain').focus();
+    await page.locator('[data-day="__hoje"]').focus();
     await page.evaluate(()=>{document.getElementById('sheetBg').setAttribute('inert','previous');document.body.style.overflow='clip';});
     await open({danger:true});
     assert.equal(await modal().getByRole('button',{name:'Cancelar'}).evaluate(e=>e===document.activeElement),true);
@@ -80,7 +80,7 @@ try {
     await page.keyboard.press('Escape'); assert.equal(await result(),false);
     assert.equal(await page.evaluate(()=>document.getElementById('sheetBg').getAttribute('inert')),'previous');
     assert.equal(await page.evaluate(()=>document.body.style.overflow),'clip');
-    assert.equal(await page.evaluate(()=>document.activeElement.id),'navMain');
+    assert.equal(await page.evaluate(()=>document.activeElement.dataset.day),'__hoje');
     await page.evaluate(()=>{document.body.style.overflow='';document.getElementById('sheetBg').inert=false;});
   });
   await test('notificações acrescentadas ao body recuperam inert ao fechar',async()=>{
@@ -142,12 +142,12 @@ try {
     ['personalizado vazio',M=>{M.state.ST.custom={date:M.state.todayStr(),label:'Teste',stage:'active',ex:[{name:'Leg press',s:4,r:'10'}]};M.workout.startWorkout('Personalizado');},M=>M.workout.woFinish(),M=>!M.state.ST.custom && !document.getElementById('woBg').classList.contains('show')],
     ['recuperar sessão indisponível',M=>{M.session.startSession('Personalizado','Teste');},M=>M.nav.openLive(),M=>M.state.ST.session.state==='COMPLETED'],
     ['iniciar concluído (cartão)',M=>{M.session.startSession('Segunda','Teste');M.session.completeSession();window.render('Segunda');},M=>M.nav.heroStart('Segunda'),M=>M.state.ST.session.state==='ACTIVE'],
-    ['iniciar concluído (barra)',M=>{M.session.startSession('Segunda','Teste');M.session.completeSession();window.render('Segunda');},M=>M.nav.navMain(),M=>M.state.ST.session.state==='ACTIVE'],
+    ['iniciar concluído (Hoje)',M=>{M.session.startSession('Segunda','Teste');M.session.completeSession();window.render('__hoje');},M=>M.nav.heroStart('Segunda'),M=>M.state.ST.session.state==='ACTIVE'],
     ['encerrar última atividade',M=>{M.session.startSession('Segunda','Teste');M.state.ST.session.seenAt=Date.now()-7200000;M.state.save();M.nav.syncNav();},()=>document.getElementById('navEnd').click(),M=>M.state.ST.session.state==='COMPLETED'],
     ['descartar sessão',M=>{M.session.startSession('Segunda','Teste');M.nav.syncNav();},()=>document.getElementById('navDrop').click(),M=>M.state.ST.session.state==='ABANDONED'],
   ];
   for(const [name,prepare,action,check]of critical)await test(`confirmação: ${name}`,async()=>{
-    await reset();await run(prepare);const before=await state();await run(action);await modal().waitFor();await policy(!['terminar guiado','retomar outra sessão','iniciar concluído (cartão)','iniciar concluído (barra)','encerrar última atividade'].includes(name));await choose('Cancelar');assert.equal(await state(),before,name);
+    await reset();await run(prepare);const before=await state();await run(action);await modal().waitFor();await policy(!['terminar guiado','retomar outra sessão','iniciar concluído (cartão)','iniciar concluído (Hoje)','encerrar última atividade'].includes(name));await choose('Cancelar');assert.equal(await state(),before,name);
     if(name==='personalizado vazio')assert.equal(await page.locator('#woBg.show').count(),1);
     await run(action);await modal().waitFor();await choose(await modal().locator('.app-dialog-actions button').last().innerText());
     assert.equal(await page.evaluate(({fn})=>(0,eval)(`(${fn})`)(M),{fn:check.toString()}),true,name);
@@ -189,8 +189,8 @@ try {
     await modal().locator('input').fill('images/test.svg');await modal().locator('input').press('Enter');await modal().waitFor({state:'detached'});assert.deepEqual(await page.evaluate(()=>M.state.ST.media['Leg press']),['images/test.svg']);
   });
   await test('avisos não roubam foco nem bloqueiam navegação',async()=>{
-    await reset();await page.locator('#navMain').focus();
-    for(const kind of ['ok','error','info']){await page.evaluate(kind=>M.notice.show(`Aviso ${kind}`,kind),kind);assert.equal(await page.evaluate(()=>document.activeElement.id),'navMain');await screenshot(`notice-${kind}`);}
+    await reset();await page.locator('[data-day="__hoje"]').focus();
+    for(const kind of ['ok','error','info']){await page.evaluate(kind=>M.notice.show(`Aviso ${kind}`,kind),kind);assert.equal(await page.evaluate(()=>document.activeElement.dataset.day),'__hoje');await screenshot(`notice-${kind}`);}
     assert.equal(await page.locator('#notice').getAttribute('role'),'status');assert.equal(await page.locator('#notice').getAttribute('aria-live'),'polite');await page.evaluate(()=>window.render('__eu'));assert.equal(await page.locator('#p-height').count(),1);
   });
   await test('temas, Auto, movimento reduzido e larguras 320/360/390/412/1280',async()=>{
@@ -209,7 +209,7 @@ try {
   await test('SW v32 em cache abre modal offline',async()=>{
     await page.evaluate(async()=>{await navigator.serviceWorker.ready;});
     await page.reload({waitUntil:'networkidle'});await page.evaluate(async()=>{window.M={dialog:await import('./js/dialog.js')};});
-    assert((await page.evaluate(()=>caches.keys())).includes('treino-v47'));
+    assert((await page.evaluate(()=>caches.keys())).includes('treino-v48'));
     await context.setOffline(true);await open();await choose('Confirmar');assert.equal(await result(),true);await context.setOffline(false);
   });
   assert.deepEqual(errors,[]);

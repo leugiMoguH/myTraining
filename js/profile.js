@@ -241,7 +241,7 @@ function renderEvolution(content){
   content=content||document.getElementById('content');
   document.getElementById('hdrSub').textContent='Evolução';
   document.getElementById('progFill').style.width='0%';
-  content.innerHTML=`<div class="nutri-wrap">${motivEvolutionHTML()}${exerciseListHTML(8)}${measuresHTML()}${muscleMapHTML()}${volumeHTML()}</div>`;
+  content.innerHTML=`<div class="nutri-wrap"><button class="ev-link" onclick="render('__hist')">📅 Histórico ›</button>${motivEvolutionHTML()}${exerciseListHTML(8)}${measuresHTML()}${muscleMapHTML()}${volumeHTML()}</div>`;
   applyDraft(measureKey());
   muscleMapWarm();
 }

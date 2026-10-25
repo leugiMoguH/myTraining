@@ -49,7 +49,7 @@ async function contrast(page) {
     }
     // Resolve actual component backgrounds, composing transparency through ancestors.
     // Gradients: evaluate each stop, conservatively using its worst contrast.
-    for(const sel of ['.hdr-home','.hero-t','.hero-s','.card-title','.load-in','.wo-main','.start-wo','.nb-main','.sheet-item','.theme-choice label','.t-big','.wo-rest-lbl','#toast','.wk-chip','.cat-chip','.nchip span','#mchips .m-chip','.m-legend .m-chip','legend','.lc-meta','.lc-meta b','.lc-when','.lc-next','.lc-next-s','.lc-prog-t','.lc-prog-m','.lc-inc','svg text','.vol-l','.vol-v','.hdr-sub','.tag','.cat-q','.cat-close','.cat-name','.cat-meta','.cat-add','.cat-msg','.cat-sub']) {
+    for(const sel of ['.hdr-home','.hero-t','.hero-s','.card-title','.load-in','.wo-main','.start-wo','.nb','.sheet-item','.theme-choice label','.t-big','.wo-rest-lbl','#toast','.wk-chip','.cat-chip','.nchip span','#mchips .m-chip','.m-legend .m-chip','legend','.lc-meta','.lc-meta b','.lc-when','.lc-next','.lc-next-s','.lc-prog-t','.lc-prog-m','.lc-inc','svg text','.vol-l','.vol-v','.hdr-sub','.tag','.cat-q','.cat-close','.cat-name','.cat-meta','.cat-add','.cat-msg','.cat-sub']) {
       for(const el of document.querySelectorAll(sel)) {
         if(!el.checkVisibility({visibilityProperty:true,opacityProperty:true}) || !el.getBoundingClientRect().height) continue;
         // Compose each ancestor's background AND group opacity, from the text outwards.

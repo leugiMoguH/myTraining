@@ -154,9 +154,12 @@ const goPlano = async page => { await page.locator('#bnav').locator('[data-day="
   await shot(page, '9-existente-hoje');
 
   /* histórico continua visível */
-  await page.locator('#bnav').getByText('Histórico').tap();
+  await page.locator('#bnav').getByText('Evolução').tap();
+  await page.locator('.ev-link').filter({hasText:'Histórico'}).tap();
   await page.waitForTimeout(200);
-  check(/Leg press|Segunda|Semana/.test(await page.locator('#content').innerText()), 'existente: Histórico vazio');
+  check(/Treinos recentes/.test(await page.locator('#content').innerText()), 'existente: Histórico vazio');
+  await page.locator('.ev-link').tap();
+  check(/Leg press/.test(await page.locator('#content').innerText()), 'existente: cargas antigas na Evolução');
 
   /* plano novo opcional, com cópia e reposição */
   await goPlano(page);

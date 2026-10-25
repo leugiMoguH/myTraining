@@ -19,6 +19,7 @@
     "test:browser": "node scripts/browser-test.mjs",
     "test:theme": "node scripts/theme-test.mjs",
     "test:dialogs": "node scripts/dialog-test.mjs",
+    "test:nav4": "node scripts/nav-bloco4-test.mjs",
     "test:hoje-b2": "node scripts/hoje-bloco2-test.mjs",
     "test:hoje": "node scripts/hoje-test.mjs",
     "test:onb-choices": "node scripts/onboarding-choices-test.mjs",

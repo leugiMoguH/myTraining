@@ -68,7 +68,7 @@ try {
     assert.equal(await page.locator('#p-height').count(), 0, 'Evolução não devia ter o formulário de Perfil');
     assert.equal(await page.locator('.ob-plan').count(), 0, 'Evolução não devia ter a gestão do plano');
     assert.equal(await page.locator('#bnav .nb.active').getAttribute('data-day'), '__perfil');
-    await page.locator('#bnav').getByText('Histórico').tap();
+    await page.locator('.ev-link').filter({hasText:'Histórico'}).tap();
     assert.equal(await page.locator('.hx-row').count(), 0, 'a lista por exercício saiu do Histórico');
     await page.locator('.ev-link').tap(); assert.equal(await view(page), '__perfil');
     await ctx.close();
@@ -172,7 +172,7 @@ try {
     assert.equal(await page.inputValue('#m-weight'), await st(page, S => String(S.measures[0].weight)), 'o rascunho da medida nova não contamina o registo antigo');
     await page.getByRole('button', { name: /Cancelar edição/ }).tap();
     assert.equal(await page.inputValue('#m-weight'), '66.6', 'o rascunho da medida nova volta depois de cancelar a edição');
-    await page.locator('#bnav').getByText('Início').tap();
+    await page.locator('#bnav').getByText('Hoje').tap();
     await ctx.close();
   });
 
@@ -205,7 +205,7 @@ try {
     const { ctx, page } = await open(390);
     await page.evaluate(async () => { const { startSession } = await import('./js/session.js'); const { ST } = await import('./js/state.js'); startSession(Object.keys(ST.routine).find(k => ST.routine[k].ex.length), 'x'); });
     const id0 = await st(page, S => S.session.id);
-    for (const v of ['__plano', '__eu', '__perfil', '__hist', '__hoje']) {
+    for (const v of ['__plano', '__eu', '__semana', '__perfil', '__hist', '__nutri', '__hoje']) {
       await page.evaluate(x => window.render(x), v);
       assert.equal(await st(page, S => S.session.id), id0); assert.equal(await page.locator('#navLive').isVisible(), true, `faixa de treino em ${v}`);
       const ov = await rects(page, '#navLive, #navRow'); assert(ov.length === 2 && !overlap(ov[0], ov[1]), 'faixa e barra');
@@ -232,7 +232,7 @@ try {
     await ctx.setOffline(true);
     await page.reload({ waitUntil: 'load' });
     for (const v of ['__plano', '__eu', '__perfil']) { await page.evaluate(x => window.render(x), v); assert(await page.locator('#content').innerText().then(t => t.length > 50), v); }
-    assert((await page.evaluate(() => caches.keys())).includes('treino-v47'));
+    assert((await page.evaluate(() => caches.keys())).includes('treino-v48'));
     await ctx.setOffline(false);
     await ctx.close();
   });

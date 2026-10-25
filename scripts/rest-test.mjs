@@ -114,11 +114,11 @@ async function run([w, h, theme]) {
   await tap(page, page.locator('.wo-bar button').first());          /* ‹ Sair */
   await page.locator('#timerBanner.show').waitFor();
   await shot('fora');
-  for (const sel of ['#timerBanner .t-btn.plus', '#timerBanner .t-btn:last-of-type', '#navLive', '#navMain', '#bnav .nb[data-day="__perfil"]', '#bnav .nb[data-day="__hist"]']) {
+  for (const sel of ['#timerBanner .t-btn.plus', '#timerBanner .t-btn:last-of-type', '#navLive', '#navPause', '#bnav .nb[data-day="__perfil"]', '#bnav .nb[data-day="__semana"]']) {
     const p = await probe(page, sel);
     assert.ok(p.ok, where(`${sel} tapado/fora do ecrã (fora do guiado): ${JSON.stringify(p)}`));
   }
-  const [banner, live, fab, nav] = await Promise.all(['#timerBanner', '#navLive', '#navMain', '#bnav'].map(s => rectOf(page, s)));
+  const [banner, live, fab, nav] = await Promise.all(['#timerBanner', '#navLive', '#navPause', '#bnav'].map(s => rectOf(page, s)));
   assert.ok(!overlap(live, fab), where(`o botão central invade a faixa «Em curso»: ${JSON.stringify({ live, fab })}`));
   assert.ok(!overlap(banner, nav), where('banner e barra inferior sobrepostos'));
   const content = await page.evaluate(() => { const c = document.getElementById('content'); const last = [...c.children].pop(); return last ? { pb: parseFloat(getComputedStyle(c).paddingBottom) } : null; });

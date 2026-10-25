@@ -99,7 +99,7 @@ const contrast = (page, sels) => page.evaluate(sels => {
 
 const GUIDED_CONTROLS = '.wo-bar button, .wo-step, .wo-main, .wo-links button, .wo-end, .wo-load input';
 const GUIDED_TEXT = ['.wo-bar button', '.wo-prog', '.wo-prog small', '.wo-name', '.wo-sub', '.wo-lbl', '.wo-main', '.wo-links button', '.wo-end', '.wo-hint', '.wo-rest-lbl', '.wo-rest-next', '.wo-btn'];
-const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
+const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#navPause', '#navLive'];
 
 /* ═══ cenário principal: telemóvel 412 × 915 ═══════════════════════════════ */
 {
@@ -107,8 +107,8 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
   await page.evaluate(() => window.goDay('Segunda'));
 
   /* 1+2. iniciar, e 5 ciclos pausar/retomar com TOQUES; cada toque = uma transição */
-  check(await hit(page, '#navMain'), 'botão central tapado no ecrã normal');
-  await tap(page, '#navMain');
+  check(await hit(page, '.start-wo'), 'iniciar dia acessível');
+  await tap(page, '.start-wo');
   check(await sess(page) === 'ACTIVE' && await page.locator('#woBg.show').count() === 1, 'iniciar: devia dar ACTIVE e abrir o guiado');
   check(!(await page.locator('#bnav').isVisible()), 'no guiado só pode haver uma barra: a geral devia estar escondida');
   await tap(page, '.wo-bar button:has-text("Sair")');
@@ -116,18 +116,18 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
   check(await sess(page) === 'ACTIVE', 'sair da vista não pode terminar a sessão');
   const seq = [];
   for (let i = 0; i < 5; i++) {
-    check(await hit(page, '#navMain'), `ciclo ${i + 1}: botão central tapado`);
-    await tap(page, '#navMain'); seq.push(await sess(page));
-    await tap(page, '#navMain'); seq.push(await sess(page));
+    check(await hit(page, '#navPause'), `ciclo ${i + 1}: botão central tapado`);
+    await tap(page, '#navPause'); seq.push(await sess(page));
+    await tap(page, '#navPause'); seq.push(await sess(page));
   }
   check(seq.join() === Array.from({ length: 5 }, () => 'PAUSED,ACTIVE').join(), `5 ciclos pausar/retomar: cada toque devia dar uma transição (${seq.join('>')})`);
   /* toque longo (o nó do botão não pode ser trocado debaixo do dedo) */
-  await holdTouch(page, ctx, '#navMain', 1600); const aposLongo = await sess(page);
-  await holdTouch(page, ctx, '#navMain', 1600);
+  await holdTouch(page, ctx, '#navPause', 1600); const aposLongo = await sess(page);
+  await holdTouch(page, ctx, '#navPause', 1600);
   check(aposLongo === 'PAUSED' && await sess(page) === 'ACTIVE', 'toque longo (1,6 s) no botão central falhou');
   /* mudar de separador e voltar não perde nada */
-  await tap(page, '.nb[data-day="__hist"]'); await tap(page, '.nb[data-day="__hoje"]');
-  await tap(page, '#navMain'); await tap(page, '#navMain');
+  await tap(page, '.nb[data-day="__semana"]'); await tap(page, '.nb[data-day="__hoje"]');
+  await tap(page, '#navPause'); await tap(page, '#navPause');
   check(await sess(page) === 'ACTIVE', 'depois de navegar o botão central devia continuar a funcionar');
   check(await page.locator('#woBg.show').count() === 0, 'pausar/retomar na barra não abre o guiado sozinhos');
   await page.screenshot({ path: join(SHOTS, 'ux-faixa-em-curso.png') });
@@ -215,7 +215,8 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
 
   /* 8. Histórico e regresso (fecha o guiado primeiro) */
   await tap(page, '.wo-bar button:has-text("Sair")');
-  await tap(page, '.nb[data-day="__hist"]');
+  await tap(page, '.nb[data-day="__semana"]');
+  await tap(page, '.ev-link');
   check(await page.locator('text=Treinos recentes').count() === 1, 'Histórico devia abrir');
   await tap(page, '.nb[data-day="__hoje"]');
   check(await page.locator('.week-strip, .rest-card').count() >= 1, 'Início devia voltar');
@@ -248,13 +249,13 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
 {
   const state = page => page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')));
   const loads = S => Object.values(S.log || {}).flat().reduce((n, e) => n + (e.sets ? e.sets.length : 0), 0);
-  const toDay = async page => { await tap(page, '.nb[data-day="__hist"]'); await tap(page, '.wk-row[data-day="Segunda"], .wk-chip[data-day="Segunda"]'); };
+  const toDay = async page => { await tap(page, '.nb[data-day="__semana"]'); await tap(page, '.wk-row[data-day="Segunda"], .wk-chip[data-day="Segunda"]'); };
   const doSet = async (page, kg = '20') => { await page.fill('#wo-w', kg); await page.fill('#wo-r', '10'); await tap(page, '.wo-main'); };
   /* um ciclo completo com toques; devolve o id da sessão criada */
   async function cycle(page, tag, { rest = false, refresh = false, otherTab = false } = {}) {
     const pre = await state(page);
     await toDay(page);
-    if (pre.session) await tap(page, '#navLive'); else await tap(page, '#navMain');   /* 2.º ciclo: a sessão nova do Play anterior ainda vive */
+    if (pre.session) await tap(page, '#navLive'); else await tap(page, '.start-wo');   /* 2.º ciclo: a sessão nova do Play anterior ainda vive */
     const a = await state(page);
     check(a.session && a.session.state === 'ACTIVE' && a.session.day === 'Segunda' && await page.locator('#woBg.show').count() === 1, `${tag}: Play devia criar sessão ACTIVE e abrir o guiado (${a.session && a.session.state})`);
     const id = a.session && a.session.id;
@@ -270,12 +271,12 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
     check(c.session === null && !(c.sets['Segunda:0'] || []).length && !c.done['Segunda:0'], `${tag}: Reset devia desfazer a sessão e as marcas (sessão=${c.session && c.session.state})`);
     check(!JSON.stringify(c.log).includes(id), `${tag}: as cargas desta sessão não podem sobrar no log`);
     check(await page.evaluate(() => !document.querySelector('#restBanner.show, .rest-banner.show') && !localStorage.getItem('rest_timer')), `${tag}: o descanso devia ter sido limpo`);
-    if (otherTab) { await tap(page, '.nb[data-day="__perfil"]'); await tap(page, '.nb[data-day="__hist"]'); }
+    if (otherTab) { await tap(page, '.nb[data-day="__perfil"]'); await tap(page, '.nb[data-day="__semana"]'); }
     if (refresh) { await page.reload({ waitUntil: 'networkidle' }); }
     await tap(page, '.nb[data-day="__hoje"]');
-    check(await page.evaluate(() => document.getElementById('navMain').dataset.face) === '|▶|Iniciar', `${tag}: o botão devia voltar a "Iniciar"`);
-    check(await hit(page, '#navMain'), `${tag}: botão central tapado depois do Reset`);
-    await tap(page, '#navMain');
+    check(await page.locator('.hero .start-wo').isVisible(), `${tag}: o botão devia voltar a "Iniciar"`);
+    check(await hit(page, '.hero .start-wo'), `${tag}: iniciar depois do Reset`);
+    await tap(page, '.hero .start-wo');
     const d = await state(page);
     check(d.session && d.session.state === 'ACTIVE' && d.session.id !== id && await page.locator('#woBg.show').count() === 1, `${tag}: Play depois do Reset devia iniciar uma sessão NOVA e abrir o guiado`);
     check(!JSON.stringify(d.log).includes(id) && (d.workouts || []).length === 0, `${tag}: sem sessões duplicadas nem presas`);
@@ -310,7 +311,7 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
   for (let i = 1; i <= 2; i++) {
     await seed(); await page.reload({ waitUntil: 'networkidle' });
     await page.evaluate(() => window.render('__pers'));
-    await tap(page, '#navMain');
+    await tap(page, '.start-wo');
     const a = await st();
     check(a.session && a.session.state === 'ACTIVE' && a.session.day === 'Personalizado' && await page.locator('#woBg.show').count() === 1, `personalizado ${i}: Play devia iniciar a sessão e abrir o guiado`);
     ids.push(a.session && a.session.id);
@@ -331,22 +332,22 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
   const state = () => page.evaluate(() => JSON.parse(localStorage.getItem('treino_v2')));
   const asks = []; let answer = true;
   page.__answer = message => { asks.push(message); return answer || !/terminou hoje/.test(message); };
-  const toDay = async () => { await tap(page, '.nb[data-day="__hist"]'); await tap(page, '.wk-row[data-day="Segunda"], .wk-chip[data-day="Segunda"]'); };
-  await toDay(); await tap(page, '#navMain');
+  const toDay = async () => { await tap(page, '.nb[data-day="__semana"]'); await tap(page, '.wk-row[data-day="Segunda"], .wk-chip[data-day="Segunda"]'); };
+  await toDay(); await tap(page, '.start-wo');
   await page.fill('#wo-w', '20'); await page.fill('#wo-r', '10'); await tap(page, '.wo-main');
   await tap(page, '.wo-end');
   const done = await state();
   check(done.session && done.session.state === 'COMPLETED' && done.workouts.length === 1, 'terminar devia deixar a sessão COMPLETED');
   await tap(page, '.nb[data-day="__hoje"]');
   /* 1. terminado hoje + Play: tem de haver resposta (pergunta); recusar não muda nada */
-  answer = false; asks.length = 0; await tap(page, '#navMain');
+  answer = false; asks.length = 0; await page.evaluate(() => window.heroStart('Segunda'));
   check(asks.some(m => /terminou hoje/.test(m)), 'Play num treino terminado hoje ficou mudo (devia perguntar)');
   check((await state()).session.id === done.session.id, 'recusar não devia criar sessão');
   /* 2. Reset do dia: a sessão terminada deixa de bloquear; o Play inicia SEM perguntar; o histórico fica */
   await toDay(); await tap(page, 'button:has-text("Reset")');
   const r = await state();
   check(r.session === null && r.workouts.length === 1, 'Reset devia soltar a sessão terminada e manter o histórico');
-  await tap(page, '.nb[data-day="__hoje"]'); asks.length = 0; await tap(page, '#navMain');
+  await tap(page, '.nb[data-day="__hoje"]'); asks.length = 0; await page.evaluate(() => window.heroStart('Segunda'));
   const p = await state();
   check(p.session && p.session.state === 'ACTIVE' && p.session.id !== done.session.id && await page.locator('#woBg.show').count() === 1, 'Play depois de Reset (treino terminado) devia iniciar sessão nova');
   check(!asks.some(m => /terminou hoje/.test(m)), 'depois do Reset o Play não devia perguntar');
@@ -425,8 +426,8 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#bnav .nb-main', '#navLive'];
   check(JSON.stringify(after.log) === JSON.stringify(ref.log) && JSON.stringify(after.workouts) === JSON.stringify(ref.workouts), 'importar o backup exportado devia manter log e workouts iguais');
 
   /* guiado: referência discreta + PR sem modal, e sem gráficos/tabelas */
-  await tap(page, '.nb[data-day="__hist"]'); await tap(page, '.wk-row[data-day="Segunda"], .wk-chip[data-day="Segunda"]');
-  await tap(page, '#navMain');
+  await tap(page, '.nb[data-day="__semana"]'); await tap(page, '.wk-row[data-day="Segunda"], .wk-chip[data-day="Segunda"]');
+  await tap(page, '.start-wo');
   const prev = await page.locator('.wo-prev').count() ? await txt('.wo-prev') : '';
   check(/^Última vez: \d+(\.\d+)? kg × \d+$/.test(prev), `guiado: devia mostrar "Última vez: …" (${prev})`);
   check(await page.locator('#woBody svg.lc-svg, #woBody table, #woBody .hx').count() === 0, 'guiado: não pode ter gráficos nem tabelas');

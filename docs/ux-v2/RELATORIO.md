@@ -97,3 +97,6 @@ Pendências: chips de 7 dias; z-index 400 da folha. Nenhuma alteração ao prot�
 - **Temporizador do cabeçalho** (− ⏱60s +): só em dia/personalizado/ficha, ou no Hoje com sessão viva ou lista aberta.
 - **Pendências transitórias:** botão central «Iniciar» continua a duplicar o CTA do Hoje até ao Bloco 4; a lista de exercícios aberta empurra a atenção/aulas para baixo; chips dos 7 dias <44 px de largura a 320 (Bloco 5).
 - Capturas: `capturas/bloco2/{antes,depois,comparativos}` (11 estados × 320/360/390/412/1280 × claro/escuro; relógio fixo, dados de demonstração).
+
+## Registo de ordem (2026-10-25)
+Por decisão do dono, o **Bloco 4 (navegação global)** foi antecipado antes do Bloco 3 (Nutrição). Entregue em `treino-v48`: barra Hoje · Semana · Evolução · Nutrição · Mais, sem botão central; pausar/retomar/abrir/descartar na faixa de sessão; Histórico via Evolução ou Mais (2 toques).

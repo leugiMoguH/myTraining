@@ -61,7 +61,7 @@ try {
       await page.screenshot({ path: join(shots, `ux1-${width}-${name}.png`), fullPage: true });
     }
     for (const [name, view] of [['hoje','__hoje'],['dia','Segunda'],['evolucao','__perfil'],['nutricao','__nutri'],['historico','__hist']]) {
-      if (name === 'dia') await page.evaluate(() => window.render('__hist'));
+      if (name === 'dia') await page.evaluate(() => window.render('__semana'));
       await page.evaluate(v => window.render(v), view);
       await inspect(name);
     }

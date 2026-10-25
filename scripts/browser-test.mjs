@@ -132,7 +132,7 @@ await step('arranque', async () => {
 });
 
 await step('tab Semana', async () => {
-  await click('.nb[data-day="__hist"]');
+  await click('.nb[data-day="__semana"]');
   const rows = await page.locator('.wk-row').count();
   if (rows !== 7) throw new Error(`lista da semana com ${rows} dias`);
 });
@@ -144,13 +144,12 @@ for (const day of ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 
   });
 }
 await step('tab Perfil', () => click('.nb[data-day="__perfil"]'));
-await step('Nutricao pelas Opcoes', async () => {
-  await click('[data-day="opts"]');
-  await click('.sheet-item:has-text("Nutrição")');
+await step('Nutricao pela barra', async () => {
+  await click('[data-day="__nutri"]');
   if (!(await page.locator('text=/Nutri/i').count())) throw new Error('ecra de nutricao nao abriu');
 });
 await step('volta a Segunda', async () => {
-  await click('.nb[data-day="__hist"]');
+  await click('.nb[data-day="__semana"]');
   await click('.wk-row[data-day="Segunda"]');
   if (!(await page.locator('.card').count())) throw new Error('sem cartoes na Segunda');
 });
@@ -279,17 +278,17 @@ await step('treino: pausar, fechar a app e reabrir (PAUSED)', async () => {
 await step('nav: navegar com a sessao viva e botao central', async () => {
   await click('.wo-bar button:has-text("Sair")');
   if (!(await visible('#navLive:not([hidden])'))) throw new Error('faixa de treino em curso em falta');
-  for (const d of ['__perfil', '__hist', '__hoje']) {
+  for (const d of ['__perfil', '__semana', '__hoje']) {
     await click(`.nb[data-day="${d}"]`);
     if ((await stSession()).state !== 'ACTIVE') throw new Error(`mudar para ${d} alterou a sessao`);
   }
-  if (!(await page.locator('#navMain').innerText()).includes('Pausar')) throw new Error('botao central devia dizer Pausar');
+  if (!(await page.locator('#navPause').getAttribute('aria-label')).includes('Pausar')) throw new Error('botao central devia dizer Pausar');
   const rest = await page.evaluate(() => localStorage.getItem('rest_timer'));
-  await click('#navMain');
+  await click('#navPause');
   if ((await stSession()).state !== 'PAUSED') throw new Error('central devia pausar');
-  if (!(await page.locator('#navMain').innerText()).includes('Retomar')) throw new Error('central devia dizer Retomar');
+  if (!(await page.locator('#navPause').getAttribute('aria-label')).includes('Retomar')) throw new Error('central devia dizer Retomar');
   if (rest !== (await page.evaluate(() => localStorage.getItem('rest_timer')))) throw new Error('o botao central mexeu no descanso');
-  await click('#navMain');
+  await click('#navPause');
   if ((await stSession()).state !== 'ACTIVE' || (await visible('#woBg.show'))) throw new Error('central so retoma (uma acao = uma transicao); o guiado abre-se pela faixa');
   await click('#navLive');
   if (!(await visible('#woBg.show'))) throw new Error('a faixa Abrir devia abrir o guiado');
@@ -297,7 +296,7 @@ await step('nav: navegar com a sessao viva e botao central', async () => {
 await step('offline: navegar e registar serie', async () => {
   await page.context().setOffline(true);
   await click('.wo-bar button:has-text("Sair")');
-  await click('.nb[data-day="__hist"]');
+  await click('.nb[data-day="__semana"]');
   await click('.nb[data-day="__perfil"]');
   await click('#navLive');
   await page.fill('#wo-w', '52.5'); await page.fill('#wo-r', '8');
@@ -324,8 +323,10 @@ await step('treino: terminar pede confirmacao e nao conclui o dia', async () => 
 });
 await step('nav: terminado nao reinicia sozinho', async () => {
   const n0 = (await tdn()).workouts;
-  await click('.nb[data-day="__perfil"]');
-  await click('#navMain');
+  await click('.nb[data-day="__hoje"]');
+  dialogQueue.push(false);
+  await page.evaluate(async () => { const {ST}=await import('./js/state.js'); window.heroStart(ST.session.day); });
+  await settleDialog(page);
   await page.waitForTimeout(150);
   if ((await stSession()).state !== 'COMPLETED' || (await tdn()).workouts !== n0) throw new Error('o botao central reiniciou/duplicou');
   if (await visible('#woBg.show')) throw new Error('nao devia abrir treino novo');
@@ -393,7 +394,7 @@ await step('sessao de semana anterior: marcas guardadas ate o utilizador termina
 await step('meia-noite: series ficam na data de inicio, numa so entrada', async () => {
   await injetar({ state: 'ACTIVE', day: 'Segunda', date: 'ONTEM', startedAt: Date.now() - 2 * 3600000 }, { sets: {}, done: {} });
   if (!(await visible('#woBg.show'))) throw new Error('sessao recente de ontem devia reabrir');
-  const tapada = await page.evaluate(() => { const r = document.getElementById('navMain').getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!e && !!e.closest('#woBg'); });
+  const tapada = await page.evaluate(() => { const r = document.getElementById('navPause').getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!e && !!e.closest('#woBg'); });
   if (!tapada) throw new Error('a vista guiada devia cobrir a barra (z-index)');
   const sid = (await stSession()).id;
   for (const reps of ['10', '9']) { await page.fill('#wo-w', '30'); await page.fill('#wo-r', reps); await click('.wo-main'); await page.waitForTimeout(450); }
@@ -766,7 +767,7 @@ await step('sugestão de carga e RIR no ecrã do exercício', async () => {
 await goNav('__hoje');
 await page.waitForTimeout(200);
 await page.screenshot({ path: join(SHOTS, 'hoje.png'), fullPage: true });
-await goNav('__hist');
+await goNav('__semana');
 await page.waitForTimeout(200);
 await page.screenshot({ path: join(SHOTS, 'semana.png'), fullPage: true });
 await page.locator('.wk-chip[data-day="Segunda"]').click();

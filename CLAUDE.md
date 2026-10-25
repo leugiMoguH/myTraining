@@ -38,6 +38,7 @@ No build, no bundler, no framework. HTML/CSS estáticos + **ES modules** nativos
 | `volume.js` | volume semanal planeado por grupo muscular |
 | `timer.js` · `wake.js` · `notify.js` | descanso, ecrã ligado, notificações |
 | `sliders.js` · `media.js` · `guide.js` | slider dos cartões, demos por URL, ficha técnica |
+| `nutri-calc.js` · `foods.js` | estimativas e modelo alimentar puros; null preserva dados desconhecidos |
 | `nutrition.js` | nutrição, diário de ingestão, scanner + Open Food Facts |
 | `profile.js` | perfil, medidas, % gordura, macros |
 | `workout.js` | **ecrã** de treino guiado (barra Sair·tempo·Pausar / corpo / dock com kg×reps e a ação principal); descanso em `#woRest` |

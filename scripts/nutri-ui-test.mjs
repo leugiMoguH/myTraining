@@ -13,7 +13,7 @@ const server=createServer((req,res)=>{
  if(!existsSync(file)){res.writeHead(404).end();return;}
  let body=readFileSync(file);
  if(path==='/data/foods-pt.json'&&malformed)body=Buffer.from('invalid json');
- if(path==='/sw.js'&&oldWorker)body=Buffer.from(body.toString().replaceAll('treino-v46','treino-v42'));
+ if(path==='/sw.js'&&oldWorker)body=Buffer.from(body.toString().replaceAll('treino-v47','treino-v42'));
  res.writeHead(200,{'Content-Type':({'.js':'text/javascript','.html':'text/html','.json':'application/json','.svg':'image/svg+xml'})[extname(file)]||'application/octet-stream','Cache-Control':'no-store'}).end(body);
 });
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -136,7 +136,7 @@ try{
   await page.locator('[data-day="-1"]').click();const past=await page.locator('#diary-date').inputValue();
   await choose(page,'pa','banana');assert.match(await page.locator('#food-title').textContent(),new RegExp(past));await saveFood(page);assert.equal((await state(page)).at(-1).date,past);assert.equal(await page.locator('#diary-date').inputValue(),past);await page.locator('[data-today]').click();
   // Offline real: catálogo no CORE, pesquisa, edição e diário após reload.
-  await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(async()=>!!(await (await caches.open('treino-v46')).match('data/foods-pt.json')));
+  await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(async()=>!!(await (await caches.open('treino-v47')).match('data/foods-pt.json')));
   await page.reload({waitUntil:'networkidle'});await ctx.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.evaluate(()=>window.render('__nutri'));
   await choose(page,'pa','maçã');await saveFood(page);await totals(page);
   await page.locator('[data-add="pa"]').click();await page.locator('#foodSheet summary').click();await page.locator('#barcode').fill('12345678');await page.locator('#food-barcode button[type=submit]').click();assert.match(await page.locator('#barcode-status').textContent(),/Sem ligação.*manual/);await page.keyboard.press('Escape');
@@ -165,7 +165,7 @@ try{
   const {ctx,page}=await context();await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(()=>navigator.serviceWorker.controller);
   await page.waitForFunction(async()=>!!(await (await caches.open('treino-v42')).match('data/foods-pt.json')));
   oldWorker=false;await page.evaluate(async()=>{const r=await navigator.serviceWorker.getRegistration();await r.update();});
-  await page.waitForFunction(async()=>{const keys=await caches.keys();return keys.includes('treino-v46')&&!keys.includes('treino-v42');});
+  await page.waitForFunction(async()=>{const keys=await caches.keys();return keys.includes('treino-v47')&&!keys.includes('treino-v42');});
   await ctx.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.evaluate(()=>window.render('__nutri'));await choose(page,'pa','banana');await saveFood(page);await ctx.close();console.log('OK atualização SW v42 → v43 e offline');
  }
  assert.deepEqual(errors,[]);console.log('OK zero erros de consola');

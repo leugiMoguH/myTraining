@@ -209,7 +209,7 @@ try {
   await test('SW v32 em cache abre modal offline',async()=>{
     await page.evaluate(async()=>{await navigator.serviceWorker.ready;});
     await page.reload({waitUntil:'networkidle'});await page.evaluate(async()=>{window.M={dialog:await import('./js/dialog.js')};});
-    assert((await page.evaluate(()=>caches.keys())).includes('treino-v46'));
+    assert((await page.evaluate(()=>caches.keys())).includes('treino-v47'));
     await context.setOffline(true);await open();await choose('Confirmar');assert.equal(await result(),true);await context.setOffline(false);
   });
   assert.deepEqual(errors,[]);

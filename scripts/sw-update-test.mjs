@@ -51,7 +51,12 @@ await page.waitForFunction(async ([o, n]) => { const k = await caches.keys(); re
 await page.reload({ waitUntil: 'networkidle' });
 const after = await snap();
 assert(after === before, 'dados/sessão/descanso mudaram com a atualização do SW');
+await page.waitForFunction(async n => { const k = await caches.keys(); return k.length === 1 && k[0] === n; }, NEW, { timeout: 5000 });
 assert.deepEqual(await caches_(), [NEW], 'cache antiga não saiu');
+/* cache antiga recriada por um SW em fim de vida com um ficheiro VELHO/estragado: a nova versão não pode servi-lo */
+await page.evaluate(async old => { const c = await caches.open(old); await c.put('js/ui.js', new Response('throw new Error("ficheiro velho")', { headers: { 'Content-Type': 'text/javascript' } })); await c.put('index.html', new Response('<h1>velho</h1>', { headers: { 'Content-Type': 'text/html' } })); }, OLD);
+await page.reload({ waitUntil: 'networkidle' });
+assert(await page.evaluate(() => document.getElementById('content').children.length > 0 && !document.body.textContent.includes('velho')), 'serviu ficheiro de cache antiga');
 assert.deepEqual(errors, []);
 await browser.close(); server.close();
 console.log(`OK — SW ${OLD} → ${NEW}: histórico, sessão em curso, plano, preferências e descanso intactos; cache antiga removida.`);

@@ -21,6 +21,7 @@ No build, no bundler, no framework. HTML/CSS estáticos + **ES modules** nativos
 | Módulo | Responsabilidade |
 |---|---|
 | `app.js` | ponto de entrada: constrói os separadores, primeiro `render`, regista o SW |
+| `version.js` / `about.js` | versão do código em execução; diagnóstico SW/servidor, atualização e reposição de ficheiros sem tocar nos dados |
 | `bridge.js` | põe os handlers inline no `window` — **ver aviso abaixo** |
 | `state.js` | `ST` (localStorage `treino_v2`), `save()`, migrações, log de carga, séries feitas |
 | `data.js` | `DEFAULT_DAYS` — plano original, só a **semente** da rotina |

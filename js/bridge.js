@@ -1,3 +1,4 @@
+import { openAbout } from './about.js';
 import { show } from './notice.js';
 import { setThemePref } from './theme.js';
 /* myTraining — ponte para os handlers inline (onclick="...") do HTML.
@@ -29,6 +30,7 @@ import { obDiscard, obApply, obBack, obClose, obDay, obEquip, obLimit, obName, o
 import { closeWorkout, startWorkout, woDoSet, woFinish, woGo, woInfo, woPause, woStep, woSwap, woUndo } from './workout.js';
 
 Object.assign(window, {
+  openAbout,
   adAccept, adAlt, adDismiss, adQuick, adUndo,
   mvClose, mvDetails, mvOpen, mvWeek,
   clClose, clConflict, clDelete, clKeep, clMark, clMoveStep, clMoveTo, clMoveWeek, clMovePerm, clPast, clPastSet, clPastSave, clOpen, clReopen, clReplace, clSave, clSet, clText,
@@ -115,7 +117,7 @@ Object.assign(window, {
 });
 
 /* Os handlers devolvem Promises sem rejeições por tratar. */
-for (const name of ['heroStart','startWorkout','woFinish','cuFinish','cuDiscard','cuSuggest','edRemove','edReset','hxDelSet','hxDelDay','delMeasure','resetDay','obApply','obUndoPlan','importBackup','addMedia','scanBarcode','enableNotif','clMovePerm','clDelete','clPastSave']) {
+for (const name of ['openAbout','heroStart','startWorkout','woFinish','cuFinish','cuDiscard','cuSuggest','edRemove','edReset','hxDelSet','hxDelDay','delMeasure','resetDay','obApply','obUndoPlan','importBackup','addMedia','scanBarcode','enableNotif','clMovePerm','clDelete','clPastSave']) {
   const handler=window[name];
   window[name]=(...args)=>{ try { return Promise.resolve(handler(...args)).catch(e=>show(e?.message || 'Não foi possível concluir a ação.', 'error')); } catch(e) { show(e?.message || 'Não foi possível concluir a ação.', 'error'); } };
 }

@@ -22,9 +22,9 @@ for(const [width,height] of [[320,568],[360,640],[390,844],[412,915]]) for(const
  await tab.click();await page.waitForTimeout(260);
  const close=page.getByRole('button',{name:'Fechar',exact:true});await assert.doesNotReject(()=>close.waitFor());assert(await close.evaluate(e=>e===document.activeElement));
  const box=await close.boundingBox();assert(box.width>=44&&box.height>=44);
- assert.equal(await page.locator('#sheetBg .sheet-item').count(),10);
+ assert.equal(await page.locator('#sheetBg .sheet-item').count(),11);
  assert.equal(await page.locator('#sheetTitle').innerText(),'Mais');
- assert.deepEqual(await page.locator('#sheetBg h3.sheet-sub').allTextContents(),['Ir para','Aparência','Aplicação','Dados']);
+ assert.deepEqual(await page.locator('#sheetBg h3.sheet-sub').allTextContents(),['Ir para','Aparência','Aplicação','Dados','Sobre']);
  assert(await page.locator('#sheetBg .sheet-item, #sheetBg .theme-choice label').evaluateAll(es=>es.every(e=>e.getBoundingClientRect().height>=44)));
  assert.equal(await page.locator('#sheetBg #wakeNote').count(),1);
  for(const handler of ['__plano','__eu','__nutri','toggleWake','enableNotif','exportBackup','importFile','exportMeasuresCSV','exportIntakeCSV','exportLoadCSV'])assert.equal(await page.locator(`#sheetBg .sheet-item[onclick*="${handler}"]`).count(),1);

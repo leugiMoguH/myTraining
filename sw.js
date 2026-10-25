@@ -2,7 +2,7 @@
    Shell em cache para funcionar offline.
    Navegação: network-first (apanha updates quando online).
    Assets/imagens: cache-first (rápido e funciona sem rede). */
-const CACHE = 'treino-v46';
+const CACHE = 'treino-v47';
 /* instructions.en.json (610 KB) fica de fora: só é preciso ao abrir uma ficha,
    e o handler cache-first abaixo guarda-o na primeira vez que for pedido. */
 const CORE = [
@@ -20,6 +20,8 @@ const CORE = [
   './js/migrate.js',
   './js/notice.js',
   './js/dialog.js',
+  './js/version.js',
+  './js/about.js',
   './js/overlay.js',
   './js/inline-error.js',
   './js/onboarding.js',
@@ -85,13 +87,19 @@ self.addEventListener('activate', e => {
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
+      /* o SW antigo ainda pode ter recriado a sua cache entre apagar e assumir o controlo: apaga de novo */
+      .then(() => caches.keys()).then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
   );
 });
+
+/* só a cache DESTA versão: `caches.match` global podia servir ficheiros velhos de uma cache antiga recriada por um SW em fim de vida */
+const fromCache = req => caches.open(CACHE).then(c => c.match(req));
 
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const sameOrigin = new URL(req.url).origin === location.origin;
+  if (sameOrigin && new URL(req.url).pathname.endsWith('/sw.js')) return;   // o próprio SW nunca vem da cache: a verificação de versão vai sempre à rede
   if (sameOrigin && new URL(req.url).pathname.includes('/docs/')) return;   // demonstrações/documentação: nunca passam pela cache da app
 
   // HTML / navegação (same-origin) → network-first com fallback à cache (offline)
@@ -99,7 +107,7 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       fetch(req)
         .then(res => { const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)); return res; })
-        .catch(() => caches.match(req).then(m => m || caches.match('./index.html')))
+        .catch(() => fromCache(req).then(m => m || fromCache('./index.html')))
     );
     return;
   }
@@ -107,7 +115,7 @@ self.addEventListener('fetch', e => {
   // assets same-origin + imagens de qualquer origem (ex.: CDN das demos) → cache-first
   if (sameOrigin || req.destination === 'image') {
     e.respondWith(
-      caches.match(req).then(m => m || fetch(req).then(res => {
+      fromCache(req).then(m => m || fetch(req).then(res => {
         if (res && (res.status === 200 || res.type === 'opaque')) {
           const cp = res.clone();
           caches.open(CACHE).then(c => c.put(req, cp));
@@ -117,4 +125,9 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
+});
+
+self.addEventListener('message', e => {
+  if (e.data === 'version') e.source?.postMessage({ type: 'version', cache: CACHE });
+  if (e.data === 'skipWaiting') e.waitUntil(self.skipWaiting());
 });

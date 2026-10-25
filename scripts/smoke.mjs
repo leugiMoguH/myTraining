@@ -38,6 +38,8 @@ globalThis.localStorage = {
 Object.defineProperty(globalThis, 'navigator', {
   value: { vibrate() {}, mediaDevices: undefined }, configurable: true, writable: true,
 });
+globalThis.sessionStorage = { getItem: () => null };
+
 globalThis.alert = () => {};
 globalThis.addEventListener = () => {};
 globalThis.confirm = () => false;
@@ -476,6 +478,7 @@ const exportsOf = {};
 for (const f of files) {
   const m = read(f).match(/^export \{([\s\S]*?)\};$/m);   /* o bloco pode ocupar várias linhas */
   exportsOf[f] = new Set(m ? m[1].split(',').map(s => s.trim()).filter(Boolean) : []);
+  for (const direct of read(f).matchAll(/^export (?:const|let|function|class) (\w+)/gm)) exportsOf[f].add(direct[1]);
 }
 for (const f of files)
   for (const m of read(f).matchAll(/^import \{([\s\S]*?)\} from '\.\/(.+?)';$/gm))
@@ -634,6 +637,7 @@ for (const f of files)
 }
 
 /* ── resultado ───────────────────────────────────────────────────────────── */
+if (typeof window.openAbout !== 'function') fail.push('openAbout em falta na ponte');
 if (fail.length) { console.error('FALHOU:\n  ' + fail.join('\n  ')); process.exit(1); }
 console.log(`OK — ${files.length} módulos, ${screens.length} ecrãs, ${handlers.size} handlers, catálogo com ${(await import(new URL('catalog.js', JS))).all().length} exercícios.`);
 process.exit(0);   /* os intervalos da navegação mantinham o processo vivo */

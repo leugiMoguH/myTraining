@@ -9,6 +9,7 @@
     "test:nutri": "node scripts/nutri-test.mjs",
     "test:nutri-ui": "node scripts/nutri-ui-test.mjs",
     "test:nutri-gfx": "node scripts/nutri-gfx-test.mjs",
+    "test:version": "node scripts/version-test.mjs",
     "smoke": "node scripts/smoke.mjs",
     "build:www": "node scripts/build-www.mjs",
     "android:add": "npm run build:www && npx cap add android",

@@ -2,7 +2,7 @@ import { confirmDialog } from './dialog.js';
 import { fieldError } from './inline-error.js';
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { chartSVG } from './charts.js';
-import { calcTargets } from './nutrition.js';
+import { referencesHTML } from './nutrition.js';
 import { ST, fmtDateTime, fmtTime, nowISO, save, todayStr } from './state.js';
 import { prefsSummaryHTML } from './onboarding.js';
 import { exerciseListHTML } from './history.js';
@@ -217,23 +217,14 @@ function measuresHistoryHTML(){
 }
 
 function macrosSummaryHTML(){
-  const b=bodyMetrics();
-  if(!(b.age>0 && b.height>0 && b.weight>0)) return `<div class="nsec-title">Macros &amp; metas</div><div class="ndisc">Preenche idade + altura aqui e regista o peso em Evolução para calcular as metas.</div>`;
-  const t=calcTargets(b), goalTxt={perder:'perder gordura',manter:'manter',ganhar:'ganhar músculo'}[b.goal]||b.goal;
-  return `<div class="nsec-title">Macros &amp; metas</div>
-  <div class="ntargets">
-    <div class="ntar"><span class="ntar-v">${t.kcal}</span><span class="ntar-l">kcal/dia</span></div>
-    <div class="ntar"><span class="ntar-v">${t.protein}g</span><span class="ntar-l">proteína</span></div>
-    <div class="ntar"><span class="ntar-v">${t.water}L</span><span class="ntar-l">água</span></div>
-  </div>
-  <div class="nmacros">Hidratos ~${t.carbG}g · Gordura ~${t.fatG}g · objetivo: ${goalTxt}</div>
-  <button class="reset-btn btn-secondary" onclick="render('__nutri')">🥗 Abrir Nutrição</button>`;
+  return referencesHTML(bodyMetrics())+`<button class="reset-btn btn-secondary" onclick="render('__nutri')">🥗 Abrir Nutrição</button>`;
 }
+
 const backHTML=`<button class="reset-btn btn-ghost hx-back" onclick="render('__hoje')">‹ Início</button>`;
-/* só o formulário que está desenhado: medida nova OU a que se está a editar (nunca a nova por cima de um registo antigo) */
+/* Só o formulário desenhado: medida nova ou a que está a ser editada. */
 const measureKey=()=>'measure:'+(MEASURE_EDIT_DATE||'new');
 
-/* Perfil ('__eu'): quem és (dados pessoais, preferências de treino) e as metas que daí saem */
+/* Perfil: dados pessoais, preferências de treino e referências. */
 function renderProfile(content){
   validateDrafts();
   content=content||document.getElementById('content');

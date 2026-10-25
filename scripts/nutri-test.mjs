@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import { bmrMifflin, energyEstimate, references } from '../js/nutri-calc.js';
+import { nutrient, scaleFood, sumEntries, parseOff } from '../js/foods.js';
+const m={sex:'m',weight:80,height:180,age:30,activity:'mod'};
+const f={sex:'f',weight:60,height:165,age:30,activity:'leve'};
+assert.equal(bmrMifflin(m),1780);
+assert.equal(bmrMifflin(f),1320.25);
+assert.equal(energyEstimate(m),1780*1.55);
+const r=references(m);
+assert.deepEqual(r.protein.range,[128,176]);
+assert.deepEqual(r.fat.range,[r.energy.value*.2/9,r.energy.value*.35/9]);
+assert.deepEqual(r.carbs.range,[r.energy.value*.45/4,r.energy.value*.6/4]);
+assert.equal(r.water.value,2.5); assert.equal(references(f).water.value,2);
+for(const p of [null,{}, {...m,age:17},{...m,age:66},{...m,weight:NaN},{...m,height:0},{...m,sex:'x'},{...m,activity:'x'},{...m,activity:'constructor'}]) {
+ assert.equal(energyEstimate(p),null); assert.equal(references(p).applicable,false);
+}
+for(const age of [18,65]) assert.equal(references({...m,age}).applicable,true);
+for(const v of ['',null,undefined,-1,Infinity,'abc',false,[],{}]) assert.equal(nutrient(v),null);
+assert.equal(nutrient(0),0);
+const food={ref:{amount:100,unit:'g'},nutrients:{kcal:120,protein:10,salt:0}};
+const n=scaleFood(food,150); assert.equal(n.kcal,180);assert.equal(n.protein,15);assert.equal(n.fibre,null);assert.equal(n.salt,0);
+const t=sumEntries([{kcal:100,protein:3},{kcal:null,protein:0,n:{carbs:10}}]);
+assert.equal(t.kcal,100);assert.equal(t.missing.kcal,1);assert.equal(t.protein,3);assert.equal(t.carbs,10);assert.equal(t.fat,null);assert.equal(t.missing.fat,2);
+assert.equal(sumEntries([]).kcal,null);
+assert.equal(parseOff({status:0}),null);
+const off=parseOff({status:1,product:{code:'123',last_modified_t:42,nutriments:{'energy-kcal_100g':0,sodium_100g:200,sodium_unit:'mg'}}});
+assert.equal(off.nutrients.salt,.5);assert.equal(off.nutrients.kcal,0);assert.equal(off.nutrients.protein,null);assert.equal(off.version,42);assert.match(off.notes,/sódio/);
+assert.equal(parseOff({status:1,product:{nutriments:{salt_100g:0,sodium_100g:2}}}).nutrients.salt,0);
+assert.equal(parseOff({status:1,product:{product_quantity_unit:'ml'}}).ref.unit,'ml');
+assert.equal(parseOff({status:1,product:{nutrition_data_per:'100ml'}}).ref.unit,'ml');
+console.log('OK Nutrição: Mifflin, âmbito, intervalos, escala, null, legados e OFF');

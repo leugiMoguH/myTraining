@@ -1,3 +1,5 @@
+import { references, energyEstimate } from './nutri-calc.js';
+import { NUTRIENTS, nutrient, scaleFood, sumEntries, entryNutrients, parseOff } from './foods.js';
 import { openOverlay, closeOverlay } from './overlay.js';
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { chartSVG } from './charts.js';
@@ -16,17 +18,14 @@ const SUPPS=['Whey','Creatina','Multivitamínico','Ómega-3','Magnésio'];
 let NUTRI_EDIT=false;
 
 function calcTargets(p){
-  const bmr=10*p.weight+6.25*p.height-5*p.age+(p.sex==='m'?5:-161);
-  const af={sed:1.2,leve:1.375,mod:1.55,alto:1.725}[p.activity]||1.375;
-  const tdee=bmr*af;
-  const adj={perder:-0.18,manter:0,ganhar:0.12}[p.goal]||0;
-  const kcal=Math.round((tdee*(1+adj))/10)*10;
-  const ppk={perder:2.0,manter:1.8,ganhar:2.0}[p.goal]||1.8;
-  const protein=Math.round(p.weight*ppk);
-  const water=Math.round(p.weight*0.035*10)/10;
-  const fatG=Math.round(p.weight*0.9);
-  const carbG=Math.max(0,Math.round((kcal-protein*4-fatG*9)/4));
-  return {kcal,protein,water,fatG,carbG};
+  const r=references(p);
+  return r.applicable ? {kcal:energyEstimate(p),protein:1.8*p.weight,water:r.water.value,fatG:(r.fat.range[0]+r.fat.range[1])/2,carbG:(r.carbs.range[0]+r.carbs.range[1])/2} : {kcal:null,protein:null,water:null,fatG:null,carbG:null};
+}
+function referencesHTML(p){
+  const r=references(p);
+  if(!r.applicable) return `<div class="ndisc">${esc(r.reason)}</div>`;
+  const labels={energy:'Energia de manutenção (kcal/dia)',protein:'Proteína (g/dia)',fat:'Gordura (g/dia)',carbs:'Hidratos (g/dia)',fibre:'Fibra (g/dia)',water:'Água total (L/dia)',salt:'Sal (g/dia)',sugars:'Açúcares livres (informação)'};
+  return `<div class="nsec-title">Estimativa · referências</div>`+Object.keys(labels).map(k=>{const x=r[k]; return `<div class="ndisc">${labels[k]}: <b>${x.range?x.range.map(v=>Math.round(v)).join('–'):x.value===null?'—':k==='salt'?'&lt;5':Math.round(x.value*10)/10}</b><details><summary>Fonte · ${esc(x.fonte)}</summary>${esc(x.nota)}</details></div>`;}).join('');
 }
 
 function mealPlan(p){
@@ -53,78 +52,89 @@ function shopping(p){
 }
 
 /* ── DIÁRIO DE INGESTÃO ───────────────────────────── */
-const FOODS=[
-  {n:'Frango grelhado (100g)',k:165,p:31},{n:'Atum lata (100g)',k:130,p:29},
-  {n:'Ovo (1)',k:78,p:6},{n:'Arroz cozido (100g)',k:130,p:2.7},
-  {n:'Massa cozida (100g)',k:158,p:5.8},{n:'Batata-doce (100g)',k:86,p:1.6},
-  {n:'Aveia (40g)',k:150,p:5},{n:'Iogurte natural (1)',k:90,p:9},
-  {n:'Whey (1 scoop)',k:120,p:24},{n:'Banana (1)',k:105,p:1.3},
-  {n:'Pão (1 fatia)',k:80,p:3},{n:'Queijo fresco (100g)',k:110,p:11}
-];
-function addIntake(name,kcal,protein){
-  name=(name||'').trim(); kcal=parseFloat(kcal)||0; protein=parseFloat(protein)||0;
-  if(!name && !kcal) return false;
-  const item={ id:'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), ts:nowISO(), date:todayStr(), name:name||'Item', kcal, protein };
-  ST.intake=(ST.intake||[]).concat([item]);
-  save(); return true;
+let FOODS=[], foodsLoad=null, selectedFood=null;
+const nutrientLabels={kcal:'Energia (kcal)',protein:'Proteína (g)',carbs:'Hidratos (g)',fat:'Gordura (g)',fibre:'Fibra (g)',sugars:'Açúcares totais (g)',salt:'Sal (g)'};
+const inputId=k=>k==='protein'?'i-prot':'i-'+k;
+const display=v=>v===null||v===undefined?'—':String(Math.round(v*10)/10);
+function totalText(t,k){return display(t[k])+(t.missing[k]?` + ${t.missing[k]} sem dado`:'');}
+function loadFoods(){
+  if(!foodsLoad) foodsLoad=fetch('data/foods-basic.json').then(r=>r.ok?r.json():null).then(j=>{FOODS=Array.isArray(j?.foods)?j.foods.filter(f=>f?.name&&f?.ref&&f?.nutrients):[];}).catch(()=>{FOODS=[];}).then(()=>{
+    const box=document.getElementById('basic-foods'); if(box) box.innerHTML=foodsHTML();
+  });
 }
-function delIntake(id){ ST.intake=(ST.intake||[]).filter(x=>x.id!==id); save(); renderNutri(); }
-function intakeToday(){ const t=todayStr(); return (ST.intake||[]).filter(x=>x.date===t); }
-function intakeTotals(list){ return list.reduce((a,x)=>({kcal:a.kcal+(+x.kcal||0),protein:a.protein+(+x.protein||0)}),{kcal:0,protein:0}); }
+function foodsHTML(){return FOODS.map((f,k)=>`<button type="button" class="qfood" onclick="fillIntake(${k})">${esc(f.name)}${f.state?' · '+esc(f.state):''}</button>`).join('');}
+function addIntake(name,kcal,protein,extra={}){
+  name=(name||'').trim(); kcal=nutrient(kcal); protein=nutrient(protein);
+  if(!name && kcal===null) return false;
+  const item={...extra,id:'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),ts:nowISO(),date:todayStr(),name:name||'Item',kcal,protein};
+  ST.intake=(ST.intake||[]).concat([item]); save(); return true;
+}
+function delIntake(id){ST.intake=(ST.intake||[]).filter(x=>x.id!==id);save();renderNutri();}
+function intakeToday(){return (ST.intake||[]).filter(x=>x.date===todayStr());}
+function intakeTotals(list){return sumEntries(list);}
 function intakeDailySeries(){
-  const by={}; (ST.intake||[]).forEach(x=>{ by[x.date]=(by[x.date]||0)+(+x.kcal||0); });
-  return Object.keys(by).sort().map(d=>({date:d,v:Math.round(by[d])}));
+  const by={}; (ST.intake||[]).forEach(x=>(by[x.date]??=[]).push(x));
+  return Object.keys(by).sort().map(date=>({date,v:sumEntries(by[date]).kcal,missing:sumEntries(by[date]).missing.kcal}));
 }
-function fillIntake(k){ const f=FOODS[k]; if(!f) return; const set=(id,v)=>{const el=document.getElementById(id); if(el) el.value=v;}; set('i-name',f.n); set('i-kcal',f.k); set('i-prot',f.p); }
+function clearSelectedFood(){
+  selectedFood=null; document.getElementById('i-unit').textContent='g'; updatePreview();
+}
+function selectFood(f){
+  selectedFood=f; document.getElementById('i-name').value=f.name;
+  document.getElementById('i-grams').value=100;
+  document.getElementById('i-unit').textContent=f.ref.unit;
+  NUTRIENTS.forEach(k=>{document.getElementById(inputId(k)).value=f.nutrients[k]??'';}); updatePreview();
+}
+function fillIntake(k){if(FOODS[k]) selectFood(FOODS[k]);}
+function formFood(){return selectedFood||{ref:{amount:100,unit:'g'},nutrients:Object.fromEntries(NUTRIENTS.map(k=>[k,nutrient(document.getElementById(inputId(k)).value)]))};}
+function foodNote(food){
+  const notes=food?.notes;
+  return typeof notes==='string'?notes:notes&&typeof notes==='object'?Object.entries(notes).map(([k,v])=>`${nutrientLabels[k]||k}: ${v}`).join(' · '):'';
+}
+function updatePreview(){
+  const f=formFood(), n=scaleFood(f,document.getElementById('i-grams').value);
+  document.getElementById('i-preview').textContent='Estimativa para a quantidade: '+NUTRIENTS.map(k=>nutrientLabels[k]+': '+display(n[k])).join(' · ');
+  document.getElementById('i-source').textContent=selectedFood?`${f.source} · ${f.sourceId} · versão ${f.version??'não indicada'} · ${foodNote(f)}`:'Entrada manual: valores por 100 g indicados por ti.';
+}
 function addIntakeUI(){
-  const v=id=>{const el=document.getElementById(id); return el?el.value:'';};
-  if(addIntake(v('i-name'),v('i-kcal'),v('i-prot'))) renderNutri();
+  const g=nutrient(document.getElementById('i-grams').value);
+  if(!g){fieldError('i-grams','Indica uma quantidade superior a zero.');return;}
+  const f=formFood(), n=scaleFood(f,g);
+  const extra={g,unit:f.ref.unit,src:selectedFood?.source||'manual',sid:selectedFood?.sourceId??null,ver:selectedFood?.version??null,note:foodNote(selectedFood),n:Object.fromEntries(NUTRIENTS.filter(k=>k!=='kcal'&&k!=='protein').map(k=>[k,n[k]]))};
+  if(addIntake(document.getElementById('i-name').value,n.kcal,n.protein,extra)) renderNutri();
   else fieldError('i-name','Indica pelo menos um nome ou as kcal.');
 }
+function entryHTML(x){
+  const n=entryNutrients(x);
+  const source=x.src?`${x.src} · ${x.sid??'sem identificador'} · versão ${x.ver??'não indicada'}${x.note?' · '+x.note:''}`:'Registo anterior: fonte não indicada.';
+  return `<div class="iitem" style="flex-wrap:wrap"><div class="iitem-main"><span class="iitem-n">${esc(x.name)}</span><span class="iitem-t">${fmtTime(x.ts)}${x.g?' · '+display(x.g)+' '+esc(x.unit):''}</span></div><div class="iitem-r"><span>${display(n.kcal)} kcal · ${display(n.protein)} g proteína</span><button class="iitem-x" onclick="delIntake('${esc(x.id)}')" aria-label="Remover">✕</button></div><details class="ndisc" style="width:100%;overflow-wrap:anywhere"><summary>Estimativa · fonte e nutrientes</summary>${esc(source)}<br>${NUTRIENTS.filter(k=>n[k]!==null).map(k=>`${nutrientLabels[k]}: ${display(n[k])}`).join(' · ')}</details></div>`;
+}
+function totalsHTML(list){
+  const t=sumEntries(list);
+  return `<div class="ndisc">Estimativa · total registado: ${NUTRIENTS.filter(k=>k==='kcal'||k==='protein'||list.some(x=>entryNutrients(x)[k]!==null)).map(k=>`${nutrientLabels[k]}: ${totalText(t,k)}`).join(' · ')}</div>`;
+}
 function intakeHTML(){
-  const list=intakeToday().slice().sort((a,b)=>(a.ts||'')<(b.ts||'')?-1:1);
-  const tot=intakeTotals(list);
-  const b=bodyMetrics(), tgt=(b.age>0&&b.height>0&&b.weight>0)?calcTargets(b):null;
-  const kPct=tgt?Math.min(100,Math.round(tot.kcal/tgt.kcal*100)):0;
-  const pPct=tgt?Math.min(100,Math.round(tot.protein/(tgt.protein||1)*100)):0;
-  const series=intakeDailySeries();
-  return `
-  <div class="nsec-title">📋 Hoje · diário alimentar</div>
-  ${ tgt ? `<div class="iprog">
-    <div class="iprog-row"><span>Calorias</span><span><b>${Math.round(tot.kcal)}</b> / ${tgt.kcal} kcal</span></div>
-    <div class="ibar"><div class="ibar-fill${tot.kcal>tgt.kcal?' over':''}" style="width:${kPct}%"></div></div>
-    <div class="iprog-row"><span>Proteína</span><span><b>${Math.round(tot.protein)}</b> / ${tgt.protein} g</span></div>
-    <div class="ibar"><div class="ibar-fill prot" style="width:${pPct}%"></div></div>
-  </div>` : `<div class="ndisc">Completa o Perfil para veres o progresso vs metas.</div>` }
-  <div class="iadd">
-    <input id="i-name" class="nfree" placeholder="alimento">
-    <input id="i-kcal" class="nfree inum" type="number" inputmode="numeric" placeholder="kcal">
-    <input id="i-prot" class="nfree inum" type="number" inputmode="numeric" placeholder="prot">
-    <button class="load-chart-btn" onclick="scanBarcode()" aria-label="Ler código de barras" title="Ler código de barras">📷</button>
-    <button class="load-save" onclick="addIntakeUI()">+ Add</button>
+  const list=intakeToday(), series=intakeDailySeries(), known=series.filter(p=>p.v!==null);
+  return `<div class="nsec-title">Hoje · diário alimentar</div>${totalsHTML(list)}
+  <div class="ndisc">Dados de produtos podem estar incompletos; confirma alergénios no rótulo.</div>
+  <div class="iadd" style="flex-wrap:wrap">
+    <label>Alimento<input id="i-name" class="nfree" placeholder="alimento"></label>
+    <label>Quantidade (<span id="i-unit">g</span>)<input id="i-grams" class="nfree inum" type="number" min="0" step="any" value="100"></label>
+    <div class="ndisc" style="width:100%">Valores de referência por 100 g ou 100 ml, conforme a fonte. Entrada manual em gramas.</div>
+    ${NUTRIENTS.map(k=>`<label>${nutrientLabels[k]}<input id="${inputId(k)}" class="nfree inum" type="number" min="0" step="any" placeholder="sem dado"></label>`).join('')}
+    <button class="load-chart-btn" onclick="scanBarcode()" aria-label="Ler código de barras">📷</button>
+    <button class="load-save" onclick="addIntakeUI()">Registar</button>
   </div>
-  <form id="barcodeForm" class="barcode-form">
-    <label class="nfield" for="barcode">Código de barras</label>
-    <div class="barcode-row"><input id="barcode" class="nfree" inputmode="numeric" autocomplete="off" aria-describedby="barcode-help"><button class="btn-secondary" type="submit">Pesquisar</button></div>
-    <div id="barcode-help" class="ndisc">Escreve o código ou usa a câmara. Também podes preencher o alimento manualmente.</div>
-    <div id="barcode-status" class="inline-error" role="status" aria-live="polite"></div>
-  </form>
-  <div class="qfoods">${FOODS.map((f,k)=>`<button type="button" class="qfood" onclick="fillIntake(${k})">${f.n}</button>`).join('')}</div>
-  ${ list.length ? `<div class="ilist">${list.map(x=>`<div class="iitem"><div class="iitem-main"><span class="iitem-n">${esc(x.name)}</span><span class="iitem-t">${fmtTime(x.ts)}</span></div><div class="iitem-r"><span>${Math.round(x.kcal)}kcal · ${Math.round(x.protein)}g</span><button class="iitem-x" onclick="delIntake('${x.id}')" aria-label="Remover">✕</button></div></div>`).join('')}</div>` : '<div class="ndisc">Ainda nada registado hoje.</div>' }
-  ${ series.length>1 ? `<div class="lc">${chartSVG(series.map(p=>p.v))}<div class="lc-meta"><span><b>${Math.round(tot.kcal)}</b> kcal hoje</span><span class="lc-range">${series.length} dias registados</span></div></div>` : '' }
+  <div id="i-preview" class="ndisc"></div><details class="ndisc"><summary>Estimativa · fonte do alimento</summary><span id="i-source">Entrada manual.</span></details>
+  <form id="barcodeForm" class="barcode-form"><label class="nfield" for="barcode">Código de barras</label><div class="barcode-row"><input id="barcode" class="nfree" inputmode="numeric"><button class="btn-secondary" type="submit">Pesquisar</button></div><div id="barcode-status" class="inline-error" role="status" aria-live="polite"></div></form>
+  <div id="basic-foods" class="qfoods">${foodsHTML()}</div>
+  ${list.length?`<div class="ilist">${list.map(entryHTML).join('')}</div>`:'<div class="ndisc">Ainda nada registado hoje.</div>'}
+  ${known.length>1?`<div class="lc">${chartSVG(known.map(p=>p.v))}<div class="ndisc">Energia registada (estimativa): ${series.map(p=>`${esc(p.date)}: ${display(p.v)} kcal${p.missing?' + '+p.missing+' sem dado':''}`).join(' · ')}. Dias sem dados não entram no gráfico.</div></div>`:''}
   ${intakeHistoryHTML()}`;
 }
 function intakeHistoryHTML(){
-  const t=todayStr(), byDate={};
-  (ST.intake||[]).forEach(x=>{ if(x.date!==t){ (byDate[x.date]=byDate[x.date]||[]).push(x); } });
-  const dates=Object.keys(byDate).sort().reverse().slice(0,7);
-  if(!dates.length) return '';
-  return `<div class="nsec-title">Dias anteriores</div>`+dates.map(d=>{
-    const items=byDate[d].slice().sort((a,b)=>(a.ts||'')<(b.ts||'')?-1:1), tt=intakeTotals(items);
-    return `<div class="ihist"><div class="ihist-h"><span class="iitem-n">${d}</span><span>${Math.round(tt.kcal)}kcal · ${Math.round(tt.protein)}g</span></div>`+
-      items.map(x=>`<div class="iitem"><div class="iitem-main"><span class="iitem-n">${esc(x.name)}</span><span class="iitem-t">${fmtTime(x.ts)} · ${Math.round(x.kcal)}kcal · ${Math.round(x.protein)}g</span></div><div class="iitem-r"><button class="iitem-x" onclick="delIntake('${x.id}')" aria-label="Remover">✕</button></div></div>`).join('')+
-      `</div>`;
-  }).join('');
+  const by={}; (ST.intake||[]).filter(x=>x.date!==todayStr()).forEach(x=>(by[x.date]??=[]).push(x));
+  return Object.keys(by).sort().reverse().slice(0,7).map(d=>`<div class="nsec-title">${esc(d)}</div>${totalsHTML(by[d])}${by[d].map(entryHTML).join('')}`).join('');
 }
 
 function nchips(cat,opts,selected){
@@ -145,7 +155,7 @@ function nutriFormHTML(food){
   food=food||{}; const f=food.fav||{};
   const sel=(v,o)=>v===o?' selected':'';
   const editing=!!(ST.nutri&&ST.nutri.profile);
-  const warn=profileComplete()?'':`<div class="nnote">⚠ Completa o teu <b>Perfil</b> 👤 (idade, altura, peso) para calcular as metas. As preferências abaixo guardam-se na mesma.</div>`;
+  const warn=profileComplete()?'':`<div class="nnote">⚠ Completa o teu <b>Perfil</b> 👤 (idade, altura, peso) para veres as estimativas. As preferências abaixo guardam-se na mesma.</div>`;
   return `
   <div class="nplan-hdr">
     <div><div class="day-hdr-name">🥗 Nutrição</div><div class="day-hdr-sub">Preferências alimentares</div></div>
@@ -173,18 +183,11 @@ function nutriFormHTML(food){
 function nutriPlanHTML(food){
   food=food||{};
   const b=bodyMetrics();
-  const complete=b.age>0 && b.height>0 && b.weight>0;
   const meals=mealPlan(Object.assign({},food,{goal:b.goal}));
   const shop=shopping(food);
   const goalTxt={perder:'perder gordura',manter:'manter',ganhar:'ganhar músculo'}[b.goal]||'';
-  const targetsHTML = complete ? (function(){ const t=calcTargets(b); return `
-  <div class="ntargets">
-    <div class="ntar"><span class="ntar-v">${t.kcal}</span><span class="ntar-l">kcal/dia</span></div>
-    <div class="ntar"><span class="ntar-v">${t.protein}g</span><span class="ntar-l">proteína</span></div>
-    <div class="ntar"><span class="ntar-v">${t.water}L</span><span class="ntar-l">água</span></div>
-  </div>
-  <div class="nmacros">Hidratos ~${t.carbG}g · Gordura ~${t.fatG}g</div>`; })()
-  : `<div class="nnote">⚠ Completa o <b>Perfil</b> (idade, altura) e regista o peso em <b>Evolução</b> para veres as metas. <button class="linklike" onclick="render('__eu')">Ir ao Perfil 👤</button> · <button class="linklike" onclick="render('__perfil')">Registar peso 📈</button></div>`;
+  const targetsHTML = referencesHTML(b);
+
   return `
   <div class="nplan-hdr">
     <div><div class="day-hdr-name">🥗 Nutrição</div><div class="day-hdr-sub">${food.meals||4} refeições${goalTxt?` · ${goalTxt}`:''}</div></div>
@@ -207,10 +210,17 @@ function renderNutri(content){
   const showForm = !p || NUTRI_EDIT;
   content.innerHTML=`<div class="nutri-wrap">${ showForm ? nutriFormHTML(p) : nutriPlanHTML(p) }</div>`;
   // O diário e a entrada manual existem mesmo antes de definir preferências.
-  if(showForm) content.querySelector('.nutri-wrap').insertAdjacentHTML('beforeend',intakeHTML());
+  if(showForm) content.querySelector('.nutri-wrap').insertAdjacentHTML('beforeend',referencesHTML(bodyMetrics())+intakeHTML());
+  selectedFood=null;
+  loadFoods();
+  for(const id of ['i-name',...NUTRIENTS.map(inputId)]){
+    document.getElementById(id)?.addEventListener('input',()=>{lookupOperation++;clearSelectedFood();});
+  }
+  document.getElementById('i-grams')?.addEventListener('input',()=>{lookupOperation++;updatePreview();});
+  updatePreview();
   const form=document.getElementById('barcodeForm'), field=document.getElementById('barcode');
   if(form) form.addEventListener('submit',e=>{ e.preventDefault(); offLookup(field.value); });
-  if(field) field.addEventListener('input',()=>{ lookupOperation++; document.getElementById('barcode-status').textContent=''; });
+  if(field) field.addEventListener('input',()=>{ lookupOperation++; clearSelectedFood(); document.getElementById('barcode-status').textContent=''; });
 }
 function editNutri(){ NUTRI_EDIT=true; renderNutri(); }
 function cancelNutri(){ NUTRI_EDIT=false; renderNutri(); }
@@ -234,25 +244,24 @@ function saveNutri(e){
 let lookupOperation=0;
 async function offLookup(code){
   const field=document.getElementById('barcode'); if(!field) return;
+  clearSelectedFood();
   code=String(code||'').trim(); field.value=code;
   const operation=++lookupOperation, view=ST.view;
   const valid=()=>operation===lookupOperation && field.isConnected && document.getElementById('barcode')===field && field.value===code && ST.view===view;
   if(!/^\d{6,}$/.test(code)){ fieldError('barcode','Código inválido. Introduz pelo menos 6 algarismos.'); return; }
   const status=document.getElementById('barcode-status');
   status.textContent='A pesquisar…';
-  const set=(id,val)=>{ const el=document.getElementById(id); if(el) el.value=val; };
   try{
     const r=await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
     if(!valid()) return;
     const j=await r.json();
     if(!valid()) return;
     if(j.status!==1){ status.textContent='Produto não encontrado no Open Food Facts. Preenche manualmente.'; return; }
-    const p=j.product||{}, n=p.nutriments||{};
-    const nm=p.product_name||p.generic_name||('Cód '+code);
-    set('i-name', nm+' (100g)');
-    set('i-kcal', Math.round(n['energy-kcal_100g']||0));
-    set('i-prot', Math.round((n.proteins_100g||0)*10)/10);
-    status.textContent='Produto encontrado. Confirma os valores por 100 g.';
+    const food=parseOff(j);
+    if(!food){status.textContent='Produto sem dados. Preenche manualmente.';return;}
+    if(!food.sourceId) food.sourceId=code;
+    selectFood(food);
+    status.textContent='Produto encontrado. Confirma os valores e a quantidade.';
   }catch(e){ if(valid()) status.textContent='Sem ligação ao Open Food Facts. Preenche manualmente.'; }
 }
 function manualBarcode(message){
@@ -295,4 +304,4 @@ function stopScan(){
   if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
 }
 
-export { PROT, CARB, VEG, SNACK, RESTR, SUPPS, NUTRI_EDIT, calcTargets, mealPlan, shopping, FOODS, addIntake, delIntake, intakeToday, intakeTotals, intakeDailySeries, fillIntake, addIntakeUI, intakeHTML, intakeHistoryHTML, nchips, freeVal, collectFav, nutriFormHTML, nutriPlanHTML, renderNutri, editNutri, cancelNutri, saveNutri, offLookup, scanBarcode, scanStream, startScan, stopScan };
+export { PROT, CARB, VEG, SNACK, RESTR, SUPPS, NUTRI_EDIT, calcTargets, referencesHTML, mealPlan, shopping, FOODS, addIntake, delIntake, intakeToday, intakeTotals, intakeDailySeries, fillIntake, addIntakeUI, intakeHTML, intakeHistoryHTML, nchips, freeVal, collectFav, nutriFormHTML, nutriPlanHTML, renderNutri, editNutri, cancelNutri, saveNutri, offLookup, scanBarcode, scanStream, startScan, stopScan };

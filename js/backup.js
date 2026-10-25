@@ -127,8 +127,8 @@ function exportMeasuresCSV(){
   csvDownload(`medidas-${todayStr()}.csv`, rows); closeSheet();
 }
 function exportIntakeCSV(){
-  const rows=[['data','hora','alimento','kcal','proteina_g']];
-  (ST.intake||[]).slice().sort((a,b)=>(a.ts||'')<(b.ts||'')?-1:1).forEach(x=>rows.push([x.date, x.ts?fmtTime(x.ts):'', x.name, Math.round(x.kcal), x.protein]));
+  const rows=[['data','hora','alimento','kcal','proteina_g','hidratos_g','gordura_g','fibra_g','acucares_totais_g','sal_g','quantidade','unidade','fonte','id_fonte','versao','nota']];
+  (ST.intake||[]).slice().sort((a,b)=>(a.ts||'')<(b.ts||'')?-1:1).forEach(x=>rows.push([x.date, x.ts?fmtTime(x.ts):'', x.name, x.kcal == null ? '' : Math.round(x.kcal), x.protein ?? '', ...['carbs','fat','fibre','sugars','salt'].map(k=>x.n?.[k]??''), x.g??'', x.unit??'', x.src??'', x.sid??'', x.ver??'', x.note??'']));
   if(rows.length<2){ show('Sem registos de ingestão para exportar.', 'info'); return; }
   csvDownload(`diario-${todayStr()}.csv`, rows); closeSheet();
 }

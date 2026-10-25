@@ -4,6 +4,8 @@
   "description": "Plano de treino pessoal",
   "scripts": {
     "start": "http-server -p 8000 -c-1",
+    "test:nutri": "node scripts/nutri-test.mjs",
+    "test:nutri-ui": "node scripts/nutri-ui-test.mjs",
     "smoke": "node scripts/smoke.mjs",
     "build:www": "node scripts/build-www.mjs",
     "android:add": "npm run build:www && npx cap add android",

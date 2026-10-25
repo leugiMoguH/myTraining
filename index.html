@@ -415,7 +415,8 @@ body.kb #bnav { display: none; }
 .wk-row-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .wk-row-st { font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; }
 .wk-row.s-done .wk-row-st { color: var(--success); }
-.wk-row.s-rest { opacity: 0.6; }
+.wk-row.s-rest, .wk-row.s-rest * { color: var(--muted); }
+.wk-row.s-rest .wk-today { background: transparent; }
 .wk-today {
   font-size: 9px; font-weight: 900; text-transform: uppercase;
   background: var(--accent); color: var(--on-accent); padding: 2px 5px; border-radius: 4px;
@@ -1063,7 +1064,7 @@ body.guided #toast { top: calc(env(safe-area-inset-top, 0px) + 76px); }
 .ob-btn.ghost { background: none; color: var(--muted); font-weight: 500; min-height: 44px; }
 .ob-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 10px 0; }
 .ob-d { display: flex; flex-direction: column; align-items: center; padding: 8px 0; border-radius: var(--r-sm); background: var(--card); border: 1px solid var(--border); }
-.ob-d small { font-size: 11px; color: var(--muted); } .ob-d b { font-size: 16px; } .ob-d.rest { opacity: 0.5; }
+.ob-d small { font-size: 11px; color: var(--muted); } .ob-d b { font-size: 16px; } .ob-d.rest, .ob-d.rest * { color: var(--muted); }
 .ob-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 12px 14px; margin: 10px 0; }
 .ob-card summary { display: flex; justify-content: space-between; gap: 8px; cursor: pointer; min-height: 44px; align-items: center; }
 .ob-card summary small { color: var(--muted); } .ob-card ul { margin: 8px 0 2px 18px; font-size: 14px; } .ob-card li small { color: var(--muted); }
@@ -1296,6 +1297,22 @@ body.food-sheet-open #bnav { visibility:hidden; }
 .nref b { color:var(--text); }
 .nutri-wrap .info-i { flex:none; min-width:44px; min-height:44px; padding:0; display:inline-flex; align-items:center; justify-content:center; background:transparent; border:0; color:var(--muted); font-size:18px; line-height:1; }
 
+
+/* Bloco 1: apenas a folha Mais e texto dos ecrãs abrangidos. */
+#sheetBg .sheet { max-height:88dvh; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; padding-top:0; padding-bottom:max(16px,env(safe-area-inset-bottom)); box-sizing:border-box; }
+#sheetBg .sheet > * { flex-shrink:0; }
+#sheetBg .mais-head { position:sticky; top:0; z-index:1; background:var(--surface); display:flex; align-items:center; gap:12px; padding:8px 0; }
+#sheetBg .mais-close { min-width:44px; min-height:44px; font:inherit; color:var(--text); background:var(--card2); border:1px solid var(--border); border-radius:8px; cursor:pointer; }
+#sheetBg .sheet-title { font-size:18px; color:var(--text); }
+#sheetBg .sheet-sub { margin:12px 4px 4px; font-size:12px; }
+#sheetBg .sheet-item { min-height:44px; overflow-wrap:anywhere; }
+#sheetBg .sheet-item > span:first-child { min-width:0; }
+#sheetBg .theme-choice { min-width:0; }
+.nutri-wrap .ndisc { font-size:13px; font-style:normal; }
+.nutri-wrap .ntar-l, .nutri-wrap .qfood, .nutri-wrap .iitem-t,
+.today-top .wk-row-st, .nutri-wrap .wk-row-st, #content:has(.today-plan) .cl-st,
+.nutri-wrap .hx-k, .nutri-wrap .hx-day-h small, .nutri-wrap .mm-ex small,
+.nutri-wrap .lc-next-s, .nutri-wrap .lc-prog-t { font-size:12px; }
 </style>
 </head>
 <body>
@@ -1386,13 +1403,8 @@ body.food-sheet-open #bnav { visibility:hidden; }
 <!-- SETTINGS SHEET -->
 <div id="sheetBg" class="sheet-bg" onclick="closeSheet()">
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" onclick="event.stopPropagation()">
-    <div class="sheet-grip" aria-hidden="true"></div>
-    <h2 class="sheet-title" id="sheetTitle">Definições</h2>
-    <fieldset class="theme-choice"><legend>Tema</legend>
-      <label><input type="radio" name="theme" value="light" onchange="setThemePref(this.value)">Claro</label>
-      <label><input type="radio" name="theme" value="dark" onchange="setThemePref(this.value)">Escuro</label>
-      <label><input type="radio" name="theme" value="auto" onchange="setThemePref(this.value)">Automático (sistema)</label>
-    </fieldset>
+    <div class="mais-head"><button type="button" class="mais-close" aria-label="Fechar" onclick="closeSheet()">✕ Fechar</button><h2 class="sheet-title" id="sheetTitle">Mais</h2></div>
+    <h3 class="sheet-sub">Ir para</h3>
     <button class="sheet-item" onclick="closeSheet();goDay('__plano')">
       <span>📋 Plano</span><span class="sheet-arrow">›</span>
     </button>
@@ -1402,6 +1414,13 @@ body.food-sheet-open #bnav { visibility:hidden; }
     <button class="sheet-item" onclick="closeSheet();goDay('__nutri')">
       <span>🥗 Nutrição</span><span class="sheet-arrow">›</span>
     </button>
+    <h3 class="sheet-sub">Aparência</h3>
+    <fieldset class="theme-choice"><legend>Tema</legend>
+      <label><input type="radio" name="theme" value="light" onchange="setThemePref(this.value)">Claro</label>
+      <label><input type="radio" name="theme" value="dark" onchange="setThemePref(this.value)">Escuro</label>
+      <label><input type="radio" name="theme" value="auto" onchange="setThemePref(this.value)">Automático (sistema)</label>
+    </fieldset>
+    <h3 class="sheet-sub">Aplicação</h3>
     <button class="sheet-item" onclick="toggleWake()">
       <span>🔆 Manter ecrã ligado</span>
       <span class="sw" id="wakeSw"></span>
@@ -1410,6 +1429,8 @@ body.food-sheet-open #bnav { visibility:hidden; }
       <span>🔔 Notificar fim do descanso</span>
       <span class="sw" id="notifSw"></span>
     </button>
+    <div class="sheet-note" id="wakeNote"></div>
+    <h3 class="sheet-sub">Dados</h3>
     <button class="sheet-item" onclick="exportBackup()">
       <span>⬇️ Exportar backup de tudo (.json)</span><span class="sheet-arrow">›</span>
     </button>
@@ -1418,10 +1439,9 @@ body.food-sheet-open #bnav { visibility:hidden; }
     </button>
     <input type="file" id="importFile" accept="application/json,.json" hidden onchange="importBackup(event)">
     <div class="sheet-sub">Exportar para folha de cálculo (CSV)</div>
-    <button class="sheet-item" onclick="exportMeasuresCSV()"><span>📏 Medidas</span><span class="sheet-arrow">↓</span></button>
-    <button class="sheet-item" onclick="exportIntakeCSV()"><span>🍽️ Diário alimentar</span><span class="sheet-arrow">↓</span></button>
-    <button class="sheet-item" onclick="exportLoadCSV()"><span>🏋️ Cargas</span><span class="sheet-arrow">↓</span></button>
-    <div class="sheet-note" id="wakeNote"></div>
+    <button class="sheet-item" onclick="exportMeasuresCSV()"><span>📏 Medidas CSV</span><span class="sheet-arrow">↓</span></button>
+    <button class="sheet-item" onclick="exportIntakeCSV()"><span>🍽️ Diário alimentar CSV</span><span class="sheet-arrow">↓</span></button>
+    <button class="sheet-item" onclick="exportLoadCSV()"><span>🏋️ Cargas CSV</span><span class="sheet-arrow">↓</span></button>
   </div>
 </div>
 

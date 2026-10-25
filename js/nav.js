@@ -17,7 +17,7 @@ const SIDE = [
   { id: '__perfil', icon: '📈', label: 'Evolução' },   /* id antigo = ecrã Evolução; Perfil = '__eu', Plano = '__plano' (via Opções) */
   { id: 'main' },
   { id: '__hist',   icon: '📅', label: 'Histórico' },
-  { id: 'opts',     icon: '⚙️', label: 'Opções' },
+  { id: 'opts',     icon: '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>', label: 'Mais'  },
 ];
 const HEARTBEAT_S = 15;
 
@@ -76,7 +76,7 @@ async function navMain() {
   return startWorkout(day);
 }
 
-function navOpts() { openSheet(); }
+function navOpts() { document.querySelector('#sheetBg .sheet').scrollTop = 0; openSheet(); }
 
 const hhmm = ts => new Date(ts).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
 

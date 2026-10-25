@@ -62,7 +62,7 @@ function loadChart(name,i){
   const data=getLog(name);
   if(!data.length) return '<div class="lc-empty">Sem registos. Regista a carga (kg × reps) para veres a evolução.</div>'+progPanel(name,i);
   const ws=data.map(e=>e.w), min=Math.min(...ws), max=Math.max(...ws), n=data.length, last=data[n-1];
-  return chartSVG(ws)+`
+  return chartSVG(ws, `Carga de ${name}`, 'kg')+`
     <div class="lc-meta">
       <span><b>${last.w}</b>kg × ${last.r}</span>
       <span class="lc-1rm">1RM ~${est1RM(last.w,last.r)}kg</span>

@@ -68,7 +68,7 @@ function chartHTML(sessions) {
   else if (pts.length === 1) body = `<div class="lc-empty">Só um registo (${fmtD(pts[0].date)}: ${num(pts[0].v)} ${m.unit}) — ainda não há evolução para comparar.</div>`;
   else {
     const a = pts[0], z = pts[pts.length - 1], d = Math.round((z.v - a.v) * 100) / 100;
-    body = chartSVG(pts.map(p => p.v)) + `<div class="lc-meta"><span>${fmtD(a.date)}: <b>${num(a.v)}</b> ${m.unit}</span><span>→ ${fmtD(z.date)}: <b>${num(z.v)}</b> ${m.unit}</span>
+    body = chartSVG(pts.map(p => p.v), `${ST.hx}: ${m.label}`, m.unit) + `<div class="lc-meta"><span>${fmtD(a.date)}: <b>${num(a.v)}</b> ${m.unit}</span><span>→ ${fmtD(z.date)}: <b>${num(z.v)}</b> ${m.unit}</span>
       <span class="lc-range">${d === 0 ? 'sem alteração' : (d > 0 ? '+' : '') + num(d) + ' ' + m.unit}</span></div>`;
   }
   return `<div class="hx-card"><div class="cat-chips">${chips(METRICS, HX.metric, 'hxMetric')}</div>${body}

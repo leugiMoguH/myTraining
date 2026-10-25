@@ -59,7 +59,7 @@ function stepHTML(n, d) {
     <div class="ob-row" role="group" aria-label="Zonas a evitar">${chip("obLimit('none')", !d.limits.length, 'Nenhuma', true)}${LIMITS.map(l => chip(`obLimit('${l}')`, d.limits.includes(l), LIMIT_L[l], true)).join('')}</div>
     <h2>Como te chamamos? <small>(opcional)</small></h2>
     <input class="ob-input" type="text" maxlength="30" autocomplete="given-name" placeholder="Nome" value="${esc(d.name)}" oninput="obName(this.value)" aria-label="Nome">
-    <div class="sched-note">🔒 Fica guardado neste dispositivo. Podes exportar ou apagar tudo em Opções.</div>`;
+    <div class="sched-note">🔒 Fica guardado neste dispositivo. Podes exportar uma cópia em Mais → Dados.</div>`;
 }
 
 function proposalHTML(plan) {

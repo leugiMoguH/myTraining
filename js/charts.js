@@ -1,6 +1,9 @@
 /* myTraining — módulo extraído de index.html (Fase 0). */
 
-function chartSVG(vals){
+function chartSVG(vals, name='Evolução', unit=''){
+  const label = `${name} (${unit || 'valores'}): ${vals.length ? `primeiro ${vals[0]}, último ${vals[vals.length-1]}` : 'sem valores'}; ${vals.length} registos`;
+  const accessible = label.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  if (!vals.length) return `<svg class="lc-svg" viewBox="0 0 280 92" role="img" aria-label="${accessible}"></svg>`;
   const W=280,H=92,P=10,n=vals.length;
   const min=Math.min(...vals),max=Math.max(...vals),span=(max-min)||1;
   const xAt=k=> n>1 ? P+k*(W-2*P)/(n-1) : W/2;
@@ -9,7 +12,7 @@ function chartSVG(vals){
   const line=pts.map((p,k)=>`${k?'L':'M'}${p[0]} ${p[1]}`).join(' ');
   const area=`M${pts[0][0]} ${H-P} `+pts.map(p=>`L${p[0]} ${p[1]}`).join(' ')+` L${pts[n-1][0]} ${H-P} Z`;
   const dots=pts.map((p,k)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${k===n-1?3.5:2.4}" style="fill:${k===n-1?'var(--chart-secondary)':'var(--chart-primary)'}"/>`).join('');
-  return `<svg class="lc-svg" viewBox="0 0 ${W} ${H}"><defs><linearGradient id="lcg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--chart-primary)" stop-opacity="0.35"/><stop offset="1" style="stop-color:var(--chart-primary)" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#lcg)"/><path d="${line}" fill="none" style="stroke:var(--chart-primary)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg>`;
+  return `<svg class="lc-svg" role="img" aria-label="${accessible}" viewBox="0 0 ${W} ${H}"><defs><linearGradient id="lcg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--chart-primary)" stop-opacity="0.35"/><stop offset="1" style="stop-color:var(--chart-primary)" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#lcg)"/><path d="${line}" fill="none" style="stroke:var(--chart-primary)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg>`;
 }
 
 /* ═══════════════ MAPA MUSCULAR ══════════════════════ */

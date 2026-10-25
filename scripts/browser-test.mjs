@@ -145,7 +145,7 @@ for (const day of ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 
 }
 await step('tab Perfil', () => click('.nb[data-day="__perfil"]'));
 await step('Nutricao pelas Opcoes', async () => {
-  await click('.nb:has-text("Opções")');
+  await click('[data-day="opts"]');
   await click('.sheet-item:has-text("Nutrição")');
   if (!(await page.locator('text=/Nutri/i').count())) throw new Error('ecra de nutricao nao abriu');
 });
@@ -447,7 +447,7 @@ await page.setViewportSize({ width: 412, height: 915 });
 
 await step('ajustar descanso', () => click('.hdr-timer-adj'));
 await step('abrir definicoes', async () => {
-  await click('.nb:has-text("Opções")');
+  await click('[data-day="opts"]');
   if (!(await page.locator('#sheetBg.show').count())) throw new Error('sheet nao abriu');
 });
 

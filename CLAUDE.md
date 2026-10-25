@@ -46,7 +46,7 @@ No build, no bundler, no framework. HTML/CSS estáticos + **ES modules** nativos
 | `profile.js` | perfil, medidas, % gordura, macros |
 | `workout.js` | **ecrã** de treino guiado (barra Sair·tempo·Pausar / corpo / dock com kg×reps e a ação principal); descanso em `#woRest` |
 | `session.js` | `ST.session`: máquina de estados do treino (NOT_STARTED/ACTIVE/PAUSED/COMPLETED/ABANDONED), tempo por timestamps, `reconcileSession` |
-| `nav.js` | barra inferior (Início · Evolução · **Treino** · Histórico · Opções; a Semana vive dentro do Histórico, ecrã `__hist`) e faixa "treino em curso". **Ids de vista:** `__perfil` = ecrã **Evolução** (id antigo mantido de propósito), `__eu` = **Perfil** (dados pessoais + preferências de treino), `__plano` = **Plano**; Plano/Perfil/Nutrição abrem-se por Opções (e atalho «Ver o plano» no Hoje) e assinalam a aba Opções |
+| `nav.js` | barra inferior (Início · Evolução · **Treino** · Histórico · Mais; a Semana vive dentro do Histórico, ecrã `__hist`) e faixa "treino em curso". **Ids de vista:** `__perfil` = ecrã **Evolução** (id antigo mantido de propósito), `__eu` = **Perfil** (dados pessoais + preferências de treino), `__plano` = **Plano**; Plano/Perfil/Nutrição abrem-se por Mais (e atalho «Ver o plano» no Hoje) e assinalam a aba Mais |
 | `backup.js` | ⚙ Definições, export/import JSON, exports CSV |
 | `planner.js` | motor de propostas **puro** (sem ST/DOM): 3 modelos (corpo inteiro, superior/inferior), padrões de movimento (`pat`), limitações, equipamento |
 | `plan.js` | aplica uma proposta à `ST.routine`, `swapDays` (reorganizar), `estimateMin`; `ST.prefs`, `ST.plan` |

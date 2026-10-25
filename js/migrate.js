@@ -36,7 +36,7 @@ function writeVerified(key, reason) {
     if (JSON.stringify(a) !== JSON.stringify(b)) return { ok: false, error: 'A cópia de segurança está incompleta.' };
     return { ok: true, counts: a, at: parsed.at };
   } catch (e) {
-    return { ok: false, error: 'Sem espaço para a cópia de segurança. Liberta espaço ou exporta os dados (Opções).' };
+    return { ok: false, error: 'Sem espaço para a cópia de segurança. Liberta espaço ou exporta os dados (Mais).' };
   }
 }
 

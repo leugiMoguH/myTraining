@@ -94,7 +94,7 @@ function metricChartHTML(field){
   const s=measureSeries(field), def=METRIC_DEF[field]||[field,''];
   if(!s.length) return `<div class="lc-empty">Sem registos de ${def[0]}.</div>`;
   const vals=s.map(p=>p.v), last=vals[vals.length-1], first=vals[0], d=Math.round((last-first)*10)/10;
-  return chartSVG(vals)+`<div class="lc-meta"><span><b>${last}</b>${def[1]} ${def[0]}</span><span class="lc-1rm">${d>0?'+':''}${d}${def[1]} desde início</span><span class="lc-range">${s.length} reg.</span></div>`;
+  return chartSVG(vals, def[0], def[1])+`<div class="lc-meta"><span><b>${last}</b>${def[1]} ${def[0]}</span><span class="lc-1rm">${d>0?'+':''}${d}${def[1]} desde início</span><span class="lc-range">${s.length} reg.</span></div>`;
 }
 function setMetric(m){
   MEASURE_METRIC=m;

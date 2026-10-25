@@ -80,3 +80,13 @@ Prioridade: 1 → 2 → 3 → 4 → 5 → 6 → 7 (maior frequência/confusão p
 - **Produção:** nenhum ficheiro rastreado alterado por esta etapa (só `todolist_tommorow.md`, pré-existente). Sem push, sem SW/estado/regras/dependências novas.
 - **Claude vs Codex:** Claude — capturas, auditoria, protótipo, comparativos, síntese; Codex — auditoria independente (só leitura) e crítica da proposta do Claude (só leitura).
 - **Próxima decisão:** escolher entre Proposta 1 e 2 (e as decisões 2–4 acima). Só depois começa o Bloco 1.
+
+## Bloco 1 — implementado
+
+Separador «Mais» com SVG de três pontos; folha com scroll interno (88dvh), cabeçalho fixo, Fechar e grupos Ir para/Aparência/Aplicação/Dados. Mantidos ids, handlers, gestão de foco e botão central. Mensagens corrigidas; o acolhimento indica apenas a exportação disponível. Cache: treino-v45.
+
+Legibilidade: `.nutri-wrap .ndisc` passa a 13px normal; passam a 12px `.nutri-wrap .ntar-l`, `.nutri-wrap .qfood`, `.nutri-wrap .iitem-t`, `.today-top .wk-row-st`, `.nutri-wrap .wk-row-st`, `#content:has(.today-plan) .cl-st`, `.nutri-wrap .hx-k`, `.nutri-wrap .hx-day-h small`, `.nutri-wrap .mm-ex small`, `.nutri-wrap .lc-next-s`, `.nutri-wrap .lc-prog-t`. Títulos da folha: `#sheetBg .sheet-title` (18px) e `#sheetBg .sheet-sub` (12px). Descanso sem opacidade global, com cor explícita nos descendentes; badge «hoje» com fundo transparente só na linha de descanso. Contraste mínimo medido: claro 7,58:1; escuro 7,65:1. Gráficos com nome escapado, métrica, unidade, extremos e contagem; mapa muscular mantém o nome existente.
+
+Validação em série: smoke, test:mais-sheet (quatro viewports × dois temas, foco/teclado, alvos, scroll, texto e gráficos), test:a11y e test:b6 passaram. test:ux e test:onboarding falharam apenas na agregação de erros de consola por pedidos `net::ERR_FAILED`, sem falhas funcionais reportadas. test:browser não executado. CRLF confirmado com `file` nos ficheiros de código alterados. Sem commit/push.
+
+Pendências: chips de 7 dias; z-index 400 da folha. Nenhuma alteração ao protótipo neste bloco.

@@ -40,7 +40,7 @@ const shown = (page, sel) => page.locator(sel).isVisible();
 const shot = (page, n) => page.screenshot({ path: join(SHOTS, `onb-${n}.png`) });
 const tap = async (page, text) => { await page.locator('#onbBg').getByRole('button', { name: text }).first().tap(); await settleDialog(page); };
 /* caminho real do utilizador: Opções → Plano (a folha fecha-se ao escolher) */
-const goPlano = async page => { await page.locator('#bnav').getByText('Opções').tap(); await page.locator('.sheet-item', { hasText: 'Plano' }).tap(); await page.locator('.ob-plan').waitFor(); };
+const goPlano = async page => { await page.locator('#bnav').locator('[data-day="opts"]').tap(); await page.locator('.sheet-item', { hasText: 'Plano' }).tap(); await page.locator('.ob-plan').waitFor(); };
 
 /* ═══ 1. UTILIZADOR NOVO ═══════════════════════════════════════════════════ */
 {

@@ -50,7 +50,7 @@ const rects = (page, sel) => page.evaluate(s => [...document.querySelectorAll(s)
 const overlap = (a, b) => a.x < b.r - 1 && b.x < a.r - 1 && a.y < b.b - 1 && b.y < a.b - 1;
 const view = page => page.evaluate(async () => (await import('./js/state.js')).ST.view);
 const st = (page, f) => page.evaluate(async src => { const { ST } = await import('./js/state.js'); return new Function('ST', `return (${src})(ST)`)(ST); }, f.toString());
-const sheetTo = async (page, label) => { await page.locator('#bnav').getByText('Opções').tap(); await page.locator('.sheet-item', { hasText: label }).first().tap(); };
+const sheetTo = async (page, label) => { await page.locator('#bnav').locator('[data-day="opts"]').tap(); await page.locator('.sheet-item', { hasText: label }).first().tap(); };
 const noHScroll = page => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
 
 try {
@@ -193,7 +193,7 @@ try {
     await page.evaluate(() => window.render('__eu'));
     assert.equal(await page.inputValue('#p-age'), '30');
     /* exportação real: o ficheiro descarregado leva o estado todo */
-    await page.locator('#bnav').getByText('Opções').tap();
+    await page.locator('#bnav').locator('[data-day="opts"]').tap();
     const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('.sheet-item', { hasText: 'Exportar backup de tudo' }).tap()]);
     const exp = JSON.parse(readFileSync(await dl.path(), 'utf8'));
     assert.equal(exp.app, 'treino'); assert.equal(Object.keys(exp.state.log).length, 9); assert.equal(exp.state.measures.length, 2);
@@ -232,7 +232,7 @@ try {
     await ctx.setOffline(true);
     await page.reload({ waitUntil: 'load' });
     for (const v of ['__plano', '__eu', '__perfil']) { await page.evaluate(x => window.render(x), v); assert(await page.locator('#content').innerText().then(t => t.length > 50), v); }
-    assert((await page.evaluate(() => caches.keys())).includes('treino-v44'));
+    assert((await page.evaluate(() => caches.keys())).includes('treino-v45'));
     await ctx.setOffline(false);
     await ctx.close();
   });

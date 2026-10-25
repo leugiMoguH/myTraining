@@ -2,7 +2,7 @@
    Shell em cache para funcionar offline.
    Navegação: network-first (apanha updates quando online).
    Assets/imagens: cache-first (rápido e funciona sem rede). */
-const CACHE = 'treino-v43';
+const CACHE = 'treino-v44';
 /* instructions.en.json (610 KB) fica de fora: só é preciso ao abrir uma ficha,
    e o handler cache-first abaixo guarda-o na primeira vez que for pedido. */
 const CORE = [
@@ -92,6 +92,7 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const sameOrigin = new URL(req.url).origin === location.origin;
+  if (sameOrigin && new URL(req.url).pathname.includes('/docs/')) return;   // demonstrações/documentação: nunca passam pela cache da app
 
   // HTML / navegação (same-origin) → network-first com fallback à cache (offline)
   if (sameOrigin && (req.mode === 'navigate' || req.destination === 'document')) {

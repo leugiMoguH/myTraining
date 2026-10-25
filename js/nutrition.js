@@ -24,7 +24,7 @@ function referencesHTML(p){
   const r=references(p);
   if(!r.applicable) return `<div class="ndisc">${esc(r.reason)}</div>`;
   const labels={energy:'Energia de manutenção (kcal/dia)',protein:'Proteína (g/dia)',fat:'Gordura (g/dia)',carbs:'Hidratos (g/dia)',fibre:'Fibra (g/dia)',water:'Água total (L/dia)',salt:'Sal (g/dia)',sugars:'Açúcares livres (informação)'};
-  return `<div class="nsec-title">Estimativa · referências</div>`+Object.keys(labels).map(k=>{const x=r[k]; return `<div class="ndisc">${labels[k]}: <b>${x.range?x.range.map(v=>Math.round(v)).join('–'):x.value===null?'—':k==='salt'?'&lt;5':Math.round(x.value*10)/10}</b><button type="button" class="btn-secondary" data-reference-info aria-label="Informação sobre ${labels[k]}">ⓘ</button></div>`;}).join('');
+  return `<div class="nsec-title">Estimativa · referências</div>`+Object.keys(labels).map(k=>{const x=r[k]; return `<div class="nref"><span>${labels[k]}: <b>${x.range?x.range.map(v=>Math.round(v)).join('–'):x.value===null?'—':k==='salt'?'&lt;5':Math.round(x.value*10)/10}</b></span><button type="button" class="info-i" data-reference-info aria-label="Informação sobre ${labels[k]}">ⓘ</button></div>`;}).join('');
 }
 
 function mealPlan(p){

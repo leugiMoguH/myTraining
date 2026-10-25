@@ -1287,7 +1287,14 @@ body.food-sheet-open #bnav { visibility:hidden; }
 .food-check input { width:24px; }
 .food-sheet .food-source { flex:0 0 var(--tap); padding:0; border:0; background:transparent; color:var(--muted); font-size:var(--fs-lg); }
 .food-sheet { padding-bottom:max(16px,env(safe-area-inset-bottom)); }
-#food-save,#food-delete { margin:8px 8px 8px 0; }
+.food-actions { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+.food-actions button { width:100%; margin:0; }
+.food-sheet .btn-danger { background:transparent; border:1px solid var(--danger-border); color:var(--danger); font-weight:600; }
+/* ⓘ discreto: glifo ~18 px, alvo de toque 44×44, à direita da linha */
+.nref { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:13px; color:var(--muted); }
+.nref>span { flex:1; min-width:0; overflow-wrap:anywhere; }
+.nref b { color:var(--text); }
+.nutri-wrap .info-i { flex:none; min-width:44px; min-height:44px; padding:0; display:inline-flex; align-items:center; justify-content:center; background:transparent; border:0; color:var(--muted); font-size:18px; line-height:1; }
 
 </style>
 </head>

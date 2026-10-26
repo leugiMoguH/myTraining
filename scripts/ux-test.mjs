@@ -369,6 +369,7 @@ const NAV_TEXT = ['#bnav .nb', '#bnav .nb-l', '#navPause', '#navLive'];
 
   /* Evolução → lista → exercício */
   await tap(page, '.nb[data-day="__perfil"]');
+  await tap(page, '#evt-cargas');
   check(await page.locator('.hx-row', { hasText: NAME }).count() === 1, 'Evolução devia listar o exercício com registos');
   check(await noHScroll(page), 'Evolução: scroll horizontal');
   await tap(page, `.hx-row[data-n="${NAME}"]`);

@@ -167,7 +167,7 @@ try {
     assert.equal(await page.locator('#p-height').getAttribute('aria-invalid'),'true');assert.equal(await page.locator('#p-height').evaluate(e=>e===document.activeElement),true);assert.equal(await page.locator('#p-age').inputValue(),'35');
     await page.getByRole('button',{name:'Guardar dados',exact:true}).click();
     await screenshot('perfil-inline');await page.locator('#p-height').fill('180');assert.equal(await page.locator('#p-height').getAttribute('aria-invalid'),null);assert.equal(await page.locator('#p-height').getAttribute('aria-describedby'),null);
-    await page.evaluate(()=>window.render('__perfil'));await page.locator('#m-form summary').click();await page.locator('#m-weight').fill('');await page.getByRole('button',{name:'Registar medidas de hoje'}).click();assert.equal(await page.locator('#m-weight').getAttribute('aria-invalid'),'true');
+    await page.evaluate(()=>(window.render('__perfil'),window.evTab('corpo')));await page.locator('#m-form summary').click();await page.locator('#m-weight').fill('');await page.getByRole('button',{name:'Registar medidas de hoje'}).click();assert.equal(await page.locator('#m-weight').getAttribute('aria-invalid'),'true');
   });
   await test('nutrição: entrada manual, inválido, sem produto, offline e resposta antiga',async()=>{
     await reset();await page.evaluate(()=>window.render('__nutri'));
@@ -209,7 +209,7 @@ try {
   await test('SW v32 em cache abre modal offline',async()=>{
     await page.evaluate(async()=>{await navigator.serviceWorker.ready;});
     await page.reload({waitUntil:'networkidle'});await page.evaluate(async()=>{window.M={dialog:await import('./js/dialog.js')};});
-    assert((await page.evaluate(()=>caches.keys())).includes('treino-v50'));
+    assert((await page.evaluate(()=>caches.keys())).includes('treino-v51'));
     await context.setOffline(true);await open();await choose('Confirmar');assert.equal(await result(),true);await context.setOffline(false);
   });
   assert.deepEqual(errors,[]);

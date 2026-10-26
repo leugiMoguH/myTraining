@@ -3,8 +3,9 @@ import { fieldError } from './inline-error.js';
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { chartSVG } from './charts.js';
 import { referencesHTML } from './nutrition.js';
-import { ST, fmtDateTime, fmtTime, nowISO, save, todayStr } from './state.js';
+import { ST, esc, fmtDateTime, fmtTime, nowISO, save, todayStr } from './state.js';
 import { prefsSummaryHTML } from './onboarding.js';
+import { hasPlan } from './plan.js';
 import { exerciseListHTML } from './history.js';
 import { muscleMapHTML, muscleMapWarm } from './muscle-map.js';
 import { volumeHTML } from './volume.js';
@@ -109,10 +110,10 @@ function measuresDashboard(){
   return `<div id="mchips" class="m-legend" style="justify-content:flex-start">${chips}</div><div class="lc" id="mchart">${metricChartHTML(MEASURE_METRIC)}</div>${last&&last.ts?`<div class="ndisc">Último registo: ${fmtDateTime(last.ts)}</div>`:''}`;
 }
 
-function profileDataHTML(){
+function profileDataHTML(bare){
   const p=getProfile(), sel=(v,o)=>v===o?' selected':'';
   return `
-  <div class="nplan-hdr"><div><div class="day-hdr-name">👤 Dados pessoais</div><div class="day-hdr-sub">Fonte para as metas de Nutrição</div></div></div>
+  ${bare?'':'<div class="nplan-hdr"><div><div class="day-hdr-name">👤 Dados pessoais</div><div class="day-hdr-sub">Fonte para as metas de Nutrição</div></div></div>'}
   <div class="nform" data-draft="profile">
     <div class="nrow">
       <label class="nfield"><span>Sexo</span><select id="p-sex"><option value="">Escolher</option><option value="m"${sel(p.sex||'','m')}>Masculino</option><option value="f"${sel(p.sex,'f')}>Feminino</option></select></label>
@@ -224,26 +225,60 @@ const backHTML=`<button class="reset-btn btn-ghost hx-back" onclick="render('__h
 /* Só o formulário desenhado: medida nova ou a que está a ser editada. */
 const measureKey=()=>'measure:'+(MEASURE_EDIT_DATE||'new');
 
-/* Perfil: dados pessoais, preferências de treino e referências. */
+/* Perfil: secções recolhíveis com resumo de uma linha; abertas só quando pedem ação (dados em falta, rascunho, edição por concluir). */
+const SEXL={m:'Masculino',f:'Feminino'};
+function profileSection(id,title,sub,open,body){
+  return `<details class="ev-more pf-sec" id="${id}"${open?' open':''}><summary><span>${title}<small>${sub}</small></span></summary>${body}</details>`;
+}
 function renderProfile(content){
   validateDrafts();
   content=content||document.getElementById('content');
   document.getElementById('hdrSub').textContent='Perfil';
   document.getElementById('progFill').style.width='0%';
-  content.innerHTML=`<div class="nutri-wrap">${backHTML}${prefsSummaryHTML()}${profileDataHTML()}${macrosSummaryHTML()}</div>`;
+  const p=getProfile(), done=profileComplete();
+  const was=new Set([...content.querySelectorAll('.pf-sec[open]')].map(d=>d.id));   /* mantém abertas as secções que o utilizador abriu */
+  const basic=done?[SEXL[p.sex],p.age?p.age+' anos':'',p.height?p.height+' cm':''].filter(Boolean).join(' · '):'Por completar — as metas de Nutrição precisam destes dados';
+  const prefs=hasPlan()?'Objetivo, dias, equipamento e zonas a evitar':'Ainda sem respostas';
+  const editing=!!(ST.onb&&ST.onb.editing);
+  content.innerHTML=`<div class="nutri-wrap">${backHTML}
+    ${profileSection('pf-basic','👤 Dados básicos',esc(basic),was.has('pf-basic')||!done||hasDraft('profile'),profileDataHTML(true))}
+    ${profileSection('pf-prefs','🎯 Preferências de treino',prefs,was.has('pf-prefs')||editing||!hasPlan(),prefsSummaryHTML(true))}
+    ${profileSection('pf-nutri','🥗 Referências nutricionais','Calculadas a partir dos dados básicos',was.has('pf-nutri'),macrosSummaryHTML())}</div>`;
   applyDraft('profile');
 }
 
-/* Evolução ('__perfil', a aba): só acompanhamento — exercícios, recordes, medidas, músculos, volume */
+/* Evolução ('__perfil', a aba): três separadores — Resumo, Cargas, Corpo. O separador vive só no módulo (nada em ST). */
+const EV_TABS=[['resumo','Resumo'],['cargas','Cargas'],['corpo','Corpo']];
+let EV_TAB='resumo';
+function evTabsHTML(){
+  return `<div class="ev-tabs" role="tablist" aria-label="Evolução">${EV_TABS.map(([id,l])=>`<button type="button" role="tab" id="evt-${id}" class="ev-tab" aria-selected="${id===EV_TAB}" aria-controls="evp-${id}" tabindex="${id===EV_TAB?0:-1}" onclick="evTab('${id}')" onkeydown="evTabKey(event)">${l}</button>`).join('')}</div>`;
+}
+function evPanelHTML(){
+  if(EV_TAB==='cargas') return exerciseListHTML(8)+volumeHTML();
+  if(EV_TAB==='corpo') return measuresHTML()+muscleMapHTML();
+  return motivEvolutionHTML();
+}
 function renderEvolution(content){
   validateDrafts();
-  if(!MEASURE_EDIT_DATE&&!hasDraft('measure:new')) MEASURE_EDIT_DATE=Object.keys(DRAFT).find(k=>k.startsWith('measure:'))?.slice(8)||null;
   content=content||document.getElementById('content');
+  const entering=!content.querySelector('.ev-tabs');
+  if(!MEASURE_EDIT_DATE&&!hasDraft('measure:new')) MEASURE_EDIT_DATE=Object.keys(DRAFT).find(k=>k.startsWith('measure:'))?.slice(8)||null;
+  if(entering&&(MEASURE_EDIT_DATE||hasDraft('measure:new'))) EV_TAB='corpo';   /* medida a meio: voltar onde ficou */
   document.getElementById('hdrSub').textContent='Evolução';
   document.getElementById('progFill').style.width='0%';
-  content.innerHTML=`<div class="nutri-wrap"><button class="ev-link" onclick="render('__hist')">📅 Histórico ›</button>${motivEvolutionHTML()}${exerciseListHTML(8)}${measuresHTML()}${muscleMapHTML()}${volumeHTML()}</div>`;
-  applyDraft(measureKey());
-  muscleMapWarm();
+  content.innerHTML=`<div class="nutri-wrap"><button class="ev-link" onclick="render('__hist')">📅 Histórico ›</button>${evTabsHTML()}<div class="ev-panel" role="tabpanel" id="evp-${EV_TAB}" aria-labelledby="evt-${EV_TAB}">${evPanelHTML()}</div></div>`;
+  if(EV_TAB==='corpo'){ applyDraft(measureKey()); muscleMapWarm(); }
+}
+function evTab(id){
+  if(!EV_TABS.some(t=>t[0]===id)||id===EV_TAB) return;
+  EV_TAB=id; renderEvolution();
+  const t=document.getElementById('evt-'+id); if(t) t.focus({preventScroll:true});
+}
+function evTabKey(e){
+  const i=EV_TABS.findIndex(t=>t[0]===EV_TAB), k=e.key;
+  const n=k==='ArrowRight'?(i+1)%3:k==='ArrowLeft'?(i+2)%3:k==='Home'?0:k==='End'?2:-1;
+  if(n<0) return;
+  e.preventDefault(); evTab(EV_TABS[n][0]);
 }
 
-export { discardDraft, clearDrafts, renderEvolution, getProfile, bodyMetrics, profileComplete, latestMeasure, latestWeight, bodyFat, METRIC_DEF, MEASURE_METRIC, MEASURE_EDIT_DATE, measureSeries, metricChartHTML, setMetric, measuresDashboard, profileDataHTML, saveProfile, measuresHTML, saveMeasure, editMeasure, cancelMeasureEdit, delMeasure, measuresHistoryHTML, macrosSummaryHTML, renderProfile };
+export { evTab, evTabKey, discardDraft, clearDrafts, renderEvolution, getProfile, bodyMetrics, profileComplete, latestMeasure, latestWeight, bodyFat, METRIC_DEF, MEASURE_METRIC, MEASURE_EDIT_DATE, measureSeries, metricChartHTML, setMetric, measuresDashboard, profileDataHTML, saveProfile, measuresHTML, saveMeasure, editMeasure, cancelMeasureEdit, delMeasure, measuresHistoryHTML, macrosSummaryHTML, renderProfile };

@@ -76,12 +76,14 @@ try {
 
   await test('Evolução: exercícios (8 + ver todos), medidas com registo recolhido, mapa e volume; abrir/voltar à origem', async () => {
     const { ctx, page } = await open(390);
-    await page.evaluate(() => window.render('__perfil'));
+    await page.evaluate(() => (window.render('__perfil'), window.evTab('cargas')));
     assert.equal(await page.locator('.ev-list .hx-row').count(), 9);
-    assert.equal(await page.locator('.nutri-wrap > .week-list .hx-row').count(), 8, '8 visíveis');
+    assert.equal(await page.locator('.ev-panel > .week-list .hx-row').count(), 8, '8 visíveis');
     assert.equal(await page.locator('details.ev-more:has(.hx-row)').count(), 1);
+    await page.evaluate(() => window.evTab('corpo'));
     assert(await page.locator('#m-form').evaluate(e => !e.open), 'registo de medidas recolhido por omissão');
-    assert.equal(await page.locator('#mmap').count(), 1); assert.equal(await page.locator('.vol').count(), 1);
+    assert.equal(await page.locator('#mmap').count(), 1);
+    await page.evaluate(() => window.evTab('cargas')); assert.equal(await page.locator('.vol').count(), 1);
     await page.locator('.hx-row').first().tap();
     assert.equal(await view(page), '__ex');
     assert.equal(await page.locator('#bnav .nb.active').getAttribute('data-day'), '__perfil');
@@ -120,7 +122,7 @@ try {
 
   await test('Perfil: preferências lidas de ST.prefs, Alterar abre o passo certo, retoma e descarta; sem novas perguntas', async () => {
     const { ctx, page } = await open(390);
-    await page.evaluate(() => window.render('__eu'));
+    await page.evaluate(() => (window.render('__eu'), document.querySelectorAll('#content details').forEach(d => d.open = true)));
     const txt = await page.locator('.pf-list').innerText();
     for (const t of [/Objetivo de treino/, /Seg, Qua, Sex · até 60 min/, /Já treino/, /Ginásio · Máquinas, Pesos livres/, /Ombros/, /Rita/]) assert.match(txt, t);
     assert.equal(await page.locator('#p-sex, #p-age, #p-height, #p-goal, #p-activity').count(), 5, 'dados pessoais existentes');
@@ -130,7 +132,7 @@ try {
     await page.locator('#onbBody').getByRole('button', { name: 'Continuar' }).tap();
     await page.reload({ waitUntil: 'networkidle' });                        /* o rascunho sobrevive a recarregar */
     assert.equal(await page.locator('#onbBg.show').count(), 0);
-    await page.evaluate(() => window.render('__eu'));
+    await page.evaluate(() => (window.render('__eu'), document.querySelectorAll('#content details').forEach(d => d.open = true)));
     assert.match(await page.locator('#content').innerText(), /alterações por concluir/);
     await page.getByRole('button', { name: 'Continuar', exact: true }).first().tap();
     assert.match(await page.locator('#onbBody h1').innerText(), /Como treinas/, 'retomou no passo guardado');
@@ -141,16 +143,17 @@ try {
     await page.locator('#onbBody').getByRole('button', { name: 'Cancelar' }).tap();   /* cancelar descarta e não toca no plano */
     assert.equal(await st(page, S => JSON.stringify([S.routine, S.prefs, S.plan])), plan0, 'cancelar não muda o plano');
     assert.equal(await st(page, S => !!S.onb.editing), false);
-    await page.evaluate(() => window.render('__eu'));
+    await page.evaluate(() => (window.render('__eu'), document.querySelectorAll('#content details').forEach(d => d.open = true)));
     assert.doesNotMatch(await page.locator('#content').innerText(), /alterações por concluir/);
     await ctx.close();
   });
 
   await test('rascunhos: dados pessoais e medida nova sobrevivem à navegação; guardar limpa só o seu', async () => {
     const { ctx, page } = await open(390);
-    await page.evaluate(() => window.render('__eu'));
+    await page.evaluate(() => (window.render('__eu'), document.querySelectorAll('#content details').forEach(d => d.open = true)));
     await page.fill('#p-age', '41'); await page.fill('#p-height', '178');
     await page.locator('#bnav').getByText('Evolução').tap();
+    await page.getByRole('tab', { name: 'Corpo' }).tap();
     await page.locator('#m-form summary').tap(); await page.fill('#m-weight', '77.5');
     await sheetTo(page, 'Plano');
     await page.locator('#bnav').getByText('Evolução').tap();
@@ -185,12 +188,12 @@ try {
     const out = await page.evaluate(async () => { const { ST } = await import('./js/state.js'); return JSON.stringify({ log: Object.keys(ST.log).length, m: ST.measures.length }); });
     assert.deepEqual(JSON.parse(out), { log: 9, m: 2 });
     /* rascunho + importação: o valor antigo não pode sobrepor-se aos dados repostos */
-    await page.evaluate(() => window.render('__eu')); await page.fill('#p-age', '99');
+    await page.evaluate(() => (window.render('__eu'), document.querySelectorAll('#content details').forEach(d => d.open = true))); await page.fill('#p-age', '99');
     const payload = await page.evaluate(async () => { const { ST } = await import('./js/state.js'); return JSON.stringify({ app: 'treino', v: 2, state: { ...ST, profile: { sex: 'm', age: 30, height: 170, goal: 'manter', activity: 'mod' } } }); });
     await page.setInputFiles('#importFile', { name: 'b.json', mimeType: 'application/json', buffer: Buffer.from(payload) });
     await page.locator('.app-dialog-actions button', { hasText: 'Importar' }).first().tap();
     await page.waitForFunction(() => document.querySelector('#notice.show'));
-    await page.evaluate(() => window.render('__eu'));
+    await page.evaluate(() => (window.render('__eu'), document.querySelectorAll('#content details').forEach(d => d.open = true)));
     assert.equal(await page.inputValue('#p-age'), '30');
     /* exportação real: o ficheiro descarregado leva o estado todo */
     await page.locator('#bnav').locator('[data-day="opts"]').tap();
@@ -232,7 +235,7 @@ try {
     await ctx.setOffline(true);
     await page.reload({ waitUntil: 'load' });
     for (const v of ['__plano', '__eu', '__perfil']) { await page.evaluate(x => window.render(x), v); assert(await page.locator('#content').innerText().then(t => t.length > 50), v); }
-    assert((await page.evaluate(() => caches.keys())).includes('treino-v50'));
+    assert((await page.evaluate(() => caches.keys())).includes('treino-v51'));
     await ctx.setOffline(false);
     await ctx.close();
   });
@@ -243,7 +246,7 @@ try {
       for (const [v, name] of [['__hoje', 'hoje'], ['__plano', 'plano'], ['__eu', 'perfil'], ['__perfil', 'evolucao']]) {
         await page.evaluate(x => window.render(x), v);
         if (v === '__plano') await page.locator('.pl-day summary').first().click();
-        if (v === '__perfil') await page.locator('#m-form summary').click();
+        if (v === '__perfil') { await page.getByRole('tab', { name: 'Corpo' }).click(); await page.locator('#m-form summary').click(); }
         assert(await noHScroll(page), `${v}: scroll horizontal`);
         const small = (await rects(page, '#content button, #content summary, #content .linklike, #content select, #content input:not([type=hidden])')).filter(r => r.h < 43.5);
         assert.deepEqual(small.map(s => `${s.t}:${Math.round(s.h)}`), [], `${v}: alvos <44px`);

@@ -28,7 +28,7 @@ try {
  await page.evaluate(async()=>{const {ST,save}=await import('./js/state.js');ST.profile={sex:'m',age:30,height:170,goal:'manter',activity:'mod'};ST.measures=[{date:'2026-09-01',weight:80}];ST.log={test:[{date:'2026-09-01',w:20,r:8}]};ST.workouts=[{id:'preserve'}];save();});
  const intact=()=>page.evaluate(async()=>{const {ST}=await import('./js/state.js');return JSON.stringify([ST.log,ST.workouts]);});
  const before=await intact();
- const view=v=>page.evaluate(v=>window.render(v),v);
+ const view=v=>page.evaluate(v=>{window.render(v);if(v==='__eu')document.querySelectorAll('#content details').forEach(d => d.open = true);if(v==='__perfil')window.evTab('corpo')},v);
  const reload=async v=>{await page.reload({waitUntil:'networkidle'});await view(v);};
  const storage=()=>page.evaluate(()=>localStorage.getItem('treino_drafts'));
  await test('perfil e medida nova sobrevivem ao reload, isolados',async()=>{
@@ -61,7 +61,7 @@ try {
   for(const raw of ['lixo',JSON.stringify({v:2,forms:{}}),JSON.stringify({v:1,forms:{evil:{base:'{}',fields:{}}}}),JSON.stringify({v:1,forms:{profile:{base:'{}',fields:{evil:'x'}}}})]){await page.evaluate(raw=>localStorage.setItem('treino_drafts',raw),raw);await reload('__eu');assert.equal(await page.inputValue('#p-age'),'41');}
  });
  await test('descartar, valores identicos e clearDrafts limpam',async()=>{
-  await page.fill('#p-age','42');await page.getByRole('button',{name:'Descartar rascunho'}).click();assert.equal(await page.inputValue('#p-age'),'41');assert.equal(await storage(),null);
+  await view('__eu');await page.fill('#p-age','42');await page.getByRole('button',{name:'Descartar rascunho'}).click();assert.equal(await page.inputValue('#p-age'),'41');assert.equal(await storage(),null);
   await page.fill('#p-age','42');await page.fill('#p-age','41');assert.equal(await storage(),null);
   await view('__perfil');await page.locator('#m-form summary').click();await page.fill('#m-weight','90');await page.getByRole('button',{name:'Descartar rascunho'}).click();assert.equal(await storage(),null);
   await view('__eu');await page.fill('#p-age','45');await page.evaluate(async()=>(await import('./js/profile.js')).clearDrafts());assert.equal(await storage(),null);

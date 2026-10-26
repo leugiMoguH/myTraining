@@ -159,6 +159,7 @@ const goPlano = async page => { await page.locator('#bnav').locator('[data-day="
   await page.waitForTimeout(200);
   check(/Treinos recentes/.test(await page.locator('#content').innerText()), 'existente: Histórico vazio');
   await page.locator('.ev-link').tap();
+  await page.getByRole('tab', { name: 'Cargas' }).tap();
   check(/Leg press/.test(await page.locator('#content').innerText()), 'existente: cargas antigas na Evolução');
 
   /* plano novo opcional, com cópia e reposição */

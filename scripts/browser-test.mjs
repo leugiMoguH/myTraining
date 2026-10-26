@@ -735,6 +735,7 @@ const semearMusculos = async () => {
 await step('mapa muscular: 7/28 dias, seleção, exercícios, sem overflow', async () => {
   await semearMusculos();
   await goNav('__perfil');
+  await page.evaluate(() => window.evTab('corpo'));
   await page.waitForSelector('#mmap svg.muscle-svg', { timeout: T });
   const chip = id => page.locator(`#mmap .mm-chip[onclick="mmSel('${id}')"]`);
   const txt = async id => (await chip(id).innerText()).replace(/\s+/g, ' ');

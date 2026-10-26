@@ -346,17 +346,19 @@ function renderHistory(content) {
   const manual = (ST.sessions || []).filter(s => s.id && !(s.sid && guided.has(s.sid)) && !(ST.workouts || []).some(w => w.day === 'Personalizado' && w.date === s.date && !s.sid) && /^\d{4}-\d{2}-\d{2}$/.test(s.date || ''))
     .map(s => ({ id: s.id, state: 'COMPLETED', date: s.date, day: s.label || 'Treino personalizado', label: '', quick: s.kind === 'quick' ? (s.quick && s.quick.mode) || 'quick' : '', manual: true }));
   const all = [...(ST.workouts || []).filter(w => w.state === 'COMPLETED' || w.state === 'ABANDONED'), ...manual].sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  const rows = all.slice(-10).reverse().map(w => {
+  const rowOf = w => {
     const t = statsOf(w);
     const extra = [t.paused >= 1000 ? `pausa ${fmtDur(t.paused)}` : '', t.unknown >= 1000 ? `sem registo ${fmtDur(t.unknown)}` : ''].filter(Boolean).join(' · ');
     return `<div class="wk-row"><div class="wk-row-main">
       <div class="wk-row-day">${esc(String(w.date || '').split('-').reverse().join('/'))} · ${esc(w.quick ? (w.quick === 'retoma' ? 'Retoma' : 'Treino rápido') : w.day)}</div>
       <div class="wk-row-sub">${esc(w.label || '')}${w.manual ? 'sem relógio de treino' : ' · ' + fmtDur(t.duration)}${extra ? ' · ' + extra : ''}</div></div>
       <div class="wk-row-st">${w.state === 'COMPLETED' ? (w.quick ? 'Concluído · reduzido' : 'Concluído') : 'Descartado'}</div>${w.state === 'COMPLETED' ? histBtn(w.id, 'Resumo') : ''}</div>`;
-  }).join('');
+  };
+  const newest = all.slice().reverse(), rows = newest.slice(0, 10).map(rowOf).join('');
+  const more = newest.length > 10 ? `<details class="ev-more"><summary>Ver todos (${newest.length})</summary><div class="week-list">${newest.slice(10).map(rowOf).join('')}</div><div class="sched-note">Só aparecem os treinos guardados neste dispositivo (a app guarda os últimos 300).</div></details>` : '';
   const box = document.createElement('div');
   box.className = 'full';
-  box.innerHTML = `<div class="cu-title">Treinos recentes</div><div class="week-list">${rows || '<div class="sched-note">Ainda não há treinos terminados.</div>'}</div>${recentClassesHTML()}`;
+  box.innerHTML = `<div class="cu-title">Treinos recentes</div><div class="week-list">${rows || '<div class="sched-note">Ainda não há treinos terminados.</div>'}</div>${more}${recentClassesHTML()}`;
   content.appendChild(box);
   const ex = document.createElement('div');
   ex.className = 'full';

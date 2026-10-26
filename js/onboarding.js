@@ -242,9 +242,9 @@ function planCardHTML() {
 }
 
 /* Ecrã Perfil: as respostas do acolhimento, lidas de ST.prefs. Editar abre o mesmo acolhimento (passo certo). */
-function prefsSummaryHTML() {
+function prefsSummaryHTML(bare) {
   const p = getPrefs();
-  if (!p || !hasPlan()) return `<div class="ob-plan"><div class="nplan-hdr"><div><div class="day-hdr-name">🎯 Preferências de treino</div><div class="day-hdr-sub">Ainda não respondeste às perguntas do plano.</div></div></div>
+  if (!p || !hasPlan()) return `<div class="ob-plan">${bare ? '<p class="ob-p">Ainda não respondeste às perguntas do plano.</p>' : '<div class="nplan-hdr"><div><div class="day-hdr-name">🎯 Preferências de treino</div><div class="day-hdr-sub">Ainda não respondeste às perguntas do plano.</div></div></div>'}
     <div class="ob-plan-btns"><button class="reset-btn btn-secondary" onclick="obOpen('edit')">Responder agora</button></div></div>`;
   const equip = p.equip.map(e => EQUIP_L[e]).join(', ');
   const rows = [
@@ -256,7 +256,7 @@ function prefsSummaryHTML() {
   ];
   if (p.name) rows.push(['Nome', p.name, 3]);
   const editing = !!(ST.onb && ST.onb.editing);
-  return `<div class="ob-plan"><div class="nplan-hdr"><div><div class="day-hdr-name">🎯 Preferências de treino</div><div class="day-hdr-sub">Guardadas neste dispositivo</div></div></div>
+  return `<div class="ob-plan">${bare ? '' : '<div class="nplan-hdr"><div><div class="day-hdr-name">🎯 Preferências de treino</div><div class="day-hdr-sub">Guardadas neste dispositivo</div></div></div>'}
     <dl class="pf-list">${rows.map(r => `<div class="pf-row"><dt>${r[0]}</dt><dd>${esc(r[1])}</dd><button class="reset-btn btn-ghost" onclick="obOpen('edit',${r[2]})" aria-label="Alterar: ${r[0]}">Alterar</button></div>`).join('')}</dl>
     ${editing ? `<div class="sched-note">Tens alterações por concluir. <button class="linklike" onclick="obOpen('edit')">Continuar</button> · <button class="linklike" onclick="obDiscard()">Descartar</button></div>` : ''}
     <div class="ndisc">Alterar preferências cria uma nova proposta de plano; só muda o plano depois de a confirmares. O histórico não se perde.</div></div>`;

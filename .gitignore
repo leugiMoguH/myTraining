@@ -46,3 +46,10 @@ test-results/
 
 # Graphify output
 graphify-out/
+
+# Local-only (nunca publicar)
+docs/ux-v2/capturas/
+scripts/_*.mjs
+.agents/
+.claude/skills/
+bash.exe.stackdump

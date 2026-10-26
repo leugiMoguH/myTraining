@@ -447,6 +447,8 @@ for (const [w, h, mobile] of [[320, 640, true], [360, 740, true], [412, 915, tru
   const tag = `${w}px`;
   await page.evaluate(() => window.goDay('Segunda'));
   check(await noHScroll(page), `${tag}: scroll horizontal no ecrã normal`);
+  check((await small(page, '.wk-chip')).length === 0, `${tag}: chips têm de medir pelo menos 44×44 px`);
+  check((await overlaps(page, '.wk-chip')).length === 0, `${tag}: chips sobrepostos`);
   check((await small(page, '#bnav .nb')).length === 0, `${tag}: botões da barra com alvo <44 px: ${(await small(page, '#bnav .nb')).join(',')}`);
   check((await overlaps(page, '#bnav .nb')).length === 0, `${tag}: botões da barra sobrepostos`);
   await page.evaluate(() => window.startWorkout('Segunda'));

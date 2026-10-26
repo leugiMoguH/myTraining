@@ -67,7 +67,7 @@ try {
       await go(origin); await tab('opts');
       for (const text of ['Plano','Perfil','Histórico','backup']) assert((await page.locator('#sheetBg').innerText()).toLowerCase().includes(text.toLowerCase()));
       assert.equal(await page.locator('#sheetBg [onclick*="__nutri"]').count(), 0);
-      assert((await page.locator('#appVersionLabel').innerText()).includes('treino-v49'));
+      assert((await page.locator('#appVersionLabel').innerText()).includes('treino-v50'));
       await page.locator('#sheetBg [onclick*="__hist"]').click();
       assert.equal(await page.locator('#sheetBg.show').count(), 0);
       assert.equal(await page.locator('#hdrSub').innerText(), 'Histórico');

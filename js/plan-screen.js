@@ -19,12 +19,12 @@ function dayRowHTML(w) {
 
 function renderPlan(content) {
   content = content || document.getElementById('content');
-  document.getElementById('hdrSub').textContent = 'Plano';
+  document.getElementById('hdrSub').textContent = 'Plano habitual';
   document.getElementById('progFill').style.width = '0%';
   content.innerHTML = `<div class="nutri-wrap"><button class="reset-btn btn-ghost hx-back" onclick="render('__hoje')">‹ Início</button>${planCardHTML()}
-    <div class="nsec-title">Rotina da semana</div>${WEEK.map(dayRowHTML).join('')}
+    <h1 class="nsec-title">Plano habitual</h1><p class="ndisc">Alterações à rotina valem para todas as semanas. Para ajustar só esta semana usa Hoje/Semana.</p>${WEEK.map(dayRowHTML).join('')}
     ${planClassesHTML()}
-    <div class="ndisc">A agenda desta semana e o que já fizeste estão em Histórico.</div></div>`;
+    <button class="ev-link" onclick="render('__semana')">Semana ›</button></div>`;
 }
 
 /* editar um dia a partir do Plano: o ecrã do dia mostra «‹ Plano» para voltar */

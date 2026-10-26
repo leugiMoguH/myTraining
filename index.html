@@ -362,12 +362,13 @@ body.kb #bnav { display: none; }
 /* ── AGENDA (tira da semana, avisos, descanso) ────── */
 .full { grid-column: 1/-1; }
 .week-strip {
-  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px;
+  display: grid; grid-template-columns: repeat(7, minmax(44px, 1fr)); gap: 4px;
+  overflow-x: auto;
   margin-bottom: 2px;
 }
 .wk-chip {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 8px 2px; cursor: pointer;
+  min-width: 44px; min-height: 44px; padding: 8px 2px; cursor: pointer;
   background: var(--card, var(--ov-4));
   border: 1px solid var(--border); border-radius: var(--r-sm);
   color: var(--muted); font-size: 11px; font-weight: 700;
@@ -1080,9 +1081,7 @@ body.guided #toast { top: calc(env(safe-area-inset-top, 0px) + 76px); }
 .ev-more[open] { padding-bottom: 12px; }
 .ev-more summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 700; font-size: 14px; }
 .ev-list { margin-top: 6px; }
-.today-strip .week-strip { gap: 4px; }
-.today-strip .wk-chip { min-height: 44px; }
-@media (max-width: 374px) { .today-strip .week-strip { margin-inline: -12px; gap: 0; } }
+@media (max-width: 374px) { .week-strip { margin-inline: -12px; gap: 0; } }
 .hero-links { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 12px; }
 .hero-links .linklike, .today-plan-link, .cu-entry { min-height: 44px; display: inline-flex; align-items: center; }
 .today-plan-link { margin-bottom: 8px; }

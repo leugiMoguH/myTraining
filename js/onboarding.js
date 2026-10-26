@@ -80,7 +80,7 @@ function reorgHTML() {
     const on = PICK === w;
     return `<button class="ob-row-day${on ? ' on' : ''}" onclick="obPick('${w}')" aria-pressed="${on}"><b>${w}</b><span>${t ? `${esc(day.label)} · ~${estimateMin(w)} min` : 'Descanso'}</span></button>`;
   }).join('');
-  return `<h1>Reorganizar a semana</h1><p class="ob-p">${PICK ? `Escolhe com que dia queres trocar <b>${PICK}</b>.` : 'Toca num dia e depois no dia com que queres trocá-lo. Um treino pode ir para um dia de descanso.'}</p>${msg()}${rows}`;
+  return `<h1>Reorganizar o plano habitual</h1><p class="ob-p">Muda o plano habitual para todas as semanas. ${PICK ? `Escolhe com que dia queres trocar <b>${PICK}</b>.` : 'Toca num dia e depois no dia com que queres trocá-lo. Um treino pode ir para um dia de descanso.'}</p>${msg()}${rows}`;
 }
 
 /* ── ecrã ───────────────────────────────────────── */
@@ -189,7 +189,7 @@ async function obApply() {
   const signature=()=>JSON.stringify([draft(), ST.routine, ST.prefs, ST.plan]);
   const before=signature();
   const replacing = isExistingUser() || hasPlan();
-  if (replacing && !await confirmDialog({title:'Substituir rotina', confirmLabel:'Substituir', message:'Isto substitui a tua rotina atual pelo plano proposto.\n\nO histórico de cargas, os recordes e as medidas ficam. Fazemos antes uma cópia de segurança e podes repor o estado anterior no Perfil.\n\nContinuar?'})) return;
+  if (replacing && !await confirmDialog({title:'Substituir rotina', confirmLabel:'Substituir', message:'Isto substitui a tua rotina atual pelo plano proposto para todas as semanas.\n\nO histórico de cargas, os recordes e as medidas ficam. Fazemos antes uma cópia de segurança e podes repor o estado anterior no Perfil.\n\nContinuar?'})) return;
   if(before!==signature()) return;
   const r = applyPlan(proposePlan(draft()), { reason: replacing ? 'antes de aplicar plano novo' : 'plano inicial' });
   if (!r.ok) { MSG = r.error; paint(); return; }
@@ -234,7 +234,7 @@ function planCardHTML() {
   return `<div class="ob-plan"><div class="nplan-hdr"><div><div class="day-hdr-name">📋 Plano</div><div class="day-hdr-sub">${esc(resume)}</div></div></div>${intro}
     <div class="ob-plan-btns">
       <button class="reset-btn btn-secondary" onclick="obOpen('edit')">✎ ${hasPlan() ? 'Rever objetivos e plano' : 'Criar plano novo'}</button>
-      <button class="reset-btn btn-secondary" onclick="obOpen('reorg')">↔ Reorganizar a semana</button>
+      <button class="reset-btn btn-secondary" onclick="obOpen('reorg')">↔ Reorganizar o plano habitual</button>
       ${info ? '<button class="reset-btn btn-ghost" onclick="obUndoPlan()">↩ Repor o estado anterior</button>' : ''}
     </div>${bak}
     <div class="ob-plan-save"><button class="reset-btn btn-ghost" onclick="exportBackup()">⬇ Guardar cópia de todos os dados (ficheiro)</button>

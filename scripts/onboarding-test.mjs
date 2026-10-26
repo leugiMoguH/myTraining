@@ -116,9 +116,9 @@ const goPlano = async page => { await page.locator('#bnav').locator('[data-day="
   /* Perfil: rever e reorganizar sem repetir o acolhimento */
   await page.evaluate(() => { if (document.getElementById('woBg').classList.contains('show')) window.closeWorkout(); });
   await goPlano(page);
-  check(/rotina da semana/i.test(await page.locator('#content').innerText()) && /todos os dados/.test(await page.locator('#content').innerText()), 'novo: Plano sem a rotina nem o âmbito da cópia');
+  check(/plano habitual/i.test(await page.locator('#content').innerText()) && /todos os dados/.test(await page.locator('#content').innerText()), 'novo: Plano sem a rotina nem o âmbito da cópia');
   await shot(page, '7-plano');
-  await page.getByRole('button', { name: /Reorganizar a semana/ }).tap();
+  await page.getByRole('button', { name: /Reorganizar o plano habitual/ }).tap();
   check(await shown(page, '#onbBg.show') && /Reorganizar/.test(await page.locator('#onbBody h1').innerText()), 'novo: reorganizar não abriu');
   /* há treino em curso: o dia dele não pode mover-se; o resto troca-se à vontade (inclusive para um dia de descanso) */
   const base = await state(page), live = base.session.day;

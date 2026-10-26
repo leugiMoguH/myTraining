@@ -199,8 +199,10 @@ function buildCard(day,ex,i) {
    separadores: é por aqui que se salta para um dia concreto. */
 function weekStripHTML(a) {
   const marks = classDayMarks();
-  return `<div class="week-strip">${a.days.map(d=>`
+  const labels = { done: 'treino feito', swapped: 'treino substituído', partial: 'treino a meio', todo: 'treino por fazer', rest: 'descanso', skipped: 'antes do plano' };
+  return `<div class="week-strip" role="group" aria-label="Dias desta semana" tabindex="0">${a.days.map(d=>`
     <button class="wk-chip s-${d.status}${d.isToday?' today':''}${d.isCurrent?' current':''}"
+            aria-label="${esc([d.day, d.isToday ? 'hoje' : '', labels[d.status], marks.has(d.day) ? 'com aula' : '', d.movedTo ? 'movido para ' + d.movedTo : ''].filter(Boolean).join(', '))}" ${d.isToday ? 'aria-current="date"' : ''}
             data-day="${d.day}" onclick="goDay('${d.day}')" title="${esc(d.label)}${marks.has(d.day) ? ' · com aula' : ''}${d.movedTo ? ` · passa para ${d.movedTo}` : ''}">
       <span class="wk-d">${d.short}${marks.has(d.day) ? '<i class="wk-c" aria-hidden="true"></i>' : ''}</span>
       <span class="wk-i">${d.movedTo ? '↪' : d.icon}</span>
@@ -305,8 +307,15 @@ function renderToday(content) {
 /* Vista da semana: uma linha por dia, para editar ou saltar para qualquer um. */
 function renderWeek(content) {
   const a = agenda();
+  const monday = new Date();
+  monday.setHours(12, 0, 0, 0);
+  monday.setDate(monday.getDate() - (monday.getDay() + 6) % 7);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+  const shortDate = d => `${d.getDate()} ${['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][d.getMonth()]}`;
+  const range = shortDate(monday) + ' – ' + shortDate(sunday);
   const LBL = { done:'Feito', swapped:'Substituído', partial:'A meio', todo:'Por fazer', rest:'Descanso', skipped:'Antes do plano' };
   content.innerHTML = `<div class="full">
+    <h1 class="cu-title">Esta semana <small>${range}</small></h1>
     ${weekStripHTML(a)}
     <div class="week-list">${a.days.map(d=>{
       const {done,total} = d.status==='rest' ? {done:0,total:0} : getProgress(d.day);
@@ -319,11 +328,13 @@ function renderWeek(content) {
       </button>`;
     }).join('')}</div>
     ${weekClassesHTML()}
-    <button class="ev-link" onclick="render('__hist')">Histórico ›</button>
+    <button class="ev-link" onclick="render('__hist')">Histórico › treinos e aulas registados</button>
+    <button class="ev-link" onclick="render('__plano')">Plano habitual › alterações para todas as semanas</button>
   </div>`;
   const nc = weekActivity().classes;
   document.getElementById('hdrSub').textContent = `Semana · ${a.pending} treino${a.pending===1?'':'s'} por fazer${nc ? ` · ${nc} aula${nc===1?'':'s'} feita${nc===1?'':'s'}` : ''}`;
-  document.getElementById('progFill').style.width = `${a.days.length?(a.days.filter(d=>d.status==='done'||d.status==='swapped').length/a.days.filter(d=>d.status!=='rest').length)*100:0}%`;
+  const trainingDays = a.days.filter(d => d.status !== 'rest');
+  document.getElementById('progFill').style.width = `${trainingDays.length ? (trainingDays.filter(d => d.status === 'done' || d.status === 'swapped').length / trainingDays.length) * 100 : 0}%`;
 }
 
 /* Histórico: treinos terminados e aulas recentes. */
@@ -374,13 +385,13 @@ function renderDay(content, day, standalone = true) {
   hdr.innerHTML = `
     <div class="day-hdr-text">
       <div class="day-hdr-name">${day}</div>
-      <div class="day-hdr-sub">${DAYS[day].label}</div>
+      <div class="day-hdr-sub">${DAYS[day].label}${editing ? '<br>A editar o plano habitual — vale para todas as semanas.' : ''}</div>
     </div>
     <div class="day-hdr-btns">
       ${editing
         ? `<button class="start-wo btn-primary" onclick="toggleEdit('${day}')">✓ Pronto</button>`
         : `${standalone ? `<button class="start-wo btn-primary" onclick="startWorkout('${day}')">${liveDay()===day?'▶ Continuar':'▶ Iniciar'}</button>` : ''}
-           <button class="reset-btn btn-secondary" onclick="toggleEdit('${day}')">✎ Editar</button>
+           <button class="reset-btn btn-secondary" onclick="toggleEdit('${day}')">✎ Editar rotina</button>
            <button class="reset-btn btn-ghost btn-danger" onclick="resetDay('${day}')">↺ Reset</button>`}
     </div>
   `;

@@ -103,3 +103,17 @@ Por decisão do dono, o **Bloco 4 (navegação global)** foi antecipado antes do
 
 ## Bloco 3 — Nutrição compacta (2026-10-26, treino-v49)
 1.º ecrã: dia · resumo compacto (Energia + Proteína) · «＋ Adicionar alimento» · refeições com contagem. Os 7 nutrientes ficam em «Resumo completo» (1 toque, `<details>`); ⓘ sempre visível; aviso científico dentro do resumo completo. Cálculos e dados inalterados.
+
+## Bloco 5 — Semana, Plano e Histórico (treino-v50, 3e1faae)
+Semana «Esta semana» com intervalo de datas; chips ≥44 px a 320 px em todas as tiras (regra única em `.week-strip`), com `aria-label` de estado; Plano → «Plano habitual» com alterações permanentes explícitas (reorganizar, substituir, «✎ Editar rotina»); atalhos Histórico e Plano habitual. Teste: `test:b5`.
+
+## Bloco 6 — Evolução e Perfil (treino-v51, a7eb6f0)
+Evolução em separadores Resumo · Cargas · Corpo (estado só em módulo); Histórico «Ver todos (N)» (só leitura; a app guarda os últimos 300 treinos e avisa); Perfil em secções recolhíveis com resumo. Altura a 390 px: Evolução 2807 → 743/1231/1402 px; Perfil 1200 → 465 px. Teste: `test:b6b`.
+
+## Bloco 7 — Validação final (treino-v52)
+- Painel «Sobre»: botão «Fechar» substituído por «X» (ícone 18 px, alvo 44 px, `closeX` em `dialog.js`); foco volta ao separador Mais; Tab preso; Escape. Teste: `test:sobre` (320/360/390/412 × claro/escuro).
+- Temas: a app usa `treino_theme` (por omissão **escuro**); as validações visuais fixam-no de facto e confirmam `data-theme` e o fundo. Claro, escuro e automático (sistema claro/escuro) testados e persistentes.
+- Varredura objetiva (`test:consist`, 9 ecrãs × 320/390/1280): corrigidos «hoje» (9 → 11 px) e intervalo de datas da Semana (<11 px).
+- Revisão Codex (só leitura, diff dos Blocos 5–7): 2 achados corrigidos — `aria-controls` só no separador ativo; «Evolução por exercício» abre Cargas. O Codex não conseguiu correr browsers (EPERM): UI verificada só pelos testes do Claude.
+- Histórico/retenção: `ST.workouts` guarda os últimos 300 (`session.js`); `ST.log` (cargas) e medidas não são cortados; conquistas têm limites ≤10 dias e estado `seen` persistente — sem contagens históricas enganosas; o backup exporta o que existe.
+- Bateria: 42 suites em série, mesma revisão, 0 falhas. Não verificado: leitor de ecrã real, telemóvel físico (feito pelo dono em v51), safe areas reais.

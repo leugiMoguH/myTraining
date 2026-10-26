@@ -144,7 +144,7 @@ try {
   });
   await p.waitForFunction(() => !!navigator.serviceWorker.controller);
   const core = /const CORE = (\[[\s\S]*?\]);/.exec(await readFile(new URL('../sw.js', import.meta.url), 'utf8'))[1];
-  await p.waitForFunction(async paths => { const c = await caches.open('treino-v51'); return (await Promise.all(paths.map(u => c.match(new URL(u, location.href))))).every(Boolean); }, Function('return ' + core)());
+  await p.waitForFunction(async paths => { const c = await caches.open('treino-v52'); return (await Promise.all(paths.map(u => c.match(new URL(u, location.href))))).every(Boolean); }, Function('return ' + core)());
   const prior = (await state(p)).workouts;
   const sid = (await state(p)).session.id;
   await context.setOffline(true);

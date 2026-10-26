@@ -362,7 +362,7 @@ function renderHistory(content) {
   content.appendChild(box);
   const ex = document.createElement('div');
   ex.className = 'full';
-  ex.innerHTML = `<button class="ev-link" onclick="render('__perfil')"><div class="wk-row-main"><div class="wk-row-day">📈 Evolução por exercício</div><div class="wk-row-sub">Cargas, recordes, gráficos e medidas</div></div><div class="wk-row-st">›</div></button>`;
+  ex.innerHTML = `<button class="ev-link" onclick="render('__perfil');evTab('cargas')"><div class="wk-row-main"><div class="wk-row-day">📈 Evolução por exercício</div><div class="wk-row-sub">Cargas, recordes, gráficos e medidas</div></div><div class="wk-row-st">›</div></button>`;
   content.appendChild(ex);
 }
 

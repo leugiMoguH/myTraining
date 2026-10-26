@@ -83,6 +83,18 @@ try {
     await ctx.close();
   });
 
+  await test('«Evolução por exercício» (Histórico) abre Cargas; aria-controls só aponta para painéis existentes', async () => {
+    const { ctx, page } = await open(390, 'dark');
+    await page.evaluate(() => window.render('__hist'));
+    await page.getByText('Evolução por exercício').tap();
+    assert.equal(await selected(page), 'Cargas');
+    assert((await page.locator('.hx-row').count()) >= 1);
+    const ids = await page.locator('[role=tab][aria-controls]').evaluateAll(es => es.map(e => e.getAttribute('aria-controls')));
+    assert(ids.length >= 1 && true);
+    assert.equal(await page.evaluate(() => [...document.querySelectorAll('[aria-controls]')].every(e => !!document.getElementById(e.getAttribute('aria-controls')))), true, 'todos os aria-controls existem');
+    await ctx.close();
+  });
+
   await test('Histórico: 10 recentes + «Ver todos (N)» sem alterar os dados guardados', async () => {
     const { ctx, page } = await open(390, 'dark', 14);
     const before = await page.evaluate(async () => JSON.stringify((await import('./js/state.js')).ST.workouts));

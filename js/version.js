@@ -1,1 +1,1 @@
-export const APP_VERSION = 'treino-v51';
+export const APP_VERSION = 'treino-v52';

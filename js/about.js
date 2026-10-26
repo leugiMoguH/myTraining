@@ -72,7 +72,7 @@ async function openAbout() {
         : !server ? 'sem ligação' : !worker ? 'sem service worker' : 'Atualizada';
       const action = await confirmDialog({ title: 'Sobre',
         message: `Código em execução: ${APP_VERSION}\nService worker ativo: ${worker || 'sem service worker'}\nNo servidor: ${server || 'sem ligação'}\nEstado: ${status}${notice ? '\n'+notice : ''}`,
-        cancelLabel: 'Fechar', confirmLabel: 'Verificar atualização',
+        closeX: true, closeLabel: 'Fechar informações sobre a aplicação', confirmLabel: 'Verificar atualização',
         ...(mismatch ? { altLabel: 'Repor ficheiros da app' } : {}) });
       if (!action) break;
       if (action === 'alt') {

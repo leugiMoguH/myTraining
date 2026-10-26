@@ -251,7 +251,7 @@ function renderProfile(content){
 const EV_TABS=[['resumo','Resumo'],['cargas','Cargas'],['corpo','Corpo']];
 let EV_TAB='resumo';
 function evTabsHTML(){
-  return `<div class="ev-tabs" role="tablist" aria-label="Evolução">${EV_TABS.map(([id,l])=>`<button type="button" role="tab" id="evt-${id}" class="ev-tab" aria-selected="${id===EV_TAB}" aria-controls="evp-${id}" tabindex="${id===EV_TAB?0:-1}" onclick="evTab('${id}')" onkeydown="evTabKey(event)">${l}</button>`).join('')}</div>`;
+  return `<div class="ev-tabs" role="tablist" aria-label="Evolução">${EV_TABS.map(([id,l])=>`<button type="button" role="tab" id="evt-${id}" class="ev-tab" aria-selected="${id===EV_TAB}"${id===EV_TAB?` aria-controls="evp-${id}"`:''} tabindex="${id===EV_TAB?0:-1}" onclick="evTab('${id}')" onkeydown="evTabKey(event)">${l}</button>`).join('')}</div>`;
 }
 function evPanelHTML(){
   if(EV_TAB==='cargas') return exerciseListHTML(8)+volumeHTML();

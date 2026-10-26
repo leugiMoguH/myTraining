@@ -47,6 +47,8 @@
     "test:b5": "node scripts/semana-b5-test.mjs",
     "test:b6": "node scripts/bloco6-test.mjs",
     "test:b6b": "node scripts/evolucao-b6-test.mjs",
+    "test:consist": "node scripts/consistencia-b7-test.mjs",
+    "test:sobre": "node scripts/sobre-b7-test.mjs",
     "test:data": "node scripts/history-test.mjs && node scripts/muscle-test.mjs"
   },
   "devDependencies": {

@@ -17,7 +17,15 @@ function openDialog(options, prompt) {
     const id = `app-dialog-${++sequence}`;
     const title = document.createElement('h2');
     title.id = id; title.textContent = options.title;
-    card.setAttribute('aria-labelledby', id); card.append(title);
+    card.setAttribute('aria-labelledby', id);
+    let closeX;
+    if (options.closeX) {   /* «X» discreto no canto: 18px visíveis, alvo de 44px */
+      const head = document.createElement('div'); head.className = 'app-dialog-head';
+      closeX = document.createElement('button'); closeX.type = 'button'; closeX.className = 'app-dialog-x';
+      closeX.setAttribute('aria-label', options.closeLabel || 'Fechar');
+      closeX.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" focusable="false"><path d="M3 3l12 12M15 3L3 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
+      head.append(title, closeX); card.append(head);
+    } else card.append(title);
     if (options.message) {
       const msg = document.createElement('p');
       msg.id = `${id}-message`; msg.textContent = options.message;
@@ -51,6 +59,7 @@ function openDialog(options, prompt) {
       if (settled) return;
       settled = true;
       actions.querySelectorAll('button').forEach(b => { b.disabled = true; });
+      if (closeX) closeX.disabled = true;
       document.removeEventListener('keydown', key, true);
       observer.disconnect();
       previous.forEach((v, e) => { if (v === null) e.removeAttribute('inert'); else e.setAttribute('inert', v); });
@@ -71,7 +80,8 @@ function openDialog(options, prompt) {
       finish(prompt ? input.value : true);
     };
     if(input) input.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();approve();} });
-    const safe = button(options.cancelLabel || 'Cancelar', 'btn-secondary', cancel);
+    const safe = options.closeX ? null : button(options.cancelLabel || 'Cancelar', 'btn-secondary', cancel);
+    if (closeX) closeX.addEventListener('click', cancel);
     if (options.altLabel) button(options.altLabel, 'btn-danger', () => finish('alt'));
     const main = button(options.confirmLabel || 'Confirmar', options.danger ? 'btn-danger' : 'btn-primary', approve);
     card.append(actions); overlay.append(card);
@@ -95,7 +105,7 @@ function openDialog(options, prompt) {
     document.addEventListener('keydown', key, true);
     card.addEventListener('submit', e => { e.preventDefault(); approve(); });
     overlay.addEventListener('click', e => { if (e.target === overlay && !options.danger && !(input && input.value)) cancel(); });
-    (input || (options.danger ? safe : main)).focus();
+    (input || (options.danger && safe ? safe : main)).focus();
   });
 }
 

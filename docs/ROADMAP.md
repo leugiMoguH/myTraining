@@ -14,6 +14,7 @@ Blocos 1–5 concluídos (v50). Bloco 6 (Evolução e Perfil) em curso. Bloco 7 
 5. Fase E — integrações e funcionalidades futuras (não podem adiar indefinidamente uma versão estável)
 
 ## Fase A — Contas e persistência
+Plano e riscos: `V2_FASE_A_PLANO.md` (proposta para aprovação; V1 = tag `v1-treino-v52`).
 - Login/registo; sincronização entre dispositivos; recuperação de dados; histórico de longo prazo (inclui resolver o limite de retenção de 300 treinos de `session.js`).
 - Migração segura do armazenamento local; exportação e eliminação de dados; segurança de autenticação/autorização; offline com sincronização posterior.
 - Supabase como primeira opção (comparar alternativas só com benefício relevante; ver `V2_ARQUITETURA_NEON_SUPABASE.md`).

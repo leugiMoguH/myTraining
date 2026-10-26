@@ -455,6 +455,9 @@ await step('abrir definicoes', async () => {
 await step('fechar definicoes', () => page.evaluate(() => window.closeSheet()));
 
 await step('reload mantem progresso', async () => {
+  /* concluir uma sessão de «Segunda» limpa as marcas desse dia (é segunda-feira = dia do teste): marca de novo antes do reload */
+  await page.evaluate(() => window.render('Segunda'));
+  if (!(await page.locator('.set-btn.on').count())) await click('.set-btn');
   await page.reload({ waitUntil: 'networkidle' });
   if (!(await page.locator('.set-btn.on').count())) throw new Error('progresso perdeu-se no reload');
 });

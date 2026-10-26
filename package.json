@@ -7,6 +7,7 @@
     "test:nutri-contract": "node scripts/nutri-contract-test.mjs",
     "test:nutri-search": "node scripts/nutri-search-test.mjs",
     "test:nutri": "node scripts/nutri-test.mjs",
+    "test:nutri-compact": "node scripts/nutri-compact-test.mjs",
     "test:nutri-ui": "node scripts/nutri-ui-test.mjs",
     "test:nutri-gfx": "node scripts/nutri-gfx-test.mjs",
     "test:version": "node scripts/version-test.mjs",

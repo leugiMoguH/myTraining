@@ -58,6 +58,8 @@ try {
     await page.keyboard.press('Enter'); await page.locator('#foodSheet').waitFor({ state: 'detached' });
     const after = await page.evaluate(async () => (await import('./js/state.js')).ST.intake.map(e => e.id));
     assert.deepEqual(after, ['a2'], 'só a Banana fica'); assert.match(await page.locator('#notice').textContent(), /removido do diário/);
+    await page.locator('.diary-full summary').tap();
+    assert(await page.locator('[data-nutrient="kcal"]').isVisible());
     assert.equal(await page.locator('[data-entry="a1"]').count(), 0); assert.match(await page.locator('[data-nutrient="kcal"] b').textContent(), /^105/);
     await ctx.close(); console.log('ok', width, theme);
   }

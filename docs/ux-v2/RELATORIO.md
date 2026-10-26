@@ -100,3 +100,6 @@ Pendências: chips de 7 dias; z-index 400 da folha. Nenhuma alteração ao prot�
 
 ## Registo de ordem (2026-10-25)
 Por decisão do dono, o **Bloco 4 (navegação global)** foi antecipado antes do Bloco 3 (Nutrição). Entregue em `treino-v48`: barra Hoje · Semana · Evolução · Nutrição · Mais, sem botão central; pausar/retomar/abrir/descartar na faixa de sessão; Histórico via Evolução ou Mais (2 toques).
+
+## Bloco 3 — Nutrição compacta (2026-10-26, treino-v49)
+1.º ecrã: dia · resumo compacto (Energia + Proteína) · «＋ Adicionar alimento» · refeições com contagem. Os 7 nutrientes ficam em «Resumo completo» (1 toque, `<details>`); ⓘ sempre visível; aviso científico dentro do resumo completo. Cálculos e dados inalterados.

@@ -1255,10 +1255,22 @@ button:active:not(:disabled) { opacity: .75; }
 /* Di?rio alimentar: tokens partilhados nos dois temas; alvos t?teis de 44 px. */
 .diary-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .diary-row h2 { font-size:16px; margin:0; min-width:0; }
-.diary-date { flex-wrap:wrap; margin:16px 0; }
+.diary-date { flex-wrap:nowrap; margin:6px 0; }
+.diary-date-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
 .diary-date label { flex:1; min-width:120px; color:var(--muted); font-size:12px; }
 .diary-date input { display:block; width:100%; min-width:0; min-height:44px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:4px; }
-.diary-summary,.diary-meal { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px; margin:12px 0; }
+.diary-summary { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:10px 12px; margin:8px 0; }
+.diary-meal { padding:8px 0; margin:4px 0; border-bottom:1px solid var(--border); }
+.diary-count { color:var(--muted); font-size:12px; }
+.diary-compact-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:4px 0 10px; }
+.diary-compact { min-width:0; overflow-wrap:anywhere; }
+.diary-compact b { display:block; font-size:24px; line-height:1.3; }
+.diary-compact small { display:block; color:var(--muted); font-size:12px; line-height:1.4; }
+.diary-add-quick { width:100%; }
+.diary-full>summary { min-height:44px; padding:12px 0; box-sizing:border-box; cursor:pointer; }
+.diary-full>summary:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+.diary-meal .ndisc { margin:6px 0; }
+.nutri-wrap .day-hdr-name { margin-bottom:6px; }
 .diary-summary { box-shadow:var(--shadow); }
 .diary-total { padding:10px 0; border-bottom:1px solid var(--border); }
 .diary-total:last-child { border-bottom:0; }

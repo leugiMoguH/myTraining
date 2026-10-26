@@ -13,7 +13,7 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-reference-info]
 const meals = {pa:'Pequeno-almoço',alm:'Almoço',jan:'Jantar',lan:'Lanches'};
 const labels = {kcal:'Energia',protein:'Proteína',carbs:'Hidratos',fat:'Gordura',fibre:'Fibra',sugars:'Açúcares totais',salt:'Sal'};
 const show = n => n == null ? '—' : String(Math.round(n*10)/10);
-let date = todayStr(), catalogue = null, loading = null, repaint = null, sheet = null;
+let date = todayStr(), catalogue = null, loading = null, repaint = null, sheet = null, fullOpen = false;
 const definitions = () => [...(catalogue || []), ...(ST.foodsCustom || []).map(f => ({...f,id:'c:'+f.id,source:'manual'}))];
 async function loadFoods() {
   if (catalogue) return catalogue;
@@ -29,7 +29,7 @@ function info(food) {
 }
 function diaryHTML() {
   const list = intakeForDate(ST.intake || [],date), refs = references(bodyMetrics()), summary = daySummary(list,refs);
-  const rows = NUTRIENTS.map(k => {
+  const presentation = Object.fromEntries(NUTRIENTS.map(k => {
     const s=summary[k], r=refs[k==='kcal'?'energy':k], max=r?.range?.[1] || r?.value;
     const bar=s.complete && refs.applicable && k!=='sugars' && max;
     const state=s.state==='parcial' ? `parcial · +${s.missing} sem dado`
@@ -39,18 +39,36 @@ function diaryHTML() {
     const reference=r?.range ? `ref. ${r.range.map(v=>Math.round(v)).join('–')} g`
       : r?.value != null ? `ref. ${show(r.value)} ${k==='kcal'?'kcal':'g'}`
       : k==='sugars' ? 'sem referência' : 'ref. indisponível';
-    return `<div class="diary-total" data-nutrient="${k}"><div><strong>${labels[k]}</strong><b>${show(s.total)} ${k==='kcal'?'kcal':'g'}</b></div><small>${esc(state)} · ${esc(reference)}</small>${bar ? `<div class="diary-bar" aria-hidden="true"><span style="width:${Math.min(100,Math.max(0,s.total/max*100))}%"></span>${r.range ? `<i style="left:${r.range[0]/max*100}%"></i>` : ''}</div>` : ''}</div>`;
+    const value=`${show(s.total)} ${k==='kcal'?'kcal':'g'}`;
+    const barHTML=bar ? `<div class="diary-bar" aria-hidden="true"><span style="width:${Math.min(100,Math.max(0,s.total/max*100))}%"></span>${r.range ? `<i style="left:${r.range[0]/max*100}%"></i>` : ''}</div>` : '';
+    return [k,{value,state,reference,barHTML}];
+  }));
+  const rows=NUTRIENTS.map(k=>{
+    const p=presentation[k];
+    return `<div class="diary-total" data-nutrient="${k}"><div><strong>${labels[k]}</strong><b>${p.value}</b></div><small>${esc(p.state)} · ${esc(p.reference)}</small>${p.barHTML}</div>`;
+  }).join('');
+  const compact=['kcal','protein'].map(k=>{
+    const p=presentation[k];
+    return `<div class="diary-compact" data-compact="${k}"><strong>${labels[k]}</strong><b>${p.value}</b><small>${esc(p.state)}</small><small>${esc(p.reference)}</small>${p.barHTML}</div>`;
   }).join('');
   const sections = [...Object.entries(meals),...(list.some(e => !mealOf(e)) ? [['legacy','Sem refeição']] : [])].map(([id,label]) => {
     const items=list.filter(e => (mealOf(e) || 'legacy')===id);
-    return `<section class="diary-meal" aria-label="${label}"><div class="diary-row"><h2>${label}</h2>${id!=='legacy' ? `<button class="btn-secondary" data-add="${id}" id="diary-add-${id}">＋ Adicionar</button>` : ''}</div>${items.length ? items.map(e => `<button class="diary-entry" data-entry="${esc(e.id)}"><strong>${esc(e.name)}</strong><span>${e.g ? show(e.g)+' '+esc(e.unit)+' · ' : ''}${show(e.kcal)} kcal · ${show(e.protein)} g proteína · <u>Editar</u> ›</span></button>`).join('') : '<p class="ndisc">Sem registos.</p>'}</section>`;
+    return `<section class="diary-meal" aria-label="${label}"><div class="diary-row"><div><h2>${label}</h2><small class="diary-count">${items.length} ${items.length===1?'item':'itens'}</small></div>${id!=='legacy' ? `<button class="btn-secondary" data-add="${id}" id="diary-add-${id}">＋ Adicionar</button>` : ''}</div>${items.length ? items.map(e => `<button class="diary-entry" data-entry="${esc(e.id)}"><strong>${esc(e.name)}</strong><span>${e.g ? show(e.g)+' '+esc(e.unit)+' · ' : ''}${show(e.kcal)} kcal · ${show(e.protein)} g proteína · <u>Editar</u> ›</span></button>`).join('') : '<p class="ndisc">Sem registos.</p>'}</section>`;
   }).join('');
-  return `<div class="diary-row diary-date"><button class="btn-secondary" data-day="-1" aria-label="Dia anterior">‹</button><label>Dia<input type="date" id="diary-date" value="${date}"></label><button class="btn-secondary" data-today>Hoje</button><button class="btn-secondary" data-day="1" aria-label="Dia seguinte">›</button></div><section class="diary-summary" aria-label="Resumo dos registos"><div class="diary-row"><h2>Resumo · total dos registos</h2><button class="info-i" data-estimate aria-label="Informação sobre as estimativas">ⓘ</button></div>${!refs.applicable ? `<p class="ndisc">${esc(refs.reason)} <button class="btn-secondary" data-profile>Abrir Perfil</button></p>` : ''}${rows}</section><p class="ndisc">Estimativas para adultos 18–65; não substituem um profissional. Confirma alergénios no rótulo.</p>${sections}`;
+  return `<div class="diary-row diary-date"><button class="btn-secondary" data-day="-1" aria-label="Dia anterior">‹</button><label><span class="diary-date-label">Dia</span><input type="date" id="diary-date" value="${date}"></label><button class="btn-secondary" data-today>Hoje</button><button class="btn-secondary" data-day="1" aria-label="Dia seguinte">›</button></div><section class="diary-summary" aria-label="Resumo dos registos"><div class="diary-row"><h2>Resumo</h2><button class="info-i" data-estimate aria-label="Informação sobre as estimativas">ⓘ</button></div>${!refs.applicable ? `<p class="ndisc">${esc(refs.reason)} <button class="btn-secondary" data-profile>Abrir Perfil</button></p>` : ''}<div class="diary-compact-grid">${compact}</div><button class="btn-primary diary-add-quick" id="diary-add-quick" data-add-quick>＋ Adicionar alimento</button><details class="diary-full"${fullOpen?' open':''}><summary>Resumo completo</summary>${rows}<p class="ndisc">Estimativas para adultos 18–65; não substituem um profissional. Confirma alergénios no rótulo.</p></details></section>${sections}`;
 }
 function bindDiary(render) {
   repaint=render;
   loadFoods().catch(()=>{});
   const root=document.getElementById('content');
+  const full=root.querySelector('.diary-full');
+  // Native toggle is queued: retain a user activation even if navigation removes this DOM first.
+  full.querySelector('summary').addEventListener('click',()=>{fullOpen=!full.open;});
+  full.addEventListener('toggle',()=>{if(full.isConnected && root.querySelector('.diary-full')===full) fullOpen=full.open;});
+  root.querySelector('[data-add-quick]').addEventListener('click',()=>{
+    const hour=new Date().getHours();
+    openFoodSheet({meal:hour<11?'pa':hour<15?'alm':hour<18?'lan':'jan'});
+  });
   root.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click',()=>openFoodSheet({meal:b.dataset.add})));
   root.querySelectorAll('[data-entry]').forEach(b => b.addEventListener('click',()=>openFoodSheet({id:b.dataset.entry})));
   root.querySelectorAll('[data-day]').forEach(b => b.addEventListener('click',()=>{
@@ -66,7 +84,7 @@ function closeSheet() {
   if (!sheet) return;
   const current=sheet; sheet=null; closeOverlay(current.bg); current.bg.remove();
   document.body.classList.remove('food-sheet-open');
-  const target=document.querySelector(`[data-entry="${CSS.escape(current.original?.id || '')}"]`) || document.getElementById('diary-add-'+current.meal);
+  const target=(current.openerId==='diary-add-quick' ? document.getElementById(current.openerId) : null) || document.querySelector(`[data-entry="${CSS.escape(current.original?.id || '')}"]`) || document.getElementById('diary-add-'+current.meal);
   target?.focus({preventScroll:true});
 }
 const on=(selector,event,fn)=>sheet.bg.querySelector(selector)?.addEventListener(event,fn);
@@ -80,7 +98,7 @@ function openFoodSheet({meal='pa',id}={}) {
   if(id && !original) return;
   const bg=document.createElement('div'); bg.className='food-sheet-bg'; bg.id='foodSheet';
   bg.innerHTML=`<section class="food-sheet" role="dialog" aria-modal="true" aria-labelledby="food-title"><div class="diary-row"><h2 id="food-title">${original?'Editar registo':'Adicionar alimento'}${date!==todayStr()?' · '+esc(date):''}</h2><button class="btn-secondary" id="food-close" aria-label="Fechar folha">✕</button></div><div id="food-body"></div><p id="food-error" class="inline-error" role="alert"></p></section>`;
-  sheet={bg,meal:original?.meal || meal,original,food:original?.fid ? definitions().find(f=>f.id===original.fid) || null : null,busy:false}; document.body.append(bg);
+  sheet={bg,openerId:document.activeElement?.id,meal:original?.meal || meal,original,food:original?.fid ? definitions().find(f=>f.id===original.fid) || null : null,busy:false}; document.body.append(bg);
   document.body.classList.add('food-sheet-open');
   on('#food-close','click',closeSheet);
   if(original) quantity(); else search();

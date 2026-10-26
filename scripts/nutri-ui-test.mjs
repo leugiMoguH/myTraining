@@ -13,7 +13,7 @@ const server=createServer((req,res)=>{
  if(!existsSync(file)){res.writeHead(404).end();return;}
  let body=readFileSync(file);
  if(path==='/data/foods-pt.json'&&malformed)body=Buffer.from('invalid json');
- if(path==='/sw.js'&&oldWorker)body=Buffer.from(body.toString().replaceAll('treino-v48','treino-v42'));
+ if(path==='/sw.js'&&oldWorker)body=Buffer.from(body.toString().replaceAll('treino-v49','treino-v42'));
  res.writeHead(200,{'Content-Type':({'.js':'text/javascript','.html':'text/html','.json':'application/json','.svg':'image/svg+xml'})[extname(file)]||'application/octet-stream','Cache-Control':'no-store'}).end(body);
 });
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -38,7 +38,7 @@ async function capture(page,width,theme,name) {
   const red=color=>{const [r,g,b]=color.match(/[\d.]+/g).map(Number);return r>g*1.3 && r>b*1.3;};
   return {
    overflow:document.documentElement.scrollWidth>innerWidth,
-   repeated:(document.querySelector('.diary-summary').textContent.match(/total dos registos/g)||[]).length,
+   repeated:[...document.querySelectorAll('.diary-summary h2')].filter(e=>e.textContent==='Resumo').length,
    alarmBorder:red(getComputedStyle(document.querySelector('.diary-summary')).borderTopColor),
    alarmBars:[...document.querySelectorAll('.diary-bar span')].some(e=>red(getComputedStyle(e).backgroundColor)),
    alarmStates:[...document.querySelectorAll('.diary-total small')].some(e=>red(getComputedStyle(e).color)),
@@ -46,7 +46,7 @@ async function capture(page,width,theme,name) {
    dialog:dialog && {opacity:getComputedStyle(dialog).opacity,background:getComputedStyle(dialog).backgroundColor,z:Number(getComputedStyle(dialog.parentElement).zIndex),sheetZ:Number(getComputedStyle(document.getElementById('foodSheet')).zIndex),animated:dialog.getAnimations().some(a=>a.playState==='running')}
   };
  });
- assert.equal(visual.overflow,false);assert.equal(visual.repeated,1,'total dos registos só no título');
+ assert.equal(visual.overflow,false);assert.equal(visual.repeated,1,'um unico titulo de resumo dos registos');
  assert.equal(visual.alarmBorder,false);assert.equal(visual.alarmBars,false);assert.equal(visual.alarmStates,false);
  if(visual.sheet){assert(Math.abs(visual.sheet.bottom-visual.sheet.height)<=1,'folha encostada ao fundo');assert(visual.sheet.navInert);assert(visual.sheet.navHidden);assert.equal(visual.sheet.overflow,false);}
  if(visual.dialog){assert.equal(visual.dialog.opacity,'1');assert(!visual.dialog.background.startsWith('rgba('),'fundo sólido');assert(visual.dialog.z>visual.dialog.sheetZ);assert.equal(visual.dialog.animated,false);}
@@ -136,7 +136,7 @@ try{
   await page.locator('[data-day="-1"]').click();const past=await page.locator('#diary-date').inputValue();
   await choose(page,'pa','banana');assert.match(await page.locator('#food-title').textContent(),new RegExp(past));await saveFood(page);assert.equal((await state(page)).at(-1).date,past);assert.equal(await page.locator('#diary-date').inputValue(),past);await page.locator('[data-today]').click();
   // Offline real: catálogo no CORE, pesquisa, edição e diário após reload.
-  await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(async()=>!!(await (await caches.open('treino-v48')).match('data/foods-pt.json')));
+  await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(async()=>!!(await (await caches.open('treino-v49')).match('data/foods-pt.json')));
   await page.reload({waitUntil:'networkidle'});await ctx.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.evaluate(()=>window.render('__nutri'));
   await choose(page,'pa','maçã');await saveFood(page);await totals(page);
   await page.locator('[data-add="pa"]').click();await page.locator('#foodSheet summary').click();await page.locator('#barcode').fill('12345678');await page.locator('#food-barcode button[type=submit]').click();assert.match(await page.locator('#barcode-status').textContent(),/Sem ligação.*manual/);await page.keyboard.press('Escape');
@@ -165,8 +165,8 @@ try{
   const {ctx,page}=await context();await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(()=>navigator.serviceWorker.controller);
   await page.waitForFunction(async()=>!!(await (await caches.open('treino-v42')).match('data/foods-pt.json')));
   oldWorker=false;await page.evaluate(async()=>{const r=await navigator.serviceWorker.getRegistration();await r.update();});
-  await page.waitForFunction(async()=>{const keys=await caches.keys();return keys.includes('treino-v48')&&!keys.includes('treino-v42');});
-  await ctx.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.evaluate(()=>window.render('__nutri'));await choose(page,'pa','banana');await saveFood(page);await ctx.close();console.log('OK atualização SW v42 → v43 e offline');
+  await page.waitForFunction(async()=>{const keys=await caches.keys();return keys.includes('treino-v49')&&!keys.includes('treino-v42');});
+  await ctx.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});await page.evaluate(()=>window.render('__nutri'));await choose(page,'pa','banana');await saveFood(page);await ctx.close();console.log('OK atualização SW v42 → v49 e offline');
  }
  assert.deepEqual(errors,[]);console.log('OK zero erros de consola');
 }finally{await browser.close();await new Promise(r=>server.close(r));}

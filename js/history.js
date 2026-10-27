@@ -137,7 +137,7 @@ function renderExercise(content) {
 }
 
 /* ── correções ─────────────────────────────────────────────────────────────────────────────────── */
-const done = r => { if (!r.ok) toast(r.msg); else { HX.edit = null; HX.adding = false; } render('__ex'); };
+const done = r => { if (!r.ok && !r.applied) toast(r.msg); else { HX.edit = null; HX.adding = false; } render('__ex'); };
 function hxEditSet(date, i) { HX.edit = { date, i }; HX.adding = false; render('__ex'); }   /* um formulário de cada vez (ids únicos) */
 function hxEditDate(date) { HX.edit = { date, i: 'date' }; HX.adding = false; render('__ex'); }
 function hxCancel() { HX.edit = null; HX.adding = false; render('__ex'); }

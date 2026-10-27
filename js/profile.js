@@ -134,7 +134,7 @@ function saveProfile(){
   if(!(height>0)){ fieldError('p-height','A altura é obrigatória.'); return; }
   const previous=ST.profile;
   ST.profile={ sex:v('p-sex'), age:parseInt(v('p-age'),10)||0, height, goal:v('p-goal'), activity:v('p-activity') };
-  if(!save()){ST.profile=previous;return;}
+  if(!save({rolledBack:true})){ST.profile=previous;return;}
   clearDraft('profile'); renderProfile();
 }
 
@@ -190,7 +190,7 @@ async function saveMeasure(){
   arr.sort((a,b)=>a.date<b.date?-1:(a.date>b.date?1:0));
   const previous=ST.measures;
   ST.measures=arr;
-  if(!save()){ST.measures=previous;return;}
+  if(!save({rolledBack:true})){ST.measures=previous;return;}
   clearDraft('measure:'+(MEASURE_EDIT_DATE||'new')); MEASURE_EDIT_DATE=null;
   renderEvolution();
 }

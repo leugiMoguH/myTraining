@@ -18,7 +18,7 @@ const SET_SECONDS = 45;   /* tempo de execução de uma série; o descanso é o 
 function commit(mutate) {
   const prev = JSON.stringify(ST);
   mutate();
-  if (save()) return true;
+  if (save({rolledBack:true})) return true;
   setST(JSON.parse(prev));
   return false;
 }

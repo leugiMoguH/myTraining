@@ -36,6 +36,8 @@ function openOverlay(bg, { initial, onClose }) {
   inert.forEach(lock);
   stack.push({ bg, origin, inert, onClose });
   bg.classList.add('show');
+  const recovery=document.getElementById('saveBanner');
+  if(recovery) bg.appendChild(recovery);
   const first = (initial && bg.querySelector(initial)) || controls(bg)[0];
   if (first) {
     first.focus({ preventScroll: true });
@@ -54,6 +56,8 @@ function closeOverlay(bg) {
   const [{ origin, inert }] = stack.splice(i, 1);
   inert.forEach(unlock);
   const top = stack[stack.length - 1];
+  const recovery=document.getElementById('saveBanner');
+  if(recovery) (top?.bg || document.body).appendChild(recovery);
   const target = usable(origin) && (!top || top.bg.contains(origin)) ? origin : top && controls(top.bg)[0];
   if (target) target.focus({ preventScroll: true });
 }

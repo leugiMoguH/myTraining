@@ -128,7 +128,7 @@ function finish(state, endAt) {
   for (const fn of ENDERS) { try { fn(done); } catch (e) { console.error('session end', e); } }
   emit();
   if (saved && state === COMPLETED) for (const fn of DONERS) { try { fn(done); } catch (e) { console.error('session done', e); } }
-  return true;
+  return saved;
 }
 const completeSession = endAt => finish(COMPLETED, endAt);
 const abandonSession = () => finish(ABANDONED);

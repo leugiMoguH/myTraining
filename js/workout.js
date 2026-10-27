@@ -11,7 +11,7 @@ import { DEMOS, demoUrl } from './media.js';
 import { configOf, progHint } from './progression.js';
 import { lastBefore } from './records.js';
 import { ACTIVE, PAUSED, completeSession, currentSession, fmtDur, isLive, notifySession, onSessionEnd, pauseSession, resumeSession, sessionState, setSessionPos, startSession, timeStats, touchSession } from './session.js';
-import { ST, addSetLog, esc, getLog, getSets, lastSetOf, logDate, toggleSet } from './state.js';
+import { ST, getSaveState, addSetLog, esc, getLog, getSets, lastSetOf, logDate, toggleSet } from './state.js';
 import { TM, onTimerChange, timerDismiss } from './timer.js';
 import { openSwap } from './catalog-ui.js';
 import { render } from './ui.js';
@@ -149,11 +149,12 @@ async function woFinish(){
   /* O personalizado decide tudo antes de fechar a vista, incluindo o descarte vazio. */
   if(day===CUSTOM_DAY){
     if(await cuFinish(true, id)) closeWorkout();
+    else if(currentSession()?.state==='COMPLETED') woRender();
     return;
   }
-  if(!await confirmDialog({title:'Terminar treino', message:'Terminar o treino? Fica guardado no histórico.', confirmLabel:'Terminar'})) return;
+  if(!await confirmDialog({title:'Terminar treino', message:'Terminar o treino?', confirmLabel:'Terminar'})) return;
   if(currentSession()?.id!==id || WO.day!==day || !DAYS[day] || (day===CUSTOM_DAY && ST.custom!==custom)) return;
-  completeSession(); closeWorkout();
+  if(completeSession()) closeWorkout(); else woRender();
 }
 
 /* O que vem a seguir ao descanso: a próxima série (com a carga prevista) ou o próximo exercício. */
@@ -183,6 +184,7 @@ function woRestSync(){
     <div class="wo-rest-next">A seguir: ${nextText()}</div>`;
 }
 onTimerChange(woRestSync);
+document.addEventListener('save-state',()=>{ if(guidedOpen() && currentSession()?.state==='COMPLETED') woRender(); });
 onSessionEnd(() => timerDismiss());   /* o treino acabou: o descanso também (banner, relógio e notificação) */
 /* a sessão pode mudar por fora (ex.: pausada ao reabrir): repinta o ecrã se estiver aberto */
 function refreshWorkout(){ if(WO.day && guidedOpen()) woRender(true); }
@@ -200,6 +202,11 @@ const repsStart=r=>/^\d+(-\d+)?$/.test(String(r||''))?parseInt(r,10):'';
 let drawn=-1;   /* exercício desenhado por último */
 /* keep: repintar sem perder o que o utilizador escreveu em kg/reps, o foco nem a posição do scroll (pausa, regresso à app) */
 function woRender(keep){
+  if(currentSession()?.day===WO.day && currentSession()?.state==='COMPLETED'){
+    el('woBody').innerHTML=`<div class="wo-scroll" style="padding-top:180px"><h2>Treino concluído</h2><p>${getSaveState().pending ? 'Conclusão em memória. Usa Tentar de novo para guardar.' : 'Guardado ✓'}</p><button class="wo-main" onclick="closeWorkout()">Sair do resumo</button></div>`;
+    return;
+  }
+
   const sc=document.querySelector('.wo-scroll'), top=keep&&sc?sc.scrollTop:0;
   const fid=keep&&document.activeElement?document.activeElement.id:'';
   const draft=keep&&drawn===WO.idx&&el('wo-w')?{w:el('wo-w').value,r:el('wo-r').value}:null;

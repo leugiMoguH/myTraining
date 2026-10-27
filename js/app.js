@@ -17,8 +17,10 @@ import { render } from './ui.js';
 import { openWorkout } from './workout.js';
 import { acquireWake, syncWakeUI } from './wake.js';
 
+import { initSaveBanner } from './save-banner.js';
 /* Avisos visíveis primeiro (erros de gravação) e migração protegida por cópia verificada, antes de tudo. */
 initNotice();
+initSaveBanner();
 migrate();
 
 /* Reset semanal antes do primeiro render: a semana nova começa limpa. */

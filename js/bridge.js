@@ -29,7 +29,9 @@ import { heroStart } from './nav.js';
 import { obDiscard, obApply, obBack, obClose, obDay, obEquip, obLimit, obName, obNext, obOpen, obPick, obSet, obSkip, obUndoPlan } from './onboarding.js';
 import { closeWorkout, startWorkout, woDoSet, woFinish, woGo, woInfo, woPause, woStep, woSwap, woUndo } from './workout.js';
 
-Object.assign(window, {
+import { retrySave } from './save-banner.js';
+import { exportCopy } from './backup.js';
+Object.assign(window, { retrySave, exportCopy,
   openAbout,
   adAccept, adAlt, adDismiss, adQuick, adUndo,
   mvClose, mvDetails, mvOpen, mvWeek,

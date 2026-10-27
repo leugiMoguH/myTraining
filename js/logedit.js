@@ -14,11 +14,12 @@
    - RIR (repetições em reserva) é opcional por série: '' = sem RIR, inteiro 0–5; editar peso/reps conserva-o se não for tocado. */
 import { DAYS } from './routine.js';
 import { currentSession, isLive } from './session.js';
-import { ST, bestSet, getLog, key, nowISO, putEntry, save, todayStr, weekStartStr } from './state.js';
+import { ST, getSaveState, bestSet, getLog, key, nowISO, putEntry, save, todayStr, weekStartStr } from './state.js';
 import { validDate, validSet } from './records.js';
 
 const fail = msg => ({ ok: false, msg });
 const OK = { ok: true };
+const result = () => getSaveState().storageOk ? OK : {ok:false,applied:true,saved:false,msg:'Alteração aplicada em memória; aguarda a gravação.'};
 const entryOf = (name, date) => getLog(name).find(e => e.date === date);
 /* séries da entrada; um registo antigo ilegível (w/r inválidos) não tem série nenhuma para conservar */
 const baseSets = e => e.sets && e.sets.length ? e.sets : (validSet(e) ? [{ w: e.w, r: e.r, ts: e.ts, old: 1 }] : []);
@@ -72,10 +73,10 @@ function editSet(name, date, idx, w, r, rirIn) {
   if (!e) return fail('Registo não encontrado.');
   if (m || q.err) return fail(m || q.err);
   w = parseFloat(w); r = parseInt(r, 10);
-  if (!e.sets || !e.sets.length) { putEntry(name, { ...e, w, r }); save(); return OK; }   /* agregado: continua agregado */
+  if (!e.sets || !e.sets.length) { putEntry(name, { ...e, w, r }); save(); return result(); }   /* agregado: continua agregado */
   if (!e.sets[idx]) return fail('Série não encontrada.');
   put(name, e, e.sets.map((s, j) => j === idx ? withRir({ ...s, w, r }, q.v) : s));
-  return OK;
+  return result();
 }
 
 function addSet(name, date, w, r, rirIn) {
@@ -84,7 +85,7 @@ function addSet(name, date, w, r, rirIn) {
   w = parseFloat(w); r = parseInt(r, 10);
   const e = entryOf(name, date), sets = [...(e ? baseSets(e) : []), withRir({ w, r, ts: isoNoon(date) }, q.v)];
   put(name, e || { date, ts: isoNoon(date) }, sets);
-  return OK;
+  return result();
 }
 
 function deleteSet(name, date, idx) {
@@ -96,7 +97,7 @@ function deleteSet(name, date, idx) {
   if (isLiveSet(s)) return fail('Esta série é do treino em curso: desfaz-a no treino.');
   unmarkSlot(name, s.k, date);
   put(name, e, e.sets.filter((_, j) => j !== idx));
-  return OK;
+  return result();
 }
 
 function deleteEntry(name, date) {
@@ -107,21 +108,21 @@ function deleteEntry(name, date) {
   sets.forEach(s => unmarkSlot(name, s.k, date));
   drop(name, date);
   save();
-  return OK;
+  return result();
 }
 
 function moveEntry(name, from, to) {
   const e = entryOf(name, from), m = checkDate(to);
   if (!e) return fail('Registo não encontrado.');
   if (m) return fail(m);
-  if (from === to) return OK;
+  if (from === to) return result();
   const sets = baseSets(e);
   if (e.c) return fail('Treino personalizado: a data não se muda.');
   if (sets.some(isLiveSet)) return fail('Este dia tem séries do treino em curso.');
   if (sets.some(s => s.k) && (from >= weekStartStr() || to >= weekStartStr())) return fail('Séries marcadas nesta semana: a data só muda depois da semana acabar.');
   const t = entryOf(name, to);
   if (t && t.c) return fail('Esse dia é de um treino personalizado.');
-  if (!t && !(e.sets && e.sets.length)) { drop(name, from); putEntry(name, { ...e, date: to }); save(); return OK; }   /* agregado sozinho: continua agregado */
+  if (!t && !(e.sets && e.sets.length)) { drop(name, from); putEntry(name, { ...e, date: to }); save(); return result(); }   /* agregado sozinho: continua agregado */
   const have = t ? baseSets(t) : [];
   /* as séries saem da origem, por isso não há duplicados a evitar; ordem cronológica por ts (a última série conta
      para a progressão Greyskull), e sem ts completos fica destino + origem */
@@ -129,7 +130,7 @@ function moveEntry(name, from, to) {
   const merged = stamp.every(Number.isFinite) ? all.map((s, i) => [s, stamp[i], i]).sort((x, y) => x[1] - y[1] || x[2] - y[2]).map(x => x[0]) : all;
   drop(name, from);
   put(name, t || { ...e, date: to }, merged);
-  return OK;
+  return result();
 }
 
 export { RIR_MAX, editSet, addSet, deleteSet, deleteEntry, moveEntry, checkDate };

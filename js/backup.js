@@ -30,6 +30,16 @@ function exportBackup(){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
+function exportCopy(){
+  try {
+    const blob=new Blob([JSON.stringify(ST,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download=`treino-copia-recuperacao-${todayStr()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  } catch (_) { show('Não foi possível exportar a cópia de recuperação.', 'error'); }
+}
+
 let importOperation=0;
 async function importBackup(e){
   const input=e.target, file=input.files && input.files[0], operation=++importOperation;
@@ -99,7 +109,7 @@ async function importBackup(e){
       if(p && typeof p.rest_sec==='number') setRest(p.rest_sec);
       const migration=migrate();   /* ids, onb e meta também para backups antigos */
       if(migration.error || migration.saved===false || !save()) throw new Error(migration.error || 'Não foi possível guardar o backup.');
-      } catch(err) { setST(previous); setRest(previousRest); save(); throw err; }
+      } catch(err) { setST(previous); setRest(previousRest); save({rolledBack:true}); throw err; }
       ensureMotiv();
       clearDrafts();
       timerDismiss();
@@ -143,4 +153,4 @@ function exportLoadCSV(){
   csvDownload(`cargas-${todayStr()}.csv`, rows); closeSheet();
 }
 
-export { openSheet, closeSheet, exportBackup, importBackup, csvCell, csvDownload, exportMeasuresCSV, exportIntakeCSV, exportLoadCSV };
+export { exportCopy, openSheet, closeSheet, exportBackup, importBackup, csvCell, csvDownload, exportMeasuresCSV, exportIntakeCSV, exportLoadCSV };

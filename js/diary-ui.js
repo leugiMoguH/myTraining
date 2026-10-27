@@ -174,7 +174,7 @@ function commit(remove) {
     if(entry?.fid) ST.foodRecent=[entry.fid,...(ST.foodRecent || []).filter(id=>id!==entry.fid)].slice(0,12);
     const valid=validateIntakeList(ST.intake), customValid=validateCustomFoods(ST.foodsCustom);
     if(!valid.ok || !customValid.ok) throw Error(valid.reason || customValid.reason);
-    if(!save()) throw Error('Não foi possível guardar. Os dados anteriores foram repostos. Tenta de novo.');
+    if(!save({rolledBack:true})) throw Error('Não foi possível guardar. Os dados anteriores foram repostos. Tenta de novo.');
     repaint(); closeSheet();
     if(remove) document.dispatchEvent(new CustomEvent('app-notice',{detail:{msg:`«${e.name}» removido do diário.`,kind:'info'}}));
   } catch(err) {

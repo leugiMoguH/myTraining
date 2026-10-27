@@ -49,7 +49,9 @@
     "test:b6b": "node scripts/evolucao-b6-test.mjs",
     "test:consist": "node scripts/consistencia-b7-test.mjs",
     "test:sobre": "node scripts/sobre-b7-test.mjs",
-    "test:data": "node scripts/history-test.mjs && node scripts/muscle-test.mjs"
+    "test:data": "node scripts/history-test.mjs && node scripts/muscle-test.mjs",
+    "test:save-state": "node scripts/save-state-test.mjs",
+    "test:storage-ui": "node scripts/storage-ui-test.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.1.0",

@@ -59,7 +59,7 @@ function restoreSnapshot(which = 'snap') {
   const prev = ST;
   setST(slot.state);
   ensureWeek();   /* uma cópia de outra semana não pode trazer marcas e treinos "feitos" dessa semana */
-  if (!save()) { setST(prev); return { ok: false, error: 'Não foi possível guardar o estado reposto. Nada foi alterado.' }; }
+  if (!save({rolledBack:true})) { setST(prev); return { ok: false, error: 'Não foi possível guardar o estado reposto. Nada foi alterado.' }; }
   return { ok: true, counts: countsOf(slot.state) };
 }
 

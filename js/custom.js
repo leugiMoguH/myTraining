@@ -27,7 +27,7 @@ import { groupSummary, muscleStats } from './muscles.js';
 import { EQUIPMENT, GROUPS, keyOf, recency, suggest } from './suggest.js';
 import { replaceCurrent, slotToReplace } from './schedule.js';
 import { endSessionOf, liveDay } from './session.js';
-import { ST, esc, getLog, getSets, save, setST, todayStr } from './state.js';
+import { ST, getSaveState, esc, getLog, getSets, save, setST, todayStr } from './state.js';
 import { buildCard, refreshProgress, render } from './ui.js';
 
 /* Escolha em curso no ecrã de músculos. Não se guarda: abandonar não deixa rasto. */
@@ -164,7 +164,7 @@ async function cuFinish(ask = false, sessionId = null) {
   const count=()=>c.ex.reduce((n,_,i)=>n+getSets(CUSTOM_DAY,i).length,0);
   const empty=!count();
   if(empty || ask){
-    if(!await confirmDialog({title:empty?'Descartar personalizado':'Terminar treino', message:empty?'Nenhuma série marcada. Descartar este treino personalizado?':'Terminar o treino? Fica guardado no histórico.', confirmLabel:empty?'Descartar':'Terminar', danger:empty})) return false;
+    if(!await confirmDialog({title:empty?'Descartar personalizado':'Terminar treino', message:empty?'Nenhuma série marcada. Descartar este treino personalizado?':'Terminar o treino?', confirmLabel:empty?'Descartar':'Terminar', danger:empty})) return false;
     if(ST.custom!==c || c.stage==='done' || (sessionId && ST.session?.id!==sessionId) || (empty && count())) return false;
     if(empty) return cuDiscard(true);
   }
@@ -181,7 +181,7 @@ async function cuFinish(ask = false, sessionId = null) {
   endSessionOf(CUSTOM_DAY, true);   /* a sessão guiada não fica a correr depois de concluir */
   render('__pers');
   if (saved && !guided) document.dispatchEvent(new CustomEvent('training-done', { detail: { id } }));   /* sem sessão guiada: celebra pela entrada de ST.sessions */
-  return true;
+  return saved && getSaveState().storageOk;
 }
 
 /* Treino rápido/retoma: fecha o dia ORIGINAL como «reduzido» (só se a semana e o plano ainda são os mesmos, ver finishQuick),
@@ -194,7 +194,7 @@ function finishQuickWorkout(c, sets) {
   ST.sessions = [...ST.sessions, { id, date: c.date, kind: 'quick', label: c.label, muscles: [], ex, sets, ...(sid ? { sid } : {}), quick: { ...c.quick, closed: from || null } }].slice(-200);
   clearCustomProgress();
   ST.custom = { ...c, stage: 'done', sets, replaced: null, closedDay: from || null };
-  if (!save()) { setST(JSON.parse(prev)); return false; }
+  if (!save({rolledBack:true})) { setST(JSON.parse(prev)); return false; }
   endSessionOf(CUSTOM_DAY, true);
   render('__pers');
   if (!guided) document.dispatchEvent(new CustomEvent('training-done', { detail: { id } }));
@@ -322,7 +322,7 @@ function renderDone(content, c) {
     <div class="rest-emoji">🎉</div>
     <div class="rest-title">${c.quick ? (c.quick.mode === 'retoma' ? 'Retoma concluída' : 'Treino rápido concluído') : 'Treino personalizado concluído'}</div>
     <div class="rest-sub">${esc(c.label)} · ${c.ex.length} exercício${c.ex.length === 1 ? '' : 's'} · ${c.sets || 0} séries.
-      ${c.quick ? `Ficou no histórico como treino reduzido. ${c.closedDay ? `O treino de <b>${esc(c.closedDay)}</b> conta como feito (reduzido).` : 'Não alterou o calendário.'}` : 'Ficou no histórico como personalizado. '}${c.quick ? '' : c.replaced
+      ${!getSaveState().storageOk ? 'Conclusão em memória; aguarda a gravação. ' : c.quick ? `Ficou no histórico como treino reduzido. ${c.closedDay ? `O treino de <b>${esc(c.closedDay)}</b> conta como feito (reduzido).` : 'Não alterou o calendário.'}` : 'Ficou no histórico como personalizado. '}${c.quick ? '' : c.replaced
         ? `Ocupou o lugar de <b>${esc(c.replaced)}</b>; o resto da semana segue igual.`
         : 'Não ocupou nenhum treino do plano.'}</div>
     <button class="start-wo btn-primary" onclick="cuHome()">← Voltar a Hoje</button>

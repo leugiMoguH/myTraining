@@ -17,8 +17,8 @@ const server=createServer((req,res)=>{
  const f=join(root,path||'index.html');
  if(!existsSync(f)){res.writeHead(404).end();return;}
  let body=readFileSync(f);
- if(old&&['sw.js','js/version.js'].includes(path))body=Buffer.from(body.toString().replaceAll('treino-v53','treino-v46'));
- if(remoteMismatch&&path==='sw.js'&&u.search)body=Buffer.from(body.toString().replaceAll('treino-v53','treino-v54'));
+ if(old&&['sw.js','js/version.js'].includes(path))body=Buffer.from(body.toString().replaceAll('treino-v54','treino-v46'));
+ if(remoteMismatch&&path==='sw.js'&&u.search)body=Buffer.from(body.toString().replaceAll('treino-v54','treino-v55'));
  const etag='"'+createHash('sha256').update(body).digest('hex')+'"';
  res.setHeader('ETag',etag);res.setHeader('Cache-Control','max-age=600');
  res.setHeader('Content-Type',({'.js':'text/javascript','.html':'text/html','.json':'application/json','.svg':'image/svg+xml'})[extname(f)]||'application/octet-stream');
@@ -77,7 +77,7 @@ try {
   page.waitForEvent('load',{timeout:20000}),
   page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')))
  ]);
- await page.waitForFunction(async()=> (await caches.keys()).length===1&&(await caches.keys())[0]==='treino-v53');
+ await page.waitForFunction(async()=> (await caches.keys()).length===1&&(await caches.keys())[0]==='treino-v54');
  assert.equal(await page.evaluate(()=>sessionStorage.getItem('version-controllerchange')),'sim');
  await about(page);await coherent(page);
  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.treino_v2).versionMarker),'preservado');
@@ -102,7 +102,7 @@ try {
  assert.equal(await retry(()=>page.evaluate(()=>sessionStorage.getItem('version-caches'))),'[]');
  await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
  assert.equal(await retry(()=>page.evaluate(()=>JSON.parse(localStorage.treino_v2).versionMarker)),'preservado');
- await page.waitForFunction(()=>document.getElementById('appVersionLabel').textContent.includes('treino-v53'),null,{timeout:20000});
+ await page.waitForFunction(()=>document.getElementById('appVersionLabel').textContent.includes('treino-v54'),null,{timeout:20000});
  await about(page);await coherent(page);await ctx.close();
  assert.deepEqual(errors,[]);
  console.log('OK - versões, Mais claro/escuro, foco/Esc, atualização Pages v46 -> v50 e reposição com dados preservados; sem erros de consola.');

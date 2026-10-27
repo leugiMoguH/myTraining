@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {canonicalStringify,hashOf,pickSynced,keyHashes,classify3,applyRemote,resolveKeys,SYNCED_KEYS} from '../proto/sync/sync-core.js';
+import {createTransport} from '../proto/sync/supabase-transport.js';
+import {memory} from './sync-matrix.mjs';
+assert.equal(canonicalStringify({b:1,a:{z:2,a:3}}),'{"a":{"a":3,"z":2},"b":1}');
+assert.equal(await hashOf({a:1,b:2}),await hashOf({b:2,a:1}));
+for(const k of ['meta','view','day','hx','session','sets','done','adapt','drafts','onb','custom']) assert(!SYNCED_KEYS.includes(k));
+assert.deepEqual(pickSynced({meta:{schema:2},profile:{name:'a'}}),{profile:{name:'a'}});
+const base={profile:{name:'a'},log:{},workouts:[{id:'1'}]},hashes=await keyHashes(base);
+for(const [local,remote,want] of [[base,base,'same'],[{...base,profile:{}},base,'local'],[base,{...base,profile:{}},'remote'],[{...base,profile:{}},{...base,profile:{}},'both-same'],[{...base,profile:{}},{...base,profile:{x:1}},'conflict'],[{log:{}},{...base,profile:{}},'delete-vs-edit']]) assert.equal((await classify3(hashes,local,remote)).profile,want);
+assert.deepEqual(applyRemote({...base,view:'x'},{log:{} }),{log:{},view:'x'});
+assert.deepEqual(resolveKeys({workouts:[{id:'a'}]},{workouts:[{id:'b'}]},{workouts:'union'}).workouts,[{id:'a'},{id:'b'}]);
+for(const a of [[{},{}],[{id:'a'},{id:'a'}],[null]]) assert.throws(()=>resolveKeys({workouts:a},{workouts:[]},{workouts:'union'}));
+assert.throws(()=>resolveKeys({workouts:[{id:'a',x:1}]},{workouts:[{id:'a',x:2}]},{workouts:'union'}));
+const storage=memory();
+storage.setItem('proto_sync_session',JSON.stringify({access_token:'old',refresh_token:'refresh',expires_at:1,user:{id:'a'}}));
+let refreshes=0,calls=[];
+const t=createTransport({url:'https://fixture.invalid/',anonKey:'public-test-key',storage,now:()=>100000,fetch:async(url,opts)=>{
+  calls.push({url,opts});
+  if(url.includes('grant_type=refresh_token')) {refreshes++;return new Response(JSON.stringify({access_token:'new',refresh_token:'next',expires_in:3600,user:{id:'a'}}));}
+  return new Response('[]');
+}});
+await Promise.all([t.getRemote(),t.getRemote()]);assert.equal(refreshes,1);
+assert.equal(await t.casUpdate(2,{state:'{}'}),null);
+assert.equal(calls.at(-1).opts.headers.Prefer,'return=representation');
+assert(calls.at(-1).url.includes('rev=eq.2'));
+assert.equal(await t.findPush('id'),null);
+assert(calls.at(-1).url.includes('user_state_history'));
+assert(calls.filter(c=>c.url.includes('/rest/')).every(c=>c.opts.headers.Authorization==='Bearer new'));
+const broken=createTransport({url:'https://fixture.invalid',anonKey:'public',storage,fetch:async()=>{throw Error('network');}});
+await assert.rejects(()=>broken.getRemote(),e=>e.network===true);
+console.log('PASS: sync core canonical/hash/classify/apply/resolve + REST CAS/refresh/network');

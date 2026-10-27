@@ -1,4 +1,4 @@
-import { loadStored, persist, reconcileSaveState, getSaveState } from './save-state.js';
+import { loadStored, persist, getSaveState } from './save-state.js';
 import { confirmDialog } from './dialog.js';
 /* myTraining — módulo extraído de index.html (Fase 0). */
 import { DAYS } from './routine.js';
@@ -28,7 +28,7 @@ if(!ST.profile.height && ST.nutri && ST.nutri.profile && ST.nutri.profile.height
 
 /* ESM: um binding importado não pode ser reatribuído de fora. O import (backup.js)
    troca o objeto inteiro por aqui; os importadores veem o novo valor (live binding). */
-function setST(next) { ST = next; reconcileSaveState(); }
+function setST(next) { ST = next; }   /* não limpa «por guardar»: um rollback não pode esconder cargas só em memória; só uma gravação bem-sucedida o limpa */
 
 /* Devolve false se não gravou (quota cheia, armazenamento bloqueado) e avisa o utilizador: nunca em silêncio. */
 function save(opts) { return persist(ST, opts); }

@@ -118,7 +118,7 @@ assert.equal(state.logSet('Teste',25,8,false,'Segunda'),true);
 assert.equal(state.getSaveState().pending,true);
 assert.equal(state.ST.log.Teste[0].w,25);
 state.setST({sets:{},done:{},log:{}});
-assert.equal(state.getSaveState().pending,false);
+assert.equal(state.getSaveState().pending,true);   /* setST/rollback não esconde alterações por guardar */
 assert.equal(state.addSetLog('Teste',25,8,false,'Segunda:0','Segunda'),true);
 assert.equal(state.ST.log.Teste[0].sets.length,1);
 assert.equal(state.getSaveState().pending,true);

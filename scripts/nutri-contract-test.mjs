@@ -48,7 +48,7 @@ assert.equal(summary.sugars.position,undefined);assert.doesNotMatch(JSON.stringi
 /* Executa o import/export real com portas de I/O substituídas, sem DOM/rede. */
 const source=readFileSync(new URL('../js/backup.js',import.meta.url),'utf8').replace(/^import .*;\r?\n/gm,'').replace(/^export .*;\r?$/gm,'');
 let state={sets:{},done:{},intake:[legacy]}, replacements=0, confirmations=0, message='', csv;
-const context={validateIntakeList,validateCustomFoods,validateFoodRecent,JSON,Date,Number,Array,Object,Set,Error,
+const core=await import('../js/backup-core.js');const context={...core,validateIntakeList,validateCustomFoods,validateFoodRecent,measureStorage:async()=>({ok:false}),readBackupMeta:()=>({}),recordPrepared:async()=>{},updateBackupMeta(){},backupAdvice:async()=>null,dismissBackupAdvice(){},APP_VERSION:'test',getSaveState:()=>({storageOk:true,pending:false}),JSON,Date,Number,Array,Object,Set,Error,
  document:{getElementById:()=>({classList:{contains:()=>false}})},
  confirmDialog:async()=>{confirmations++;return true;},snapshot:()=>({ok:true}),
  setST:next=>{state=next;context.ST=next;replacements++;},ST:state,REST_SEC:60,setRest(){},

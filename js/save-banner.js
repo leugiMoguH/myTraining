@@ -11,7 +11,7 @@ function initSaveBanner() {
     if(!banner){
       banner=document.createElement('div'); banner.id='saveBanner'; banner.setAttribute('role','alert');
       banner.innerHTML='<p></p><div class="save-actions"><button onclick="retrySave()">Tentar de novo</button><button onclick="exportCopy()">Exportar cópia</button></div>';
-      const sheets=[...document.querySelectorAll('.sheet-bg.show, #infoBg.show, #onbBg.show, #mvBg.show')];
+      const sheets=[...document.querySelectorAll('.sheet-bg.show, #infoBg.show, #mvBg.show')];
       (sheets[sheets.length-1] || document.body).appendChild(banner);
     }
     banner.querySelector('p').textContent=state.loadProblem==='blocked' ? 'Dados guardados ilegíveis; não foi possível guardar uma cópia bruta. A gravação está bloqueada. Exporta uma cópia. Não feches a app.' : 'Alterações NÃO guardadas neste dispositivo. Não feches a app.';

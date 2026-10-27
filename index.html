@@ -1340,6 +1340,12 @@ body.food-sheet-open #bnav { visibility:hidden; }
 .today-top .wk-row-st, .nutri-wrap .wk-row-st, #content:has(.today-strip) .cl-st,
 .nutri-wrap .hx-k, .nutri-wrap .hx-day-h small, .nutri-wrap .mm-ex small,
 .nutri-wrap .lc-next-s, .nutri-wrap .lc-prog-t { font-size:12px; }
+#dataInfo { font-size:13px; color:var(--text); overflow-wrap:anywhere; min-width:0; }
+#dataInfo p { margin:8px 0; }
+#dataInfo #dataDetail { white-space:pre-line; }
+#dataInfo button, #dataInfo summary { min-height:44px; font-size:13px; max-width:100%; }
+#dataInfo button { background:var(--card2); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:10px; }
+#dataInfo summary { cursor:pointer; padding:12px 0; }
 </style>
 </head>
 <body>
@@ -1458,6 +1464,14 @@ body.food-sheet-open #bnav { visibility:hidden; }
     </button>
     <div class="sheet-note" id="wakeNote"></div>
     <h3 class="sheet-sub">Dados</h3>
+    <div id="dataInfo" aria-live="polite">
+      <p id="dataSize"></p><p id="dataSave"></p>
+      <p id="dataPrepared"></p><p id="dataDownload"></p><p id="dataVerified"></p>
+      <div id="dataAdvice" hidden><p id="dataAdviceText"></p><button onclick="dismissDataAdvice()">Dispensar</button></div>
+      <button onclick="document.getElementById('verifyBackupInput').click()">Verificar um backup</button>
+      <input id="verifyBackupInput" type="file" accept=".json,application/json" hidden onchange="verifyBackupFile(event)">
+      <details><summary>Ver detalhe</summary><p id="dataDetail"></p><button onclick="exportCopy()">Exportar cópia de recuperação</button></details>
+    </div>
     <button class="sheet-item" onclick="exportBackup()">
       <span>⬇️ Exportar backup de tudo (.json)</span><span class="sheet-arrow">›</span>
     </button>

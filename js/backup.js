@@ -1,3 +1,6 @@
+import { buildBackup, validateBackupState, verifyBackupText } from './backup-core.js';
+import { APP_VERSION } from './version.js';
+import { getSaveState } from './save-state.js';
 import { validateIntakeList, validateCustomFoods, validateFoodRecent } from './foods.js';
 import { closeOverlay, openOverlay } from './overlay.js';
 import { confirmDialog } from './dialog.js';
@@ -15,19 +18,56 @@ import { syncWakeUI } from './wake.js';
 import { ensureMotiv, validateMotivState } from './motiv.js';
 import { validateAdaptState } from './adapt.js';
 import { validateClassState } from './classes.js';
+import { measureStorage, readBackupMeta, recordPrepared, updateBackupMeta, backupAdvice, dismissBackupAdvice } from './storage-health.js';
+const backupValidators={validateIntakeList,validateCustomFoods,validateFoodRecent,validateClassState,validateAdaptState,validateMotivState};
 
 /* ═══════════════ DEFINIÇÕES / BACKUP ════════════════ */
-function openSheet(){ syncWakeUI(); syncNotifUI(); openOverlay(document.getElementById('sheetBg'),{onClose:closeSheet}); }
+function openSheet(){ void renderDataInfo(); syncWakeUI(); syncNotifUI(); openOverlay(document.getElementById('sheetBg'),{onClose:closeSheet}); }
 function closeSheet(){ closeOverlay(document.getElementById('sheetBg')); }
 
-function exportBackup(){
-  const payload={ app:'treino', v:2, exportedAt:new Date().toISOString(), rest_sec:REST_SEC, state:ST };
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=`treino-backup-${todayStr()}.json`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
+async function exportBackup(){
+  try {
+    const result=await buildBackup(ST,{rest_sec:REST_SEC,appVersion:APP_VERSION,validators:backupValidators});
+    if(!result.ok) throw Error(result.reason);
+    const rehearsal=await verifyBackupText(result.text,backupValidators);
+    if(!rehearsal.ok) throw Error(rehearsal.reason);
+    await recordPrepared(result.payload);
+    const preparedMessage=`Cópia preparada e verificada (${result.payload.counts.workouts} treinos, ${result.payload.counts.intake} refeições).`;
+    show(preparedMessage,'ok');
+    const blob=new Blob([result.text],{type:'application/json'}), url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`treino-backup-${todayStr()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    updateBackupMeta({downloadAt:new Date().toISOString()});
+    show(preparedMessage+'\nDescarregamento iniciado — confirma o ficheiro em Transferências e guarda-o FORA do telemóvel','info');
+    void renderDataInfo();
+  } catch(e) { show('Não foi possível preparar a cópia: '+e.message+' Usa Exportar cópia de recuperação em Mais / Dados.','error'); }
+}
+async function verifyBackupFile(event){
+  const input=event.target, file=input.files?.[0];
+  if(!file) return;
+  try {
+    const result=await verifyBackupText(await file.text(),backupValidators);
+    if(!result.ok) throw Error(result.reason);
+    updateBackupMeta({verifiedAt:new Date().toISOString()});
+    show(`Backup verificado: ${result.counts.workouts} treinos, ${result.counts.intake} refeições; ${result.reason}`,'ok');
+    void renderDataInfo();
+  } catch(e) { show('Não foi possível verificar: '+e.message,'error'); }
+  finally { input.value=''; }
+}
+async function dismissDataAdvice(){ dismissBackupAdvice(); await renderDataInfo(); }
+async function renderDataInfo(){
+  const el=document.getElementById('dataInfo'); if(!el) return;
+  const health=await measureStorage(), meta=readBackupMeta(), advice=await backupAdvice();
+  const put=(id,text)=>{const node=document.getElementById(id);if(node) node.textContent=text;};
+  put('dataSize',health.ok ? `Dados guardados: ~${(health.total.bytes/1024).toFixed(1)} KB (${health.counts.workouts} treinos, ${health.counts.sessions} sessões, ${health.counts.intake} refeições)`:'Armazenamento indisponível; dados em memória.');
+  const status=getSaveState();
+  put('dataSave',status.pending || !status.storageOk ? 'Há alterações por guardar':'Tudo guardado');
+  for(const [id,key,label] of [['dataPrepared','preparedAt','Preparado em'],['dataDownload','downloadAt','Descarregamento iniciado em'],['dataVerified','verifiedAt','Verificado em']]) put(id,meta[key]?`${label} ${new Date(meta[key]).toLocaleString('pt-PT')}`:`${label}: ainda sem backup`);
+  put('dataAdviceText',advice?.text||'');
+  document.getElementById('dataAdvice').hidden=!advice;
+  put('dataDetail',health.ok ? Object.entries(health.groups).map(([k,v])=>`${k}: ${(v.bytes/1024).toFixed(1)} KB`).join('\n')+`\nQuota estimada pelo navegador: ${health.estimate?.quota ? (health.estimate.quota/1024/1024).toFixed(1)+' MB':'indisponível'}; utilização estimada: ${health.estimate?.usage ?? 'indisponível'} bytes.\nO limite real do localStorage não é conhecido.`:'O limite real do localStorage não é conhecido.');
 }
 
 function exportCopy(){
@@ -53,39 +93,11 @@ async function importBackup(e){
       if(operation!==importOperation || input.files[0]!==file || before!==signature()) return;
       const p=JSON.parse(raw);
       const incoming=(p && typeof p==='object' && p.state) ? p.state : p;
-      const isObj=o=>!!o && typeof o==='object' && !Array.isArray(o);
-      if(!isObj(incoming) || !isObj(incoming.sets) || !isObj(incoming.done))
-        throw new Error('estrutura inválida');
-      // Campos ausentes continuam compativeis com copias antigas; tipos presentes devem ser validos.
-      const optional=(key,valid)=>incoming[key]===undefined || valid(incoming[key]);
-      const records=a=>Array.isArray(a) && a.every(isObj);
-      const validLog=o=>isObj(o) && Object.values(o).every(a=>records(a) && a.every(e=>e.sets===undefined || records(e.sets)));
-      if(!Object.values(incoming.sets).every(Array.isArray) ||
-         !optional('log',validLog) || !optional('workouts',records) || !optional('measures',records) ||
-         !optional('sessions',records) || !optional('intake',records) ||
-         !['profile','prefs','media','nutri'].every(k=>optional(k,isObj)) ||
-         !optional('routine',o=>o===null || isObj(o) && Object.values(o).every(d=>isObj(d) && records(d.ex))))
-        throw new Error('estrutura interna invalida');
-      for (const result of [validateIntakeList(incoming.intake), validateCustomFoods(incoming.foodsCustom), validateFoodRecent(incoming.foodRecent)]) {
-        if (!result.ok) throw new Error(result.reason);
-      }
-      if(!validateClassState(incoming.classes, incoming.classLog).ok) throw new Error('estrutura interna invalida');
-      if (!validateAdaptState(incoming.adapt).ok) throw new Error('estrutura interna invalida');
+      const checked=validateBackupState(incoming,backupValidators);
+      if(!checked.ok) throw Error(checked.reason);
+      const verified=await verifyBackupText(raw,backupValidators);
+      if(!verified.ok) throw Error(verified.reason);
       if(incoming.motiv!==undefined&&!validateMotivState(incoming.motiv).ok) delete incoming.motiv;
-      const civilDate = value => {
-        if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-        const d = new Date(`${value}T12:00:00`);
-        return !isNaN(d) && d.getFullYear() === +value.slice(0, 4) && d.getMonth() + 1 === +value.slice(5, 7) && d.getDate() === +value.slice(8, 10);
-      };
-      const safe = value => typeof value === 'string' && /^[A-Za-z0-9_À-ÿ -]{1,64}$/.test(value);
-      const quick = incoming.custom?.quick;
-      if (incoming.sched?.quick !== undefined && (!isObj(incoming.sched.quick) ||
-          Object.entries(incoming.sched.quick).some(([day, date]) => !safe(day) || !civilDate(date)))) throw new Error('estrutura interna invalida');
-      if (quick !== undefined && (!isObj(quick) || !safe(quick.from) || !['quick', 'retoma'].includes(quick.mode) ||
-          !/^[A-Za-z0-9_-]{1,64}$/.test(quick.dayId || '') || !(quick.planId === '' || /^[A-Za-z0-9_-]{1,64}$/.test(quick.planId || '')) ||
-          !/^\d{4}-W\d{2}$/.test(quick.wk || '') || !civilDate(quick.date) ||
-          !['plannedEx', 'plannedSets', 'estMin'].every(k => Number.isFinite(quick[k]) && quick[k] >= 0))) throw new Error('estrutura interna invalida');
-      if (incoming.session?.quick !== undefined && !['quick', 'retoma'].includes(incoming.session.quick)) throw new Error('estrutura interna invalida');
       // Recusar enquanto o guiado está aberto evita referências WO/descanso antigas.
       if(guided()){ show('Sai do treino guiado antes de importar uma cópia.', 'info'); return; }
       if(!await confirmDialog({title:'Importar backup', message:'Importar substitui o progresso atual. Continuar?', danger:true, confirmLabel:'Importar'})) return;
@@ -153,4 +165,4 @@ function exportLoadCSV(){
   csvDownload(`cargas-${todayStr()}.csv`, rows); closeSheet();
 }
 
-export { exportCopy, openSheet, closeSheet, exportBackup, importBackup, csvCell, csvDownload, exportMeasuresCSV, exportIntakeCSV, exportLoadCSV };
+export { verifyBackupFile, dismissDataAdvice, exportCopy, openSheet, closeSheet, exportBackup, importBackup, csvCell, csvDownload, exportMeasuresCSV, exportIntakeCSV, exportLoadCSV };

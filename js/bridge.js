@@ -4,7 +4,7 @@ import { setThemePref } from './theme.js';
 /* myTraining — ponte para os handlers inline (onclick="...") do HTML.
    Em ES modules nada é global: sem isto TODOS os botões falham em silêncio.
    Regra: um handler novo usado num atributo inline tem de ser acrescentado aqui. */
-import { closeSheet, exportBackup, exportIntakeCSV, exportLoadCSV, exportMeasuresCSV, importBackup, openSheet } from './backup.js';
+import { verifyBackupFile, dismissDataAdvice, closeSheet, exportBackup, exportIntakeCSV, exportLoadCSV, exportMeasuresCSV, importBackup, openSheet } from './backup.js';
 import { adAccept, adAlt, adDismiss, adQuick, adUndo } from './adapt-ui.js';
 import { mvClose, mvDetails, mvOpen, mvWeek } from './motiv-ui.js';
 import { clClose, clConflict, clDelete, clKeep, clMark, clMoveStep, clMoveTo, clMoveWeek, clMovePerm, clPast, clPastSet, clPastSave, clOpen, clReopen, clReplace, clSave, clSet, clText } from './classes-ui.js';
@@ -31,7 +31,7 @@ import { closeWorkout, startWorkout, woDoSet, woFinish, woGo, woInfo, woPause, w
 
 import { retrySave } from './save-banner.js';
 import { exportCopy } from './backup.js';
-Object.assign(window, { retrySave, exportCopy,
+Object.assign(window, { verifyBackupFile, dismissDataAdvice, retrySave, exportCopy,
   openAbout,
   adAccept, adAlt, adDismiss, adQuick, adUndo,
   mvClose, mvDetails, mvOpen, mvWeek,

@@ -66,6 +66,5 @@ function persist(state, {rolledBack=false}={}) {
     return true;
   } catch (_) { return failure(rolledBack); }
 }
-function reconcileSaveState() { change({pending:false,since:null}); }
 function announceLoadProblem() { noticesReady=true; if(initialNotice) { notice(initialNotice); initialNotice=''; } }
-export { loadStored, persist, reconcileSaveState, getSaveState, announceLoadProblem };
+export { loadStored, persist, getSaveState, announceLoadProblem };

@@ -50,6 +50,7 @@
     "test:consist": "node scripts/consistencia-b7-test.mjs",
     "test:sobre": "node scripts/sobre-b7-test.mjs",
     "test:data": "node scripts/history-test.mjs && node scripts/muscle-test.mjs",
+    "test:storage-core": "node scripts/storage-core-test.mjs",
     "test:save-state": "node scripts/save-state-test.mjs",
     "test:storage-ui": "node scripts/storage-ui-test.mjs"
   },

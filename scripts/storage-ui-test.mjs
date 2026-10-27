@@ -52,6 +52,38 @@ try {
     assert.equal(await banner.count(),0);
     await page.reload({waitUntil:'networkidle'});
     assert.deepEqual(dialogs,[]);assert.deepEqual(errors,[]);
+    // Block 2: data panel and restore rehearsal. Do not apply imported state.
+    await page.evaluate(()=>window.openSheet());
+    await page.waitForFunction(()=>document.querySelector('#dataSize').textContent.length>0);
+    assert.equal(await page.locator('#sheetBg .sheet-item').count(),11);
+    assert.equal(await page.locator('#dataInfo details').getAttribute('open'),null);
+    await page.locator('#dataInfo summary').click();
+    assert(await page.locator('#dataInfo').evaluate(e=>e.scrollWidth<=e.clientWidth));
+    assert(await page.locator('#dataInfo').evaluate(root=>[...root.querySelectorAll('*')].filter(e=>e.checkVisibility()&&[...e.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())).every(e=>parseFloat(getComputedStyle(e).fontSize)>=12)));
+    assert(await page.locator('#dataInfo button').evaluateAll(es=>es.filter(e=>e.checkVisibility()).every(e=>e.getBoundingClientRect().height>=44)));
+    await page.evaluate(async()=>{const {ST,save}=await import('./js/state.js');ST.measures=[{date:'2026-10-20',weight:80}];save();});
+    const preparedDownload=page.waitForEvent('download');
+    await page.evaluate(()=>window.exportBackup());
+    const backup=readFileSync(await (await preparedDownload).path(),'utf8');
+    const payload=JSON.parse(backup);assert(payload.checksum&&payload.counts);
+    assert((await page.locator('#notice').innerText()).includes('preparada e verificada'));
+    const original=await page.evaluate(async()=>JSON.stringify((await import('./js/state.js')).ST));
+    await page.locator('#verifyBackupInput').setInputFiles({name:'good.json',mimeType:'application/json',buffer:Buffer.from(backup)});
+    await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('Backup verificado:'));
+    assert.equal(await page.evaluate(async()=>JSON.stringify((await import('./js/state.js')).ST)),original);
+    const verifiedAt=await page.evaluate(()=>JSON.parse(localStorage.getItem('treino_backup_meta')).verifiedAt);
+    payload.state.profile.test='changed';
+    await page.locator('#verifyBackupInput').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(payload))});
+    await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('Selo incorreto'));
+    assert.equal(await page.evaluate(async()=>JSON.stringify((await import('./js/state.js')).ST)),original);
+    assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('treino_backup_meta')).verifiedAt),verifiedAt);
+    await page.evaluate(()=>{window.metaSet=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k==='treino_backup_meta')throw Error('metadata blocked');return window.metaSet.call(this,k,v);};});
+    const noMetaDownload=page.waitForEvent('download');await page.evaluate(()=>window.exportBackup());
+    assert.match((await noMetaDownload).suggestedFilename(),/^treino-backup-/);
+    await page.evaluate(()=>{Storage.prototype.setItem=window.metaSet;window.storageGet=Storage.prototype.getItem;Storage.prototype.getItem=function(){throw Error('blocked');};window.closeSheet();window.openSheet();});
+    await page.waitForFunction(()=>document.querySelector('#dataSize').textContent.includes('indispon'));
+    assert(await page.locator('#dataInfo').isVisible());
+    await page.evaluate(()=>{Storage.prototype.getItem=window.storageGet;});
     await ctx.close();
   }
   console.log('OK — storage banner, themes, guided, overlays, retry, export and unload');

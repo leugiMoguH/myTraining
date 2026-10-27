@@ -19,6 +19,8 @@ const CORE = [
   './js/ids.js',
   './js/migrate.js',
   './js/notice.js',
+  './js/backup-core.js',
+  './js/storage-health.js',
   './js/save-state.js',
   './js/save-banner.js',
   './js/dialog.js',
